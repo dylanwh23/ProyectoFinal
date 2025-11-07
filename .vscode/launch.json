@@ -1,0 +1,51 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // Configuración para el Interceptor Telnet
+    {
+      "name": "Launch TelnetInterceptor.Worker",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/TelnetInterceptor.Worker/bin/Debug/net8.0/TelnetInterceptor.Worker.dll",
+      "cwd": "${workspaceFolder}/src/TelnetInterceptor.Worker",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    // Configuración para el Streamer de Imágenes
+    {
+      "name": "Launch ImageStreamer.Api",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/ImageStreamer.Api/bin/Debug/net8.0/ImageStreamer.Api.dll",
+      "cwd": "${workspaceFolder}/src/ImageStreamer.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    },
+    // Configuración para el Procesador de Eventos
+    {
+      "name": "Launch EventProcessor.Worker",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/EventProcessor.Worker/bin/Debug/net8.0/EventProcessor.Worker.dll",
+      "cwd": "${workspaceFolder}/src/EventProcessor.Worker",
+      "stopAtEntry": false,
+      "console": "internalConsole"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Launch ALL Services",
+      "configurations": [
+        "Launch TelnetInterceptor.Worker",
+        "Launch ImageStreamer.Api",
+        "Launch EventProcessor.Worker"
+      ]
+    }
+  ]
+}

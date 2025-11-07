@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "3a93emZo5GYWHBZj6rEXSJ3Lj3AE1sN6I1AtzO6BvgE=",
+  "Source": "ImageStreamer.Api",
+  "BasePath": "_content/ImageStreamer.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}
