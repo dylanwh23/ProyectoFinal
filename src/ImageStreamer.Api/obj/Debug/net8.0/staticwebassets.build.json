@@ -1,1 +1,58 @@
-{"Version":1,"Hash":"N8+XQGOMTtg4aDNk6rZsAXlVkz3d8n/JCcqLXJmCXVA=","Source":"ImageStreamer.Api","BasePath":"_content/ImageStreamer.Api","Mode":"Default","ManifestType":"Build","ReferencedProjectsConfiguration":[],"DiscoveryPatterns":[{"Name":"ImageStreamer.Api\\wwwroot","Source":"ImageStreamer.Api","ContentRoot":"C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\","BasePath":"_content/ImageStreamer.Api","Pattern":"**"}],"Assets":[{"Identity":"C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\app.js","SourceId":"ImageStreamer.Api","SourceType":"Discovered","ContentRoot":"C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\","BasePath":"_content/ImageStreamer.Api","RelativePath":"app#[.{fingerprint}]?.js","AssetKind":"All","AssetMode":"All","AssetRole":"Primary","AssetMergeBehavior":"","AssetMergeSource":"","RelatedAsset":"","AssetTraitName":"","AssetTraitValue":"","Fingerprint":"lpyjvtve82","Integrity":"h0b4wJaT1hWlIl/B32/LMWp0+HCx7Bw2kJBNp3Tqg54=","CopyToOutputDirectory":"Never","CopyToPublishDirectory":"PreserveNewest","OriginalItemSpec":"wwwroot\\app.js","FileLength":4856,"LastWriteTime":"2025-11-09T03:10:07+00:00"},{"Identity":"C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\index.html","SourceId":"ImageStreamer.Api","SourceType":"Discovered","ContentRoot":"C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\","BasePath":"_content/ImageStreamer.Api","RelativePath":"index#[.{fingerprint}]?.html","AssetKind":"All","AssetMode":"All","AssetRole":"Primary","AssetMergeBehavior":"","AssetMergeSource":"","RelatedAsset":"","AssetTraitName":"","AssetTraitValue":"","Fingerprint":"uz0417q5of","Integrity":"CtspDWc3mbR+jiS7IZIeb81txWGwO4qSqJ+EGzTBnro=","CopyToOutputDirectory":"Never","CopyToPublishDirectory":"PreserveNewest","OriginalItemSpec":"wwwroot\\index.html","FileLength":2167,"LastWriteTime":"2025-11-09T03:07:15+00:00"}],"Endpoints":[{"Route":"app.js","AssetFile":"C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\app.js","Selectors":[],"ResponseHeaders":[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Content-Length","Value":"4856"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\"h0b4wJaT1hWlIl/B32/LMWp0+HCx7Bw2kJBNp3Tqg54=\""},{"Name":"Last-Modified","Value":"Sun, 09 Nov 2025 03:10:07 GMT"},{"Name":"Cache-Control","Value":"no-cache"}],"EndpointProperties":[{"Name":"integrity","Value":"sha256-h0b4wJaT1hWlIl/B32/LMWp0+HCx7Bw2kJBNp3Tqg54="}]},{"Route":"app.lpyjvtve82.js","AssetFile":"C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\app.js","Selectors":[],"ResponseHeaders":[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Content-Length","Value":"4856"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\"h0b4wJaT1hWlIl/B32/LMWp0+HCx7Bw2kJBNp3Tqg54=\""},{"Name":"Last-Modified","Value":"Sun, 09 Nov 2025 03:10:07 GMT"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"}],"EndpointProperties":[{"Name":"fingerprint","Value":"lpyjvtve82"},{"Name":"label","Value":"app.js"},{"Name":"integrity","Value":"sha256-h0b4wJaT1hWlIl/B32/LMWp0+HCx7Bw2kJBNp3Tqg54="}]},{"Route":"index.html","AssetFile":"C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\index.html","Selectors":[],"ResponseHeaders":[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Content-Length","Value":"2167"},{"Name":"Content-Type","Value":"text/html"},{"Name":"ETag","Value":"\"CtspDWc3mbR+jiS7IZIeb81txWGwO4qSqJ+EGzTBnro=\""},{"Name":"Last-Modified","Value":"Sun, 09 Nov 2025 03:07:15 GMT"},{"Name":"Cache-Control","Value":"no-cache"}],"EndpointProperties":[{"Name":"integrity","Value":"sha256-CtspDWc3mbR+jiS7IZIeb81txWGwO4qSqJ+EGzTBnro="}]},{"Route":"index.uz0417q5of.html","AssetFile":"C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\index.html","Selectors":[],"ResponseHeaders":[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Content-Length","Value":"2167"},{"Name":"Content-Type","Value":"text/html"},{"Name":"ETag","Value":"\"CtspDWc3mbR+jiS7IZIeb81txWGwO4qSqJ+EGzTBnro=\""},{"Name":"Last-Modified","Value":"Sun, 09 Nov 2025 03:07:15 GMT"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"}],"EndpointProperties":[{"Name":"fingerprint","Value":"uz0417q5of"},{"Name":"label","Value":"index.html"},{"Name":"integrity","Value":"sha256-CtspDWc3mbR+jiS7IZIeb81txWGwO4qSqJ+EGzTBnro="}]}]}
+{
+  "Version": 1,
+  "Hash": "KxY/NY2ATZo5r93vZ/HCKPqtYZ5n6U98Cj8H/IgIw0w=",
+  "Source": "ImageStreamer.Api",
+  "BasePath": "_content/ImageStreamer.Api",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "ImageStreamer.Api\\wwwroot",
+      "Source": "ImageStreamer.Api",
+      "ContentRoot": "C:\\Users\\User\\Documents\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\",
+      "BasePath": "_content/ImageStreamer.Api",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\Users\\User\\Documents\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\app.js",
+      "SourceId": "ImageStreamer.Api",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\User\\Documents\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\",
+      "BasePath": "_content/ImageStreamer.Api",
+      "RelativePath": "app.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\app.js"
+    },
+    {
+      "Identity": "C:\\Users\\User\\Documents\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\index.html",
+      "SourceId": "ImageStreamer.Api",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\User\\Documents\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\",
+      "BasePath": "_content/ImageStreamer.Api",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\index.html"
+    }
+  ]
+}

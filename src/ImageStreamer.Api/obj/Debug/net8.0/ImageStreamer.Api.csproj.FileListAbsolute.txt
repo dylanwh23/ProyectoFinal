@@ -75,3 +75,6 @@ C:\Users\rmati\source\repos\dylanwh23\ProyectoFinal\src\ImageStreamer.Api\bin\De
 C:\Users\rmati\source\repos\dylanwh23\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\libman.json
 C:\Users\rmati\source\repos\dylanwh23\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\SixLabors.ImageSharp.dll
 >>>>>>> 06e75e2a7759549da20a4f804222db505e204774
+C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\libman.json
+C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\ImageStreamer.Api.staticwebassets.runtime.json
+C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\SixLabors.ImageSharp.dll
