@@ -9,3 +9,15 @@ C:\Users\User\Documents\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shar
 C:\Users\User\Documents\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\refint\Shared.Contracts.dll
 C:\Users\User\Documents\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.pdb
 C:\Users\User\Documents\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\ref\Shared.Contracts.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\bin\Debug\net8.0\Shared.Contracts.deps.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\bin\Debug\net8.0\Shared.Contracts.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\bin\Debug\net8.0\Shared.Contracts.pdb
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.GeneratedMSBuildEditorConfig.editorconfig
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.AssemblyInfoInputs.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.AssemblyInfo.cs
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.csproj.CoreCompileInputs.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.sourcelink.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\refint\Shared.Contracts.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.pdb
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\ref\Shared.Contracts.dll

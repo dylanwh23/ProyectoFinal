@@ -5,14 +5,36 @@ services:
     image: rabbitmq:3.12-management
     container_name: rabbitmq
     ports:
-      - "5672:5672"    # AMQP protocol port
-      - "15672:15672"  # Management UI port
+      - "5672:5672"
+      - "15672:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     restart: unless-stopped
+    networks:
+      - app_network
+
+  telnet_interceptor_worker:
+    container_name: telnet_interceptor_worker
+    build:
+      # El contexto es la raíz del proyecto (donde está ProyectoFinal.sln)
+      context: . 
+      # La ruta del Dockerfile DEBE ser relativa a la raíz
+      dockerfile: src/TelnetInterceptor.Worker/Dockerfile
+      
+    ports:
+      - "49211:49211" 
+      
+    environment:
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASS=guest
+      
+    depends_on:
+      - rabbitmq
+    restart: always
     networks:
       - app_network
 

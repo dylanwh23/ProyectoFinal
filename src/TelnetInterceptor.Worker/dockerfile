@@ -1,0 +1,40 @@
+# -----------------------------------------------------------
+# STAGE 1: BUILD (Compila la aplicación)
+# -----------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Establecemos el WORKDIR en /src para mantener la estructura interna del proyecto
+WORKDIR /src
+
+# 1. Copia el archivo de la solución desde la raíz del contexto (/) al WORKDIR (/src)
+# Esto es necesario para que el dotnet restore funcione correctamente.
+# El archivo .sln se encontrará en /src/ProyectoFinal.sln
+COPY ["ProyectoFinal.sln", "ProyectoFinal.sln"] 
+
+# 2. Copia los archivos del proyecto (rutas relativas a la raíz del proyecto)
+# Copia solo los archivos .csproj para restaurar.
+COPY ["src/TelnetInterceptor.Worker/TelnetInterceptor.Worker.csproj", "src/TelnetInterceptor.Worker/"]
+COPY ["src/Shared.Contracts/Shared.Contracts.csproj", "src/Shared.Contracts/"]
+
+# 3. Restaura las dependencias (NuGet)
+# La ruta del proyecto es relativa al WORKDIR (/src).
+RUN dotnet restore "src/TelnetInterceptor.Worker/TelnetInterceptor.Worker.csproj"
+
+# 4. Copia todos los archivos restantes del proyecto
+# Copia el código fuente restante de la raíz del contexto al WORKDIR.
+COPY . .
+
+# 5. Compila y publica el proyecto en la carpeta de salida.
+# Importante: Quitamos --no-restore para forzar una restauración limpia y evitar el error de caché de Windows.
+RUN dotnet publish "src/TelnetInterceptor.Worker/TelnetInterceptor.Worker.csproj" -c Release -o /app/publish 
+
+# -----------------------------------------------------------
+# STAGE 2: FINAL (Crea la imagen final de ejecución)
+# -----------------------------------------------------------
+FROM mcr.microsoft.com/dotnet/runtime:8.0 AS final
+WORKDIR /app
+
+# Copia los binarios publicados desde la etapa 'build'
+COPY --from=build /app/publish .
+
+# Define el punto de entrada para ejecutar la aplicación Worker
+ENTRYPOINT ["dotnet", "TelnetInterceptor.Worker.dll"]
