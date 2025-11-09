@@ -48,3 +48,4 @@ C:\Users\User\Documents\ProyectoFinal\src\EventProcessor.Worker\obj\Debug\net8.0
 C:\Users\User\Documents\ProyectoFinal\src\EventProcessor.Worker\obj\Debug\net8.0\EventProcessor.Worker.pdb
 C:\Users\User\Documents\ProyectoFinal\src\EventProcessor.Worker\obj\Debug\net8.0\EventProcessor.Worker.genruntimeconfig.cache
 C:\Users\User\Documents\ProyectoFinal\src\EventProcessor.Worker\obj\Debug\net8.0\ref\EventProcessor.Worker.dll
+C:\Users\User\Documents\ProyectoFinal\src\EventProcessor.Worker\obj\Debug\net8.0\EventProcessor.Worker.sourcelink.json

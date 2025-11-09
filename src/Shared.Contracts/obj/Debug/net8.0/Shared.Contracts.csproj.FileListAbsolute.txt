@@ -9,3 +9,4 @@ C:\Users\User\Documents\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shar
 C:\Users\User\Documents\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\refint\Shared.Contracts.dll
 C:\Users\User\Documents\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.pdb
 C:\Users\User\Documents\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\ref\Shared.Contracts.dll
+C:\Users\User\Documents\ProyectoFinal\src\Shared.Contracts\obj\Debug\net8.0\Shared.Contracts.sourcelink.json

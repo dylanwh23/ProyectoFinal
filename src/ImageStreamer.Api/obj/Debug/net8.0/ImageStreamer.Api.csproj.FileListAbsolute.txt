@@ -31,3 +31,4 @@ C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ref
 C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.pdb
 C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.genruntimeconfig.cache
 C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ref\ImageStreamer.Api.dll
+C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.sourcelink.json

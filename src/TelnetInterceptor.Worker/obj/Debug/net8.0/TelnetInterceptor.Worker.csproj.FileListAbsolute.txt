@@ -48,3 +48,4 @@ C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\obj\Debug\net
 C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\obj\Debug\net8.0\TelnetInterceptor.Worker.pdb
 C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\obj\Debug\net8.0\TelnetInterceptor.Worker.genruntimeconfig.cache
 C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\obj\Debug\net8.0\ref\TelnetInterceptor.Worker.dll
+C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\obj\Debug\net8.0\TelnetInterceptor.Worker.sourcelink.json
