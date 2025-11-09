@@ -9,55 +9,57 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = Admin.Console
 build_property.RootNamespace = Admin.Console
-build_property.ProjectDir = C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\
+build_property.ProjectDir = D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 8.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\User\Documents\ProyectoFinal\src\Admin.Console
+build_property.MSBuildProjectDirectory = D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console
 build_property._RazorSourceGeneratorDebug = 
+build_property.EffectiveAnalysisLevelStyle = 8.0
+build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Components/Events.razor]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Components/Events.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xFdmVudHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-6h0ap4eaax
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Components/Log.razor]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Components/Log.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMb2cucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-wfdp7y8ga5
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Components/NewEvent.razor]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Components/NewEvent.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xOZXdFdmVudC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-efsirxeh21
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Components/Video.razor]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Components/Video.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xWaWRlby5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-mw0uhr1fvv
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Views/Home/Index.cshtml]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Views/Home/Privacy.cshtml]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Views/Home/Privacy.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Views/Shared/Error.cshtml]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Views/Shared/_ValidationScriptsPartial.cshtml]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Views/_ViewImports.cshtml]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Views/_ViewStart.cshtml]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/User/Documents/ProyectoFinal/src/Admin.Console/Views/Shared/_Layout.cshtml]
+[D:/FACULTAD ESTUDIOS/CURE/PROYECTOFINAL/ProyectoFinal/src/Admin.Console/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-8hp490ny29

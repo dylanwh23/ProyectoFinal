@@ -45,22 +45,6 @@
           }
         }
       },
-      "SixLabors.ImageSharp/3.1.12": {
-        "type": "package",
-        "compile": {
-          "lib/net6.0/SixLabors.ImageSharp.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net6.0/SixLabors.ImageSharp.dll": {
-            "related": ".xml"
-          }
-        },
-        "build": {
-          "build/SixLabors.ImageSharp.props": {}
-        }
-      },
       "Swashbuckle.AspNetCore/6.6.2": {
         "type": "package",
         "dependencies": {
@@ -388,22 +372,6 @@
         "microsoft.openapi.nuspec"
       ]
     },
-    "SixLabors.ImageSharp/3.1.12": {
-      "sha512": "iAg6zifihXEFS/t7fiHhZBGAdCp3FavsF4i2ZIDp0JfeYeDVzvmlbY1CNhhIKimaIzrzSi5M/NBFcWvZT2rB/A==",
-      "type": "package",
-      "path": "sixlabors.imagesharp/3.1.12",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "LICENSE",
-        "build/SixLabors.ImageSharp.props",
-        "lib/net6.0/SixLabors.ImageSharp.dll",
-        "lib/net6.0/SixLabors.ImageSharp.xml",
-        "sixlabors.imagesharp.128.png",
-        "sixlabors.imagesharp.3.1.12.nupkg.sha512",
-        "sixlabors.imagesharp.nuspec"
-      ]
-    },
     "Swashbuckle.AspNetCore/6.6.2": {
       "sha512": "+NB4UYVYN6AhDSjW0IJAd1AGD8V33gemFNLPaxKTtPkHB+HaKAKf9MGAEUPivEWvqeQfcKIw8lJaHq6LHljRuw==",
       "type": "package",
@@ -510,7 +478,6 @@
   "projectFileDependencyGroups": {
     "net8.0": [
       "Microsoft.AspNetCore.OpenApi >= 8.0.21",
-      "SixLabors.ImageSharp >= 3.1.12",
       "Swashbuckle.AspNetCore >= 6.6.2"
     ]
   },
@@ -568,10 +535,6 @@
             "target": "Package",
             "version": "[8.0.21, )"
           },
-          "SixLabors.ImageSharp": {
-            "target": "Package",
-            "version": "[3.1.12, )"
-          },
           "Swashbuckle.AspNetCore": {
             "target": "Package",
             "version": "[6.6.2, )"
@@ -599,5 +562,13 @@
         "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.306/PortableRuntimeIdentifierGraph.json"
       }
     }
-  }
+  },
+  "logs": [
+    {
+      "code": "Undefined",
+      "level": "Warning",
+      "warningLevel": 1,
+      "message": "Problem reading the cache file D:\\FACULTAD ESTUDIOS\\CURE\\PROYECTOFINAL\\ProyectoFinal\\src\\ImageStreamer.Api\\obj\\project.nuget.cache : '<' is an invalid start of a property name. Expected a '\"'. Path: $ | LineNumber: 2 | BytePositionInLine: 0."
+    }
+  ]
 }
