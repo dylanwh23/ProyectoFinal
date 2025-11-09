@@ -1,0 +1,92 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Visor de Cámara</title>
+    <style>
+        body, html {
+            background-color: #111;
+            color: #eee;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            display: grid;
+            /* 3 filas: header, visor (flexible), footer/slider */
+            grid-template-rows: auto 1fr auto auto;
+        }
+
+        header {
+            padding: 10px;
+            text-align: center;
+            background-color: #1a1a1a;
+        }
+
+        .visor-container {
+            display: grid;
+            place-items: center;
+            overflow: hidden;
+            padding: 10px 0;
+            background-color: #000;
+        }
+
+        #live-stream-img {
+            max-width: 95%;
+            max-height: 95%;
+            border: 2px solid #555;
+            background-color: #000;
+        }
+
+        /* Contenedor para la barra de historial */
+        .slider-container {
+            padding: 10px 20px;
+            background-color: #2a2a2a;
+            text-align: center;
+        }
+
+        #history-slider {
+            width: 90%;
+            cursor: pointer;
+        }
+
+        footer {
+            text-align: center;
+            padding: 10px;
+            background-color: #1a1a1a;
+        }
+
+        button {
+            margin: 0 5px;
+            padding: 5px 10px;
+            background: #333;
+            color: #eee;
+            border: 1px solid #666;
+            cursor: pointer;
+        }
+
+            button:hover {
+                background: #444;
+            }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="titulo-camara">Cargando...</h1>
+    </header>
+
+    <div class="visor-container">
+        <img id="live-stream-img" src="" alt="Cargando stream..." />
+    </div>
+
+    <div class="slider-container">
+        <input type="range" id="history-slider" min="0" max="0" value="0">
+    </div>
+
+    <footer>
+        <button id="btnStart">Ver en Vivo</button>
+        <button id="btnPause">Pausar</button>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

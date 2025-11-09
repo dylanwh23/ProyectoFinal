@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "Nuevo perfil",
+    "Projects": [
+      {
+        "Path": "src\\ImageStreamer.Api\\ImageStreamer.Api.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "ImageInterceptor\\ImageInterceptor.Worker.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
