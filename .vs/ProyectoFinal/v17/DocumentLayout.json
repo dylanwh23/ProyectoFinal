@@ -1,0 +1,173 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|c:\\users\\rmati\\source\\repos\\dylanwh23\\proyectofinal\\src\\imagestreamer.api\\wwwroot\\app.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}",
+      "RelativeMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|solutionrelative:src\\imagestreamer.api\\wwwroot\\app.js||{14D17961-FE51-464D-9111-C4AF11D7D99A}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|c:\\users\\rmati\\source\\repos\\dylanwh23\\proyectofinal\\src\\imagestreamer.api\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|solutionrelative:src\\imagestreamer.api\\wwwroot\\index.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{D079D604-C81D-4D52-BC71-30D893513A0A}|src\\Shared.Contracts\\Shared.Contracts.csproj|c:\\users\\rmati\\source\\repos\\dylanwh23\\proyectofinal\\src\\shared.contracts\\shared.contracts.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{D079D604-C81D-4D52-BC71-30D893513A0A}|src\\Shared.Contracts\\Shared.Contracts.csproj|solutionrelative:src\\shared.contracts\\shared.contracts.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3FFA5BDA-F3A2-4E84-A73D-3A31CF7EB891}|src\\TelnetInterceptor.Worker\\TelnetInterceptor.Worker.csproj|c:\\users\\rmati\\source\\repos\\dylanwh23\\proyectofinal\\src\\telnetinterceptor.worker\\telnetinterceptor.worker.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{3FFA5BDA-F3A2-4E84-A73D-3A31CF7EB891}|src\\TelnetInterceptor.Worker\\TelnetInterceptor.Worker.csproj|solutionrelative:src\\telnetinterceptor.worker\\telnetinterceptor.worker.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|c:\\users\\rmati\\source\\repos\\dylanwh23\\proyectofinal\\src\\imagestreamer.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|solutionrelative:src\\imagestreamer.api\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|c:\\users\\rmati\\source\\repos\\dylanwh23\\proyectofinal\\src\\imagestreamer.api\\imagestreamer.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
+      "RelativeMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|solutionrelative:src\\imagestreamer.api\\imagestreamer.api.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|c:\\users\\rmati\\source\\repos\\dylanwh23\\proyectofinal\\src\\imagestreamer.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|solutionrelative:src\\imagestreamer.api\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|c:\\users\\rmati\\source\\repos\\dylanwh23\\proyectofinal\\src\\imagestreamer.api\\imagestreamer.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{397FF9C7-59F2-403B-8E89-EB1B68E7B4BA}|src\\ImageStreamer.Api\\ImageStreamer.Api.csproj|solutionrelative:src\\imagestreamer.api\\imagestreamer.api.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{25016690-EA81-48B0-9038-E5C98EFFF952}|src\\EventProcessor.Worker\\EventProcessor.Worker.csproj|c:\\users\\rmati\\source\\repos\\dylanwh23\\proyectofinal\\src\\eventprocessor.worker\\eventprocessor.worker.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
+      "RelativeMoniker": "D:0:0:{25016690-EA81-48B0-9038-E5C98EFFF952}|src\\EventProcessor.Worker\\EventProcessor.Worker.csproj|solutionrelative:src\\eventprocessor.worker\\eventprocessor.worker.csproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 0,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "app.js",
+              "DocumentMoniker": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\app.js",
+              "RelativeDocumentMoniker": "src\\ImageStreamer.Api\\wwwroot\\app.js",
+              "ToolTip": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\app.js",
+              "RelativeToolTip": "src\\ImageStreamer.Api\\wwwroot\\app.js",
+              "ViewState": "AgIAAHwAAAAAAAAAAAAAAIIAAAArAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
+              "WhenOpened": "2025-11-08T19:01:43.955Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "index.html",
+              "DocumentMoniker": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\index.html",
+              "RelativeDocumentMoniker": "src\\ImageStreamer.Api\\wwwroot\\index.html",
+              "ToolTip": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\wwwroot\\index.html",
+              "RelativeToolTip": "src\\ImageStreamer.Api\\wwwroot\\index.html",
+              "ViewState": "AgIAADYAAAAAAAAAAAAAAFYAAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2025-11-08T19:01:19.571Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\appsettings.json",
+              "RelativeDocumentMoniker": "src\\ImageStreamer.Api\\appsettings.json",
+              "ToolTip": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\appsettings.json",
+              "RelativeToolTip": "src\\ImageStreamer.Api\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-11-08T17:23:08.372Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "ImageStreamer.Api.http",
+              "DocumentMoniker": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\ImageStreamer.Api.http",
+              "RelativeDocumentMoniker": "src\\ImageStreamer.Api\\ImageStreamer.Api.http",
+              "ToolTip": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\ImageStreamer.Api.http",
+              "RelativeToolTip": "src\\ImageStreamer.Api\\ImageStreamer.Api.http",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003502|",
+              "WhenOpened": "2025-11-08T16:41:52.379Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\Program.cs",
+              "RelativeDocumentMoniker": "src\\ImageStreamer.Api\\Program.cs",
+              "ToolTip": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\Program.cs",
+              "RelativeToolTip": "src\\ImageStreamer.Api\\Program.cs",
+              "ViewState": "AgIAAL4AAAAAAAAAAAAAAN0AAAA7AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-08T16:41:29.027Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Shared.Contracts",
+              "DocumentMoniker": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\Shared.Contracts\\Shared.Contracts.csproj",
+              "RelativeDocumentMoniker": "src\\Shared.Contracts\\Shared.Contracts.csproj",
+              "ToolTip": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\Shared.Contracts\\Shared.Contracts.csproj",
+              "RelativeToolTip": "src\\Shared.Contracts\\Shared.Contracts.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-11-08T16:26:13.188Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "ImageStreamer.Api",
+              "DocumentMoniker": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\ImageStreamer.Api.csproj",
+              "RelativeDocumentMoniker": "src\\ImageStreamer.Api\\ImageStreamer.Api.csproj",
+              "ToolTip": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\ImageStreamer.Api\\ImageStreamer.Api.csproj",
+              "RelativeToolTip": "src\\ImageStreamer.Api\\ImageStreamer.Api.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-11-08T16:12:41.911Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "EventProcessor.Worker",
+              "DocumentMoniker": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\EventProcessor.Worker\\EventProcessor.Worker.csproj",
+              "RelativeDocumentMoniker": "src\\EventProcessor.Worker\\EventProcessor.Worker.csproj",
+              "ToolTip": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\EventProcessor.Worker\\EventProcessor.Worker.csproj",
+              "RelativeToolTip": "src\\EventProcessor.Worker\\EventProcessor.Worker.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-11-08T16:12:40.899Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "TelnetInterceptor.Worker",
+              "DocumentMoniker": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\TelnetInterceptor.Worker\\TelnetInterceptor.Worker.csproj",
+              "RelativeDocumentMoniker": "src\\TelnetInterceptor.Worker\\TelnetInterceptor.Worker.csproj",
+              "ToolTip": "C:\\Users\\rmati\\source\\repos\\dylanwh23\\ProyectoFinal\\src\\TelnetInterceptor.Worker\\TelnetInterceptor.Worker.csproj",
+              "RelativeToolTip": "src\\TelnetInterceptor.Worker\\TelnetInterceptor.Worker.csproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000758|",
+              "WhenOpened": "2025-11-08T16:12:37.404Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
