@@ -1,0 +1,173 @@
+# ===============================================
+# .NET Core
+# ===============================================
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Oo]ut/
+msbuild.log
+msbuild.err
+msbuild.wrn
+
+# Visual Studio
+.vs/
+.vscode/
+*.swp
+*~
+*.rsuser
+
+# Rider
+.idea/
+*.sln.iml
+
+# ===============================================
+# PROJECT SPECIFIC - Entity Framework & SQLite
+# ===============================================
+# SQLite databases
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+events.db
+events.db-*
+
+# Entity Framework Core (mantener migraciones, ignorar archivos generados)
+!*Migrations/
+*Migrations/*.designer.cs
+*Migrations/*.sql
+
+# ===============================================
+# RUNTIME & CACHE FILES
+# ===============================================
+# .NET Core runtime generated files
+*.genruntimeconfig.cache
+*.AssemblyInfo.cs
+*.GlobalUsings.g.cs
+*.assets.cache
+*.FileListAbsolute.txt
+*.CoreCompileInputs.cache
+*.csproj.AssemblyReference.cache
+*.csproj.CoreCompileInputs.cache
+*.csproj.FileListAbsolute.txt
+*.csproj.BuildWithSkipAnalyzers
+
+# Project Reference cache files
+project.assets.json
+project.nuget.cache
+*.nuget.dgspec.json
+*.nuget.g.props
+*.nuget.g.targets
+
+# ===============================================
+# LOGS & TEMP FILES
+# ===============================================
+*.log
+*.log.*
+logs/
+Logs/
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# ===============================================
+# NODE.JS (Admin.Console)
+# ===============================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# ===============================================
+# DOCKER
+# ===============================================
+docker-compose.override.yml
+
+# RabbitMQ data (del volumen Docker)
+data/
+
+# ===============================================
+# OS SPECIFIC
+# ===============================================
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ===============================================
+# PUBLISH & COVERAGE
+# ===============================================
+publish/
+*.nupkg
+.nuget/
+packages/
+coverage.xml
+*.coverage
+*.lcov
+
+# ===============================================
+# ASP.NET Core
+# ===============================================
+appsettings.Development.json
+appsettings.Local.json
+
+# Static web assets
+*.staticwebassets.endpoints.json
+*.staticwebassets.runtime.json
+staticwebassets.build.json
+staticwebassets.build.json.cache
+staticwebassets.development.json
+staticwebassets.pack.json
+
+# ===============================================
+# SPECIFIC FILE PATTERNS TO IGNORE
+# ===============================================
+# SourceLink files
+*.sourcelink.json
+
+# Application host files
+apphost.exe
+apphost
+
+# Ref/RefInt directories
+*/ref/
+*/refint/
+
+# Endpoint info
+*/EndpointInfo/
+
+# Scoped CSS
+*/scopedcss/
+
+# ===============================================
+# KEEP THESE - IMPORTANT FILES
+# ===============================================
+!*.sln
+!*.csproj
+!*.json
+!*.config
+!Dockerfile
+!docker-compose.yml
+!*.md
+!*.txt
+!*.cs
+!Migrations/*.cs
