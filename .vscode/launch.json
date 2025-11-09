@@ -24,7 +24,10 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "stopAtEntry": false,
-      "console": "internalConsole"
+      "console": "internalConsole",
+      "launchBrowser": {
+        "enabled": true
+      }
     },
     // Configuración para el Procesador de Eventos
     {
@@ -36,6 +39,19 @@
       "cwd": "${workspaceFolder}/src/EventProcessor.Worker",
       "stopAtEntry": false,
       "console": "internalConsole"
+    },
+    {
+      "name": "Launch Admin.Console",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "${workspaceFolder}/src/Admin.Console/bin/Debug/net8.0/Admin.Console.dll",
+      "cwd": "${workspaceFolder}/src/Admin.Console",
+      "stopAtEntry": false,
+      "console": "internalConsole",
+      "launchBrowser": {
+        "enabled": true
+      }
     }
   ],
   "compounds": [
@@ -44,7 +60,8 @@
       "configurations": [
         "Launch TelnetInterceptor.Worker",
         "Launch ImageStreamer.Api",
-        "Launch EventProcessor.Worker"
+        "Launch EventProcessor.Worker",
+        "Launch Admin.Console"
       ]
     }
   ]

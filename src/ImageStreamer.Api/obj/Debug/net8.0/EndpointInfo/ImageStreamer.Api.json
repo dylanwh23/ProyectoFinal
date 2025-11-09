@@ -1,0 +1,106 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "ImageStreamer.Api",
+    "version": "1.0"
+  },
+  "paths": {
+    "/api/stream/{cameraName}": {
+      "get": {
+        "tags": [
+          "ImageStreamer.Api"
+        ],
+        "parameters": [
+          {
+            "name": "cameraName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/frame/{cameraName}": {
+      "get": {
+        "tags": [
+          "ImageStreamer.Api"
+        ],
+        "parameters": [
+          {
+            "name": "cameraName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/history/freeze/{cameraName}": {
+      "get": {
+        "tags": [
+          "ImageStreamer.Api"
+        ],
+        "parameters": [
+          {
+            "name": "cameraName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/history/cleanup/{cameraName}/{historyId}": {
+      "delete": {
+        "tags": [
+          "ImageStreamer.Api"
+        ],
+        "parameters": [
+          {
+            "name": "cameraName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "historyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": { }
+}
