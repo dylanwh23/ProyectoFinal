@@ -145,6 +145,40 @@ async Task<byte[]?> ProcessImageAsync(string filePath, CameraStreamService camer
     return null;
 }
 
+// --- NUEVA: API para "Congelar" por rango de HORA LOCAL ---
+app.MapGet("/api/history/freeze-by-range-local/{cameraName}", (
+    string cameraName,
+    DateTime startTime, // ASP.NET parseará la hora local (sin 'Z')
+    DateTime endTime,
+    CameraStreamService cameraService,
+    ILogger<Program> logger) =>
+{
+    try
+    {
+        // Esto es útil para depurar qué horas está recibiendo el servidor
+        logger.LogInformation("Recibida solicitud de rango local: {start} a {end}", startTime, endTime);
+
+        if (endTime <= startTime)
+        {
+            return Results.BadRequest("La fecha de fin debe ser posterior a la fecha de inicio.");
+        }
+
+        // Llama al nuevo método de hora local
+        var snapshot = cameraService.FreezeHistoryByTimeRangeLocal(cameraName, startTime, endTime);
+
+        if (snapshot.Files.Count == 0)
+        {
+            return Results.NotFound("No se encontraron imágenes para ese rango de hora local.");
+        }
+
+        return Results.Ok(snapshot);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: $"Error al congelar el historial por rango local: {ex.Message}", statusCode: 500);
+    }
+});
+
 app.MapFallbackToFile("index.html");
 app.Run();
 
