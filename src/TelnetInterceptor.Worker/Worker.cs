@@ -46,9 +46,6 @@ public class Worker : BackgroundService
     private readonly Dictionary<string, EstadisticasCamara> _estadisticas = new();
     private readonly Dictionary<string, CancellationTokenSource> _cancellationSources = new();
 
-    private readonly int _port;
-    private readonly string _ipEscucha;
-
     private readonly HashSet<string> _camarasConectando = new();
 
     public IEnumerable<EstadisticasCamara> ObtenerEstadisticas() => _estadisticas.Values.ToList();
@@ -64,9 +61,7 @@ public class Worker : BackgroundService
         _configuracion = configuracion.Value;
         _servicioFiltrado = servicioFiltrado;
         _gestorCamaras = gestorCamaras;
-
-        _port = _configuracion.PuertoTcp;
-        _ipEscucha = _configuracion.IpEscucha;
+        
     }
 
     public Task DetenerConexionCamara(string ipCamara)
@@ -148,10 +143,17 @@ public class Worker : BackgroundService
 
             try
             {
-                await client.ConnectAsync(ipCamara, _port, linkedCts.Token);
+                var cameraConfig = _gestorCamaras.ObtenerCamara(ipCamara);
+                if (cameraConfig == null)
+                {
+                    _logger.LogWarning("Configuración de cámara no encontrada para {ip}", ipCamara);
+                    break; // Exit the retry loop for this camera
+                }
+
+                await client.ConnectAsync(ipCamara, cameraConfig.Puerto, linkedCts.Token);
 
                 _clients[ipCamara] = client;
-                _estadisticas[ipCamara] = new EstadisticasCamara(ipCamara, _port)
+                _estadisticas[ipCamara] = new EstadisticasCamara(ipCamara, cameraConfig.Puerto)
                 {
                     EstaConectada = true,
                     UltimoMensaje = "Conectada",

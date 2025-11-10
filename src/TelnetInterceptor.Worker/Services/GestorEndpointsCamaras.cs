@@ -62,12 +62,20 @@ public class GestorEndpointsCamaras : IGestorEndpointsCamaras, IAsyncDisposable
 
     public IEnumerable<string> ObtenerCamaras() => _camarasActivas.Keys.ToList();
 
+    public ConfiguracionCamara? ObtenerCamara(string ipCamara)
+    {
+        _camarasActivas.TryGetValue(ipCamara, out var camara);
+        return camara;
+    }
+
     public Task<bool> AgregarCamara(string ipCamara, int puerto)
     {
         if (string.IsNullOrWhiteSpace(ipCamara))
             throw new ArgumentException("La IP de la cámara no puede estar vacía.");
+        if (puerto <= 0)
+            throw new ArgumentException("El puerto de la cámara debe ser un valor positivo.");
 
-        var puertoUsar = puerto > 0 ? puerto : _configuracion.PuertoTcp;
+        var puertoUsar = puerto;
         var nuevaCamara = new ConfiguracionCamara { IpCamara = ipCamara, Puerto = puertoUsar };
 
         bool added = _camarasActivas.TryAdd(ipCamara, nuevaCamara);
@@ -93,7 +101,13 @@ public class GestorEndpointsCamaras : IGestorEndpointsCamaras, IAsyncDisposable
 
     public async Task PublicarEvento(EventoMovimientoDetectado evento, CancellationToken cancellationToken)
     {
-        var ipCamara = evento?.IpCamara;
+        if (evento == null)
+        {
+            _logger.LogWarning("Evento nulo recibido. Se ignora.");
+            return;
+        }
+
+        var ipCamara = evento.IpCamara; // No longer needs '?' as evento is checked for null
         if (string.IsNullOrWhiteSpace(ipCamara))
         {
             _logger.LogWarning("Evento sin IP de cámara. Se ignora.");

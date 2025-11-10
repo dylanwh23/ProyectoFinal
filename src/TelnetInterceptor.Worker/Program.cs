@@ -94,23 +94,6 @@ builder.Services.AddMassTransit(x =>
             e.ConfigureConsumer<CameraDeletedConsumer>(context);
         });
 
-        // Iterate through each camera and configure a consumer and receive endpoint
-        /*foreach (var camera in cameras)
-        {
-            // Create a unique queue name for each camera IP
-            var queueName = $"queue_evento_movimiento_{camera.IpCamara.Replace(".", "_")}";
-            var ipCamara = camera.IpCamara; // Capture the current camera's IP
-
-            cfg.ReceiveEndpoint(queueName, e =>
-            {
-                // Configure the consumer, injecting the specific ipCamara and logger
-                e.Consumer<EventoMovimientoConsumer>(() =>
-                    new EventoMovimientoConsumer(ipCamara, context.GetRequiredService<ILogger<EventoMovimientoConsumer>>()));
-
-                // Optional: Configure Dead Lettering or other endpoint settings here
-                // e.ConfigureDeadLettering();
-            });
-        }*/
     });
 });
 
