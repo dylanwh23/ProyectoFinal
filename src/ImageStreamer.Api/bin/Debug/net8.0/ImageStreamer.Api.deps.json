@@ -10,7 +10,7 @@
         "dependencies": {
           "Microsoft.AspNetCore.OpenApi": "8.0.21",
           "SixLabors.ImageSharp": "3.1.12",
-          "Swashbuckle.AspNetCore": "6.6.2"
+          "Swashbuckle.AspNetCore": "9.0.6"
         },
         "runtime": {
           "ImageStreamer.Api.dll": {}
@@ -18,7 +18,7 @@
       },
       "Microsoft.AspNetCore.OpenApi/8.0.21": {
         "dependencies": {
-          "Microsoft.OpenApi": "1.6.14"
+          "Microsoft.OpenApi": "1.6.25"
         },
         "runtime": {
           "lib/net8.0/Microsoft.AspNetCore.OpenApi.dll": {
@@ -27,12 +27,12 @@
           }
         }
       },
-      "Microsoft.Extensions.ApiDescription.Server/6.0.5": {},
-      "Microsoft.OpenApi/1.6.14": {
+      "Microsoft.Extensions.ApiDescription.Server/8.0.0": {},
+      "Microsoft.OpenApi/1.6.25": {
         "runtime": {
           "lib/netstandard2.0/Microsoft.OpenApi.dll": {
-            "assemblyVersion": "1.6.14.0",
-            "fileVersion": "1.6.14.0"
+            "assemblyVersion": "1.6.25.0",
+            "fileVersion": "1.6.25.0"
           }
         }
       },
@@ -44,41 +44,41 @@
           }
         }
       },
-      "Swashbuckle.AspNetCore/6.6.2": {
+      "Swashbuckle.AspNetCore/9.0.6": {
         "dependencies": {
-          "Microsoft.Extensions.ApiDescription.Server": "6.0.5",
-          "Swashbuckle.AspNetCore.Swagger": "6.6.2",
-          "Swashbuckle.AspNetCore.SwaggerGen": "6.6.2",
-          "Swashbuckle.AspNetCore.SwaggerUI": "6.6.2"
+          "Microsoft.Extensions.ApiDescription.Server": "8.0.0",
+          "Swashbuckle.AspNetCore.Swagger": "9.0.6",
+          "Swashbuckle.AspNetCore.SwaggerGen": "9.0.6",
+          "Swashbuckle.AspNetCore.SwaggerUI": "9.0.6"
         }
       },
-      "Swashbuckle.AspNetCore.Swagger/6.6.2": {
+      "Swashbuckle.AspNetCore.Swagger/9.0.6": {
         "dependencies": {
-          "Microsoft.OpenApi": "1.6.14"
+          "Microsoft.OpenApi": "1.6.25"
         },
         "runtime": {
           "lib/net8.0/Swashbuckle.AspNetCore.Swagger.dll": {
-            "assemblyVersion": "6.6.2.0",
-            "fileVersion": "6.6.2.401"
+            "assemblyVersion": "9.0.6.0",
+            "fileVersion": "9.0.6.1840"
           }
         }
       },
-      "Swashbuckle.AspNetCore.SwaggerGen/6.6.2": {
+      "Swashbuckle.AspNetCore.SwaggerGen/9.0.6": {
         "dependencies": {
-          "Swashbuckle.AspNetCore.Swagger": "6.6.2"
+          "Swashbuckle.AspNetCore.Swagger": "9.0.6"
         },
         "runtime": {
           "lib/net8.0/Swashbuckle.AspNetCore.SwaggerGen.dll": {
-            "assemblyVersion": "6.6.2.0",
-            "fileVersion": "6.6.2.401"
+            "assemblyVersion": "9.0.6.0",
+            "fileVersion": "9.0.6.1840"
           }
         }
       },
-      "Swashbuckle.AspNetCore.SwaggerUI/6.6.2": {
+      "Swashbuckle.AspNetCore.SwaggerUI/9.0.6": {
         "runtime": {
           "lib/net8.0/Swashbuckle.AspNetCore.SwaggerUI.dll": {
-            "assemblyVersion": "6.6.2.0",
-            "fileVersion": "6.6.2.401"
+            "assemblyVersion": "9.0.6.0",
+            "fileVersion": "9.0.6.1840"
           }
         }
       }
@@ -97,19 +97,19 @@
       "path": "microsoft.aspnetcore.openapi/8.0.21",
       "hashPath": "microsoft.aspnetcore.openapi.8.0.21.nupkg.sha512"
     },
-    "Microsoft.Extensions.ApiDescription.Server/6.0.5": {
+    "Microsoft.Extensions.ApiDescription.Server/8.0.0": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-Ckb5EDBUNJdFWyajfXzUIMRkhf52fHZOQuuZg/oiu8y7zDCVwD0iHhew6MnThjHmevanpxL3f5ci2TtHQEN6bw==",
-      "path": "microsoft.extensions.apidescription.server/6.0.5",
-      "hashPath": "microsoft.extensions.apidescription.server.6.0.5.nupkg.sha512"
+      "sha512": "sha512-jDM3a95WerM8g6IcMiBXq1qRS9dqmEUpgnCk2DeMWpPkYtp1ia+CkXabOnK93JmhVlUmv8l9WMPsCSUm+WqkIA==",
+      "path": "microsoft.extensions.apidescription.server/8.0.0",
+      "hashPath": "microsoft.extensions.apidescription.server.8.0.0.nupkg.sha512"
     },
-    "Microsoft.OpenApi/1.6.14": {
+    "Microsoft.OpenApi/1.6.25": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-tTaBT8qjk3xINfESyOPE2rIellPvB7qpVqiWiyA/lACVvz+xOGiXhFUfohcx82NLbi5avzLW0lx+s6oAqQijfw==",
-      "path": "microsoft.openapi/1.6.14",
-      "hashPath": "microsoft.openapi.1.6.14.nupkg.sha512"
+      "sha512": "sha512-ZahSqNGtNV7N0JBYS/IYXPkLVexL/AZFxo6pqxv6A7Uli7Q7zfitNjkaqIcsV73Ukzxi4IlJdyDgcQiMXiH8cw==",
+      "path": "microsoft.openapi/1.6.25",
+      "hashPath": "microsoft.openapi.1.6.25.nupkg.sha512"
     },
     "SixLabors.ImageSharp/3.1.12": {
       "type": "package",
@@ -118,33 +118,33 @@
       "path": "sixlabors.imagesharp/3.1.12",
       "hashPath": "sixlabors.imagesharp.3.1.12.nupkg.sha512"
     },
-    "Swashbuckle.AspNetCore/6.6.2": {
+    "Swashbuckle.AspNetCore/9.0.6": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-+NB4UYVYN6AhDSjW0IJAd1AGD8V33gemFNLPaxKTtPkHB+HaKAKf9MGAEUPivEWvqeQfcKIw8lJaHq6LHljRuw==",
-      "path": "swashbuckle.aspnetcore/6.6.2",
-      "hashPath": "swashbuckle.aspnetcore.6.6.2.nupkg.sha512"
+      "sha512": "sha512-q/UfEAgrk6qQyjHXgsW9ILw0YZLfmPtWUY4wYijliX6supozC+TkzU0G6FTnn/dPYxnChjM8g8lHjWHF6VKy+A==",
+      "path": "swashbuckle.aspnetcore/9.0.6",
+      "hashPath": "swashbuckle.aspnetcore.9.0.6.nupkg.sha512"
     },
-    "Swashbuckle.AspNetCore.Swagger/6.6.2": {
+    "Swashbuckle.AspNetCore.Swagger/9.0.6": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-ovgPTSYX83UrQUWiS5vzDcJ8TEX1MAxBgDFMK45rC24MorHEPQlZAHlaXj/yth4Zf6xcktpUgTEBvffRQVwDKA==",
-      "path": "swashbuckle.aspnetcore.swagger/6.6.2",
-      "hashPath": "swashbuckle.aspnetcore.swagger.6.6.2.nupkg.sha512"
+      "sha512": "sha512-Bgyc8rWRAYwDrzjVHGbavvNE38G1Dfgf1McHYm+WUr4TxkvEAXv8F8B1z3Kmz4BkDCKv9A/1COa2t7+Ri5+pLg==",
+      "path": "swashbuckle.aspnetcore.swagger/9.0.6",
+      "hashPath": "swashbuckle.aspnetcore.swagger.9.0.6.nupkg.sha512"
     },
-    "Swashbuckle.AspNetCore.SwaggerGen/6.6.2": {
+    "Swashbuckle.AspNetCore.SwaggerGen/9.0.6": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-zv4ikn4AT1VYuOsDCpktLq4QDq08e7Utzbir86M5/ZkRaLXbCPF11E1/vTmOiDzRTl0zTZINQU2qLKwTcHgfrA==",
-      "path": "swashbuckle.aspnetcore.swaggergen/6.6.2",
-      "hashPath": "swashbuckle.aspnetcore.swaggergen.6.6.2.nupkg.sha512"
+      "sha512": "sha512-yYrDs5qpIa4UXP+a02X0ZLQs6HSd1C8t6hF6J1fnxoawi3PslJg1yUpLBS89HCbrDACzmwEGG25il+8aa0zdnw==",
+      "path": "swashbuckle.aspnetcore.swaggergen/9.0.6",
+      "hashPath": "swashbuckle.aspnetcore.swaggergen.9.0.6.nupkg.sha512"
     },
-    "Swashbuckle.AspNetCore.SwaggerUI/6.6.2": {
+    "Swashbuckle.AspNetCore.SwaggerUI/9.0.6": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-mBBb+/8Hm2Q3Wygag+hu2jj69tZW5psuv0vMRXY07Wy+Rrj40vRP8ZTbKBhs91r45/HXT4aY4z0iSBYx1h6JvA==",
-      "path": "swashbuckle.aspnetcore.swaggerui/6.6.2",
-      "hashPath": "swashbuckle.aspnetcore.swaggerui.6.6.2.nupkg.sha512"
+      "sha512": "sha512-WGsw/Yop9b16miq8TQd4THxuEgkP5cH3+DX93BrX9m0OdPcKNtg2nNm77WQSAsA+Se+M0bTiu8bUyrruRSeS5g==",
+      "path": "swashbuckle.aspnetcore.swaggerui/9.0.6",
+      "hashPath": "swashbuckle.aspnetcore.swaggerui.9.0.6.nupkg.sha512"
     }
   }
 }

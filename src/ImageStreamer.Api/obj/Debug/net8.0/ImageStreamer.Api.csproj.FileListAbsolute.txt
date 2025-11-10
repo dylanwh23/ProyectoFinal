@@ -78,3 +78,42 @@ C:\Users\rmati\source\repos\dylanwh23\ProyectoFinal\src\ImageStreamer.Api\bin\De
 C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\libman.json
 C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\ImageStreamer.Api.staticwebassets.runtime.json
 C:\Users\User\Documents\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\SixLabors.ImageSharp.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\appsettings.Development.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\appsettings.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\libman.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\ImageStreamer.Api.staticwebassets.runtime.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\ImageStreamer.Api.staticwebassets.endpoints.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\ImageStreamer.Api.exe
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\ImageStreamer.Api.deps.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\ImageStreamer.Api.runtimeconfig.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\ImageStreamer.Api.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\ImageStreamer.Api.pdb
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\Microsoft.AspNetCore.OpenApi.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\Microsoft.OpenApi.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\SixLabors.ImageSharp.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\Swashbuckle.AspNetCore.Swagger.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\bin\Debug\net8.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.csproj.AssemblyReference.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.GeneratedMSBuildEditorConfig.editorconfig
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.AssemblyInfoInputs.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.AssemblyInfo.cs
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.csproj.CoreCompileInputs.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.MvcApplicationPartsAssemblyInfo.cs
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.MvcApplicationPartsAssemblyInfo.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.sourcelink.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\rjimswa.dswa.cache.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\scopedcss\bundle\ImageStreamer.Api.styles.css
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\staticwebassets.build.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\staticwebassets.build.json.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\staticwebassets.development.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\staticwebassets.build.endpoints.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStr.EE4BDAFC.Up2Date
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\refint\ImageStreamer.Api.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.pdb
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ImageStreamer.Api.genruntimeconfig.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\ImageStreamer.Api\obj\Debug\net8.0\ref\ImageStreamer.Api.dll

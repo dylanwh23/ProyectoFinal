@@ -35,3 +35,42 @@ C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\package
 C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\package.json
 C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Components\Events.razor.rz.scp.css
 C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Components\Video.razor.rz.scp.css
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\appsettings.Development.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\appsettings.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\package-lock.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\package.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\Admin.Console.staticwebassets.runtime.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\Admin.Console.staticwebassets.endpoints.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\Admin.Console.exe
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\Admin.Console.deps.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\Admin.Console.runtimeconfig.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\Admin.Console.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\Admin.Console.pdb
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\rpswa.dswa.cache.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.GeneratedMSBuildEditorConfig.editorconfig
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.AssemblyInfoInputs.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.AssemblyInfo.cs
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.csproj.CoreCompileInputs.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.MvcApplicationPartsAssemblyInfo.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.RazorAssemblyInfo.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.RazorAssemblyInfo.cs
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.sourcelink.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\rjimswa.dswa.cache.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Components\Events.razor.rz.scp.css
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Components\Log.razor.rz.scp.css
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Components\NewEvent.razor.rz.scp.css
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Components\Video.razor.rz.scp.css
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Views\Shared\_Layout.cshtml.rz.scp.css
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\bundle\Admin.Console.styles.css
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\projectbundle\Admin.Console.bundle.scp.css
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\staticwebassets.build.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\staticwebassets.build.json.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\staticwebassets.development.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\staticwebassets.build.endpoints.json
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\refint\Admin.Console.dll
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.pdb
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\Admin.Console.genruntimeconfig.cache
+D:\FACULTAD ESTUDIOS\CURE\PROYECTOFINAL\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\ref\Admin.Console.dll
