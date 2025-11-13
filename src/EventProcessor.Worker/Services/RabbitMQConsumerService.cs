@@ -103,10 +103,16 @@ public class RabbitMQConsumerService : BackgroundService
 
         try
         {
+            /* 
+             * DELAY TEMPORAL - Para ver mensajes en RabbitMQ Management
+            _logger.LogInformation("⏳ Message received, waiting 5 seconds before processing...");
+            await Task.Delay(5000); 
+            */
+
             var body = ea.Body.ToArray();
             message = Encoding.UTF8.GetString(body);
 
-            _logger.LogDebug("📨 Received message from RabbitMQ: {Message}", message);
+            _logger.LogInformation("📨 Processing message from RabbitMQ: {Message}", message);
 
             var cameraEvent = JsonSerializer.Deserialize<EventoMovimientoDetectado>(message);
             if (cameraEvent == null)
@@ -116,13 +122,16 @@ public class RabbitMQConsumerService : BackgroundService
                 return;
             }
 
+            _logger.LogInformation("🔍 Processing event from IP: {Ip}, Time: {Time}",
+                cameraEvent.IpCamara, cameraEvent.Momento);
+
             // Procesar el evento
             var success = await _eventProcessor.ProcessAndStoreEventAsync(cameraEvent);
 
             if (success)
             {
                 _channel?.BasicAck(ea.DeliveryTag, false);
-                _logger.LogDebug("✅ Event processed successfully - IP: {Ip}", cameraEvent.IpCamara);
+                _logger.LogInformation("✅ Event processed successfully - IP: {Ip}, Stored in database", cameraEvent.IpCamara);
             }
             else
             {
