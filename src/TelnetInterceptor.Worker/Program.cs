@@ -1,51 +1,133 @@
+using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using TelnetInterceptor.Worker;
 using TelnetInterceptor.Worker.Configuration;
 using TelnetInterceptor.Worker.Services;
+using TelnetInterceptor.Worker.Endpoints;
 using MassTransit;
-using MassTransit.RabbitMqTransport;
 using Shared.Contracts;
+using Microsoft.OpenApi.Models;
+using RabbitMQ.Client;
+using System;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using System.Collections.Generic; // Added for List
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
-// 1. Configuración: Carga la sección "ConfiguracionInterceptor"
+// --- Limpieza del exchange conflictivo ---
+static async Task LimpiarExchangeConflictivoAsync(IConfiguration configuration)
+{
+    var rabbitMQConfig = configuration.GetSection("RabbitMQ");
+    string rabbitHost = rabbitMQConfig["Host"] ?? "localhost";
+    string exchangeName = typeof(EventoMovimientoDetectado).FullName!.Replace('.', ':');
+
+    Console.WriteLine($"RabbitMQ Cleanup: Intentando limpiar Exchange: {exchangeName} en host: {rabbitHost}");
+
+    try
+    {
+        var factory = new ConnectionFactory
+        {
+            HostName = rabbitHost,
+            UserName = "guest",
+            Password = "guest",
+            ContinuationTimeout = TimeSpan.FromSeconds(5)
+        };
+
+        var connection = await factory.CreateConnectionAsync();
+        var channel = await connection.CreateChannelAsync();
+
+        try
+        {
+            await channel.ExchangeDeleteAsync(exchangeName, ifUnused: false);
+            Console.WriteLine($"✅ Exchange '{exchangeName}' eliminado con éxito.");
+        }
+        catch (Exception ex) when (ex.Message.Contains("NOT_FOUND") || ex.Message.Contains("404"))
+        {
+            Console.WriteLine($"Exchange '{exchangeName}' no encontrado. No requiere limpieza.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error de conexión a RabbitMQ: {ex.Message}");
+    }
+}
+
+await LimpiarExchangeConflictivoAsync(builder.Configuration);
+
+// 1️⃣ Servicios base
 builder.Services.Configure<ConfiguracionInterceptor>(
     builder.Configuration.GetSection("ConfiguracionInterceptor"));
 
-// 2. Lógica Stateful: Inyecta el servicio de filtrado como SINGLETON. 
-// Esto es crucial para mantener el estado (el diccionario) durante toda la vida del Worker.
 builder.Services.AddSingleton<IServicioFiltradoEventos, ServicioFiltradoEventos>();
+builder.Services.AddSingleton<Worker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Worker>());
 
-// 3. Servicio principal: El Worker que maneja las conexiones TCP
-builder.Services.AddHostedService<Worker>();
+// 2️⃣ MassTransit (Publisher & Consumers)
+var rabbitMQConfig = builder.Configuration.GetSection("RabbitMQ");
+var rabbitHost = rabbitMQConfig["Host"] ?? "localhost";
+var rabbitUser = rabbitMQConfig["Username"] ?? "guest";
+var rabbitPass = rabbitMQConfig["Password"] ?? "guest";
+
+// Get camera configurations
+var configuracionInterceptor = builder.Configuration.GetSection("ConfiguracionInterceptor").Get<ConfiguracionInterceptor>();
+var cameras = configuracionInterceptor?.Camaras ?? new List<ConfiguracionCamara>();
 
 builder.Services.AddMassTransit(x =>
 {
+    x.AddConsumer<CameraDeletedConsumer>();
+
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host("rabbitmq", "/", h =>
+        cfg.Host(rabbitHost, "/", h =>
         {
-            h.Username("guest");
-            h.Password("guest");
+            h.Username(rabbitUser);
+            h.Password(rabbitPass);
         });
 
-        // Configurar para usar fanout exchange (el tipo por defecto de MassTransit)
-        cfg.Publish<EventoMovimientoDetectado>(e =>
+        // Configura un endpoint de recepción para el consumidor de eliminación de cámaras
+        cfg.ReceiveEndpoint("camera-deleted-events", e =>
         {
-            e.ExchangeType = "fanout";
+            e.ConfigureConsumer<CameraDeletedConsumer>(context);
         });
 
-        // Configurar el endpoint para la cola
-        cfg.Send<EventoMovimientoDetectado>(e =>
-        {
-            e.UseRoutingKeyFormatter(context => "evento-movimiento-queue");
-        });
-
-        cfg.AutoStart = true;
     });
 });
 
+// 3️⃣ Registro del Gestor
+builder.Services.AddSingleton<IGestorEndpointsCamaras, GestorEndpointsCamaras>();
 
-var host = builder.Build();
-host.Run();
+// 4️⃣ Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "Telnet Interceptor API",
+        Version = "v1",
+        Description = "Microservicio para interceptar y gestionar cámaras con MassTransit y RabbitMQ"
+    });
+});
+
+var app = builder.Build();
+
+// 5️⃣ Middleware y endpoints
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Telnet Interceptor API v1");
+        c.RoutePrefix = "swagger";
+    });
+}
+
+app.MapTelnetEndpoints();
+app.MapCamaraEndpoints();
+
+app.MapGet("/", () => Results.Ok("✅ TelnetInterceptor Worker corriendo con Swagger y gestión de cámaras."));
+
+await app.RunAsync();
