@@ -114,35 +114,52 @@ public class RabbitMQConsumerService : BackgroundService
 
             _logger.LogInformation("📨 Processing message from RabbitMQ: {Message}", message);
 
-            var cameraEvent = JsonSerializer.Deserialize<EventoMovimientoDetectado>(message);
-            if (cameraEvent == null)
+            // Deserializar MassTransit, que envuelve el mensaje real en una propiedad "message"
+            var envelope = JsonSerializer.Deserialize<JsonElement>(message);
+
+            if (envelope.TryGetProperty("message", out var messageProperty))
             {
-                _logger.LogWarning("⚠️ Failed to deserialize message: {Message}", message);
-                _channel?.BasicAck(ea.DeliveryTag, false);
-                return;
-            }
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                };
 
-            _logger.LogInformation("🔍 Processing event from IP: {Ip}, Time: {Time}",
-                cameraEvent.IpCamara, cameraEvent.Momento);
+                var cameraEvent = messageProperty.Deserialize<EventoMovimientoDetectado>(options);
 
-            // Procesar el evento
-            var success = await _eventProcessor.ProcessAndStoreEventAsync(cameraEvent);
+                if (cameraEvent == null)
+                {
+                    _logger.LogWarning("⚠️ Failed to deserialize message payload from envelope");
+                    _channel?.BasicAck(ea.DeliveryTag, false);
+                    return;
+                }
 
-            if (success)
-            {
-                _channel?.BasicAck(ea.DeliveryTag, false);
-                _logger.LogInformation("✅ Event processed successfully - IP: {Ip}, Stored in database", cameraEvent.IpCamara);
+                _logger.LogInformation("🔍 Processing event from IP: {Ip}, Time: {Time}",
+                    cameraEvent.IpCamara, cameraEvent.Momento);
+
+                // Procesar el evento
+                var success = await _eventProcessor.ProcessAndStoreEventAsync(cameraEvent);
+
+                if (success)
+                {
+                    _channel?.BasicAck(ea.DeliveryTag, false);
+                    _logger.LogInformation("✅ Event processed successfully - IP: {Ip}, Stored in database", cameraEvent.IpCamara);
+                }
+                else
+                {
+                    _channel?.BasicNack(ea.DeliveryTag, false, true); // Requeue
+                    _logger.LogWarning("🔄 Event processing failed - requeued - IP: {Ip}", cameraEvent.IpCamara);
+                }
             }
             else
             {
-                _channel?.BasicNack(ea.DeliveryTag, false, true); // Requeue
-                _logger.LogWarning("🔄 Event processing failed - requeued - IP: {Ip}", cameraEvent.IpCamara);
+                _logger.LogWarning("⚠️ Message envelope missing 'message' property, message may be in different format");
+                _channel?.BasicAck(ea.DeliveryTag, false);
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ Error processing RabbitMQ message: {Message}", message);
-            _channel?.BasicNack(ea.DeliveryTag, false, false); // No requeue - mensaje problematico
+            _channel?.BasicNack(ea.DeliveryTag, false, false); // No requeue - mensaje problemático
         }
     }
 

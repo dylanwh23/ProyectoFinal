@@ -19,11 +19,11 @@ builder.Services.AddSingleton<VideoLinkService>();
 builder.Services.AddSingleton<EventProcessorService>();
 builder.Services.AddSingleton<EventStorageService>();
 builder.Services.AddSingleton<RabbitMQConsumerService>();
-builder.Services.AddSingleton<EventSimulatorService>(); // Simulador de eventos
+// builder.Services.AddSingleton<EventSimulatorService>(); // Simulador de eventos
 
 // Hosted Services
 builder.Services.AddHostedService(provider => provider.GetRequiredService<RabbitMQConsumerService>());
-builder.Services.AddHostedService(provider => provider.GetRequiredService<EventSimulatorService>()); // Simulador de eventos
+// builder.Services.AddHostedService(provider => provider.GetRequiredService<EventSimulatorService>()); // Simulador de eventos
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
