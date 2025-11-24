@@ -8,8 +8,8 @@ public class CameraStreamService : IHostedService, IDisposable
     private readonly ConcurrentDictionary<string, string> _latestFilePerCamera = new();
 
     // --- L�mites de historial ---
-    private const int HistoryReportLimit = 200; // 200 para la API
-    private const int HistoryKeepLimit = 250;   // 250 en disco (200 + 50 buffer)
+    private const int HistoryReportLimit = 500; // 200 para la API
+    private const int HistoryKeepLimit = 550;   // 250 en disco (200 + 50 buffer)
 
     private Timer? _cleanupTimer;
 
@@ -156,6 +156,44 @@ public class CameraStreamService : IHostedService, IDisposable
         {
             _logger.LogError(ex, "Error al borrar la carpeta de historial: {path}", historyPath);
         }
+    }
+
+    // En CameraService.cs, añade este nuevo método:
+
+    public HistorySnapshot FreezeHistoryByTimeRangeLocal(string cameraName, DateTime startTime, DateTime endTime)
+    {
+        _logger.LogInformation("Congelando historial por HORA LOCAL de {start} a {end}", startTime, endTime);
+        string cameraPath = GetCameraPath(cameraName);
+        string historyId = $"history-event-local-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+        string historyPath = Path.Combine(cameraPath, historyId);
+        Directory.CreateDirectory(historyPath);
+
+        var dirInfo = new DirectoryInfo(cameraPath);
+
+        // --- LÓGICA DE HORA LOCAL ---
+        // Comparamos usando la hora de creación LOCAL del archivo
+        var filesForEvent = dirInfo.GetFiles("*.bmp", SearchOption.TopDirectoryOnly)
+                                   .Where(f => f.CreationTime >= startTime && f.CreationTime <= endTime)
+                                   .OrderBy(f => f.CreationTime)
+                                   .ToList();
+
+        var movedFileNames = new List<string>();
+        foreach (var file in filesForEvent)
+        {
+            try
+            {
+                // Copiamos el archivo al nuevo historial
+                file.CopyTo(Path.Combine(historyPath, file.Name));
+                movedFileNames.Add(file.Name);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "No se pudo copiar {file} al historial del evento local", file.FullName);
+            }
+        }
+
+        _logger.LogInformation("Historial de evento local congelado en {id} con {count} archivos.", historyId, movedFileNames.Count);
+        return new HistorySnapshot { HistoryId = historyId, Files = movedFileNames };
     }
 
     public string? GetLatestFileForCamera(string cameraName)

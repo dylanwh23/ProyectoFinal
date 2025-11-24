@@ -16,27 +16,40 @@ services:
     networks:
       - app_network
 
-  telnet_interceptor_worker:
-    container_name: telnet_interceptor_worker
-    build:
-      # El contexto es la raíz del proyecto (donde está ProyectoFinal.sln)
-      context: . 
-      # La ruta del Dockerfile DEBE ser relativa a la raíz
-      dockerfile: src/TelnetInterceptor.Worker/Dockerfile
-      
-    ports:
-      - "49211:49211" 
-      
-    environment:
-      - RABBITMQ_HOST=rabbitmq
-      - RABBITMQ_USER=guest
-      - RABBITMQ_PASS=guest
-      
-    depends_on:
-      - rabbitmq
-    restart: always
-    networks:
-      - app_network
+
+  # Servicio que intercepta eventos TCP de las cámaras/sensores
+  # telnet_interceptor_worker:
+  #   # Nombre del contenedor para fácil referencia
+  #   container_name: telnet_interceptor_worker
+    
+  #   # Configuración del build
+  #   build:
+  #     # El contexto es la raíz del proyecto (donde está ProyectoFinal.sln)
+  #     context: . 
+  #     # La ruta del Dockerfile DEBE ser relativa a la raíz
+  #     dockerfile: src/TelnetInterceptor.Worker/Dockerfile
+    
+  #   # Puerto TCP expuesto para recibir eventos de las cámaras
+  #   # 49211 es el puerto que las cámaras/sensores usarán para enviar eventos
+  #   ports:
+  #     - "49211:49211" 
+    
+  #   # Configuración de conexión a RabbitMQ
+  #   environment:
+  #     - RABBITMQ_HOST=rabbitmq     # Nombre del servicio RabbitMQ en la red Docker
+  #     - RABBITMQ_USER=guest        # Usuario para autenticación en RabbitMQ
+  #     - RABBITMQ_PASS=guest        # Contraseña para autenticación en RabbitMQ
+    
+  #   # Asegura que RabbitMQ esté disponible antes de iniciar este servicio
+  #   depends_on:
+  #     - rabbitmq
+    
+  #   # Reinicia automáticamente si el contenedor se detiene
+  #   restart: always
+    
+  #   # Conecta el servicio a la red compartida para comunicación con RabbitMQ
+  #   networks:
+  #     - app_network
 
 volumes:
   rabbitmq_data:

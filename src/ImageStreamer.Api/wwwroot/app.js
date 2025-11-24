@@ -148,5 +148,56 @@ historySlider.addEventListener("input", async (e) => {
     }
 });
 
+// En app.js, añade esta nueva función:
+
+async function loadEventHistoryLocal(startTime, endTime) {
+    if (!cameraName) return;
+
+    detenerStream();
+    titleElement.textContent = `Viendo: ${cameraName} (Cargando evento...)`;
+    historySlider.disabled = true;
+
+    // --- LÓGICA DE HORA LOCAL ---
+    // Formateamos la fecha a ISO pero SIN la 'Z'
+    // Esto produce: 2025-11-09T21:30:00
+    const formatLocalISO = (dt) => {
+        const pad = (n) => n.toString().padStart(2, '0');
+        return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+    };
+
+    const startTimeISO = formatLocalISO(startTime);
+    const endTimeISO = formatLocalISO(endTime);
+
+    try {
+        // Llamamos al NUEVO endpoint "-local"
+        const response = await fetch(`/api/history/freeze-by-range-local/${cameraName}?startTime=${startTimeISO}&endTime=${endTimeISO}`);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || "No se pudo cargar el historial del evento local.");
+        }
+
+        const snapshot = await response.json();
+
+        currentHistoryId = snapshot.historyId;
+        fileHistory = snapshot.files;
+
+        if (fileHistory.length > 0) {
+            historySlider.max = fileHistory.length - 1;
+            historySlider.disabled = false;
+            console.log(`Historial de evento local cargado: ${currentHistoryId} con ${fileHistory.length} archivos.`);
+            showFrozenFrame(0);
+            historySlider.value = 0;
+        } else {
+            titleElement.textContent = `Viendo: ${cameraName} (No se encontraron imágenes para el evento)`;
+        }
+
+    } catch (error) {
+        console.error("Error cargando historial de evento local:", error);
+        titleElement.textContent = `Viendo: ${cameraName} (Error al cargar evento)`;
+        iniciarStream(); // Volver a "En Vivo" si falla
+    }
+}
+
 // Iniciar todo
 iniciarVisor();

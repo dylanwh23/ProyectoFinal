@@ -1,14 +1,15 @@
+using System.Text.Json.Serialization;
+
 namespace Shared.Contracts;
 
-// Define el formato del mensaje que se enviará a RabbitMQ
 public class EventoMovimientoDetectado
 {
-    // Creado al interceptar el evento (TimeStamp)
-    public required DateTime Momento { get; set; }
-
-    // Categorización: IP de la cámara de origen
-    public required string IpCamara { get; set; }
+    [JsonPropertyName("ipCamara")]
+    public string IpCamara { get; set; } = string.Empty;
     
-    // Contenido completo recibido de la cámara
-    public required string MensajeCrudoEvento { get; set; }
+    [JsonPropertyName("momento")]
+    public DateTime Momento { get; set; }
+    
+    [JsonPropertyName("mensajeCrudoEvento")]
+    public string MensajeCrudoEvento { get; set; } = string.Empty;
 }
