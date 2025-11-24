@@ -1,6 +1,41 @@
 /* _content/Admin.Console/Components/Events.razor.rz.scp.css */
 /* _content/Admin.Console/Components/Log.razor.rz.scp.css */
+.overflow-auto[b-wfdp7y8ga5] {
+    background-color: #212529;
+    border-radius: 0.25rem;
+}
+
+.list-group-item[b-wfdp7y8ga5] {
+    border-color: rgba(255,255,255,0.05);
+}
+
+/* Opcional: personalizar scrollbar */
+.overflow-auto[b-wfdp7y8ga5]::-webkit-scrollbar {
+    width: 8px;
+}
+
+.overflow-auto[b-wfdp7y8ga5]::-webkit-scrollbar-track {
+    background: #212529;
+}
+
+.overflow-auto[b-wfdp7y8ga5]::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+}
+
+.overflow-auto[b-wfdp7y8ga5]::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.2);
+}
 /* _content/Admin.Console/Components/NewEvent.razor.rz.scp.css */
+/* _content/Admin.Console/Components/Principal.razor.rz.scp.css */
+using System;
+
+namespace Admin.Console.Components;
+
+public class Class1[b-m4ldl49gva]
+{
+
+}
 /* _content/Admin.Console/Components/Video.razor.rz.scp.css */
 /* _content/Admin.Console/Views/Shared/_Layout.cshtml.rz.scp.css */
 /* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification

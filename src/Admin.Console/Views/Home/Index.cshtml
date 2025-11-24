@@ -1,22 +1,8 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Página de Productos";
 }
-<div class="h-100">
-    <div class="row h-50 bg-light">
-        <div class="col"> 
-            <component type="typeof(Admin.Console.Components.NewEvent)" render-mode="ServerPrerendered"/>
-        </div>
-        <div class="col">
-            <component type="typeof(Admin.Console.Components.Events)" render-mode="ServerPrerendered"/>
-        </div>
-    </div>
-    <div class="row h-50 bg-dark text-white">
-        <div class="col border-end">        
-        <component type="typeof(Admin.Console.Components.Log)" render-mode="ServerPrerendered"/>
-        </div>
-        <div class="col border-start">
-        <component type="typeof(Admin.Console.Components.Video)" render-mode="ServerPrerendered"/>
-        </div>
-    </div>
-    
-</div>
+
+@* Importamos los TagHelpers de Blazor *@
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<component type="typeof(Admin.Console.Components.Principal)" render-mode="Server" />

@@ -1,0 +1,26 @@
+.overflow-auto[b-wfdp7y8ga5] {
+    background-color: #212529;
+    border-radius: 0.25rem;
+}
+
+.list-group-item[b-wfdp7y8ga5] {
+    border-color: rgba(255,255,255,0.05);
+}
+
+/* Opcional: personalizar scrollbar */
+.overflow-auto[b-wfdp7y8ga5]::-webkit-scrollbar {
+    width: 8px;
+}
+
+.overflow-auto[b-wfdp7y8ga5]::-webkit-scrollbar-track {
+    background: #212529;
+}
+
+.overflow-auto[b-wfdp7y8ga5]::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+}
+
+.overflow-auto[b-wfdp7y8ga5]::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.2);
+}

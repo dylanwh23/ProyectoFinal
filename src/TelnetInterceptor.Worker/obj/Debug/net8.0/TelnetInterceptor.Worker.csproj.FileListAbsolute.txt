@@ -103,3 +103,11 @@ C:\Users\rmati\source\repos\dylanwh23\ProyectoFinal\src\TelnetInterceptor.Worker
 C:\Users\rmati\source\repos\dylanwh23\ProyectoFinal\src\TelnetInterceptor.Worker\obj\Debug\net8.0\TelnetInterceptor.Worker.genruntimeconfig.cache
 C:\Users\rmati\source\repos\dylanwh23\ProyectoFinal\src\TelnetInterceptor.Worker\obj\Debug\net8.0\ref\TelnetInterceptor.Worker.dll
 >>>>>>> 06e75e2a7759549da20a4f804222db505e204774
+C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\bin\Debug\net8.0\MassTransit.dll
+C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\bin\Debug\net8.0\MassTransit.Abstractions.dll
+C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\bin\Debug\net8.0\MassTransit.RabbitMqTransport.dll
+C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.HealthChecks.dll
+C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\bin\Debug\net8.0\Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions.dll
+C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\bin\Debug\net8.0\RabbitMQ.Client.dll
+C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\bin\Debug\net8.0\System.IO.Pipelines.dll
+C:\Users\User\Documents\ProyectoFinal\src\TelnetInterceptor.Worker\bin\Debug\net8.0\System.Threading.RateLimiting.dll

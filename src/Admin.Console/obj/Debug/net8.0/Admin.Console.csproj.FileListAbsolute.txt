@@ -35,3 +35,4 @@ C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\package
 C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\bin\Debug\net8.0\package.json
 C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Components\Events.razor.rz.scp.css
 C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Components\Video.razor.rz.scp.css
+C:\Users\User\Documents\ProyectoFinal\src\Admin.Console\obj\Debug\net8.0\scopedcss\Components\Principal.razor.rz.scp.css
