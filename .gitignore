@@ -3,6 +3,8 @@
 # ===============================================
 [Bb]in/
 [Oo]bj/
+src/**/obj/
+src/**/bin/
 *.user
 *.suo
 *.userosscache
@@ -23,6 +25,7 @@ bld/
 msbuild.log
 msbuild.err
 msbuild.wrn
+src/Admin.Console/obj/
 
 # Visual Studio
 .vs/
