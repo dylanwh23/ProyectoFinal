@@ -54,6 +54,7 @@ await LimpiarExchangeConflictivoAsync(builder.Configuration);
 builder.Services.AddControllers();
 builder.Services.Configure<ConfiguracionInterceptor>(
 builder.Configuration.GetSection("ConfiguracionInterceptor"));
+builder.Services.AddSingleton<EventosService>();
 
 builder.Services.AddSingleton<IServicioFiltradoEventos, ServicioFiltradoEventos>();
 builder.Services.AddSingleton<Worker>();
@@ -131,8 +132,10 @@ app.UseStaticFiles();
 app.MapControllers();
 app.MapTelnetEndpoints();
 app.MapCamaraEndpoints();
-
-
+app.MapConfiguracionEndpoints();
+app.MapHistoryEndpoints();
+app.MapEventosEndpoints();
+//app.MapImagenesEndpoints();
 // Ya no necesitamos mapear "/" manualmente porque UseDefaultFiles se encarga de servir el index.html
 // app.MapGet("/", () => ...); 
 

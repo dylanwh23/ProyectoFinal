@@ -199,5 +199,87 @@ async function loadEventHistoryLocal(startTime, endTime) {
     }
 }
 
+// Añade esta función a tu app.js existente
+// para cargar historial por rango de números
+
+async function loadEventHistoryByNumbers(startNumber, endNumber) {
+    if (!cameraName) return;
+
+    detenerStream();
+    titleElement.textContent = `Viendo: ${cameraName} (Cargando rango ${startNumber}-${endNumber}...)`;
+    historySlider.disabled = true;
+
+    try {
+        const response = await fetch(
+            `/api/configuracion/history/freeze-by-range/${cameraName}?desde=${startNumber}&hasta=${endNumber}`
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || "No se pudo cargar el historial por rango numérico.");
+        }
+
+        const snapshot = await response.json();
+
+        currentHistoryId = snapshot.historyId;
+        fileHistory = snapshot.files;
+
+        if (fileHistory.length > 0) {
+            historySlider.max = fileHistory.length - 1;
+            historySlider.disabled = false;
+            console.log(`Historial por rango numérico cargado: ${currentHistoryId} con ${fileHistory.length} archivos.`);
+            titleElement.textContent = `Viendo: ${cameraName} (Rango ${startNumber}-${endNumber}: ${fileHistory.length} imágenes)`;
+            showFrozenFrame(0);
+            historySlider.value = 0;
+        } else {
+            titleElement.textContent = `Viendo: ${cameraName} (No se encontraron imágenes en el rango ${startNumber}-${endNumber})`;
+        }
+
+    } catch (error) {
+        console.error("Error cargando historial por rango numérico:", error);
+        titleElement.textContent = `Viendo: ${cameraName} (Error al cargar rango)`;
+        iniciarStream(); // Volver a "En Vivo" si falla
+    }
+}
+
+
+// navbar.js - Componente de navegación reutilizable
+
+
+// Función para insertar el navbar
+function insertNavbar() {
+    // Insertar el navbar al inicio del body
+    const navContainer = document.createElement('div');
+    navContainer.innerHTML = NavbarHTML;
+    document.body.insertBefore(navContainer.firstElementChild, document.body.firstChild);
+
+    // Marcar la página activa
+    const currentPath = window.location.pathname;
+    const pageMap = {
+        '/': 'home',
+        '/index.html': 'home',
+        '/visor-rango.html': 'rango',
+        '/eventos-lista.html': 'eventos',
+        '/visor-evento.html': 'eventos',
+        '/configuracion.html': 'config'
+    };
+
+    const currentPage = pageMap[currentPath] || 'home';
+    const activeBtn = document.querySelector(`[data-page="${currentPage}"]`);
+    if (activeBtn) {
+        activeBtn.classList.add('active');
+    }
+}
+
+// Insertar automáticamente cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', insertNavbar);
+} else {
+    insertNavbar();
+}
+
+// Ejemplo de uso:
+// loadEventHistoryByNumbers(200, 210);
+
 // Iniciar todo
 iniciarVisor();

@@ -15,8 +15,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Contracts", "src\Sha
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Admin.Console", "src\Admin.Console\Admin.Console.csproj", "{5B3E43F9-B3C9-4BDC-B0FB-0FEED501C1F6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AdminConsole", "src\AdminConsole\AdminConsole.csproj", "{9D9BFE03-A39D-4EE6-AAEA-84BDB5311288}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,13 +41,6 @@ Global
 		{5B3E43F9-B3C9-4BDC-B0FB-0FEED501C1F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5B3E43F9-B3C9-4BDC-B0FB-0FEED501C1F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5B3E43F9-B3C9-4BDC-B0FB-0FEED501C1F6}.Release|Any CPU.Build.0 = Release|Any CPU
-		{9D9BFE03-A39D-4EE6-AAEA-84BDB5311288}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{9D9BFE03-A39D-4EE6-AAEA-84BDB5311288}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{9D9BFE03-A39D-4EE6-AAEA-84BDB5311288}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{9D9BFE03-A39D-4EE6-AAEA-84BDB5311288}.Release|Any CPU.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -60,7 +51,6 @@ Global
 		{25016690-EA81-48B0-9038-E5C98EFFF952} = {5E2E9DFC-AAB7-4A3E-83B2-2517BC4E22DD}
 		{D079D604-C81D-4D52-BC71-30D893513A0A} = {5E2E9DFC-AAB7-4A3E-83B2-2517BC4E22DD}
 		{5B3E43F9-B3C9-4BDC-B0FB-0FEED501C1F6} = {5E2E9DFC-AAB7-4A3E-83B2-2517BC4E22DD}
-		{9D9BFE03-A39D-4EE6-AAEA-84BDB5311288} = {5E2E9DFC-AAB7-4A3E-83B2-2517BC4E22DD}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {273E1914-94BE-4D50-8C52-A1A4E52195AD}
