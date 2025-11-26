@@ -12,9 +12,60 @@
             padding: 0;
             height: 100%;
             display: grid;
-            /* 3 filas: header, visor (flexible), footer/slider */
-            grid-template-rows: auto 1fr auto auto;
+            /* 4 filas: nav, header, visor (flexible), footer/slider */
+            grid-template-rows: auto auto 1fr auto auto;
         }
+
+        /* Barra de navegación superior */
+        nav {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-brand {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .nav-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            .nav-btn.active {
+                background: rgba(255, 255, 255, 0.4);
+                border-color: rgba(255, 255, 255, 0.5);
+            }
 
         header {
             padding: 10px;
@@ -53,23 +104,133 @@
             text-align: center;
             padding: 10px;
             background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
 
         button {
             margin: 0 5px;
-            padding: 5px 10px;
+            padding: 8px 16px;
             background: #333;
             color: #eee;
             border: 1px solid #666;
             cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.3s;
         }
 
             button:hover {
                 background: #444;
+                border-color: #888;
             }
+
+            button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+        /* Botones especiales con colores */
+        .btn-primary {
+            background: #667eea;
+            border-color: #5568d3;
+        }
+
+            .btn-primary:hover:not(:disabled) {
+                background: #5568d3;
+            }
+
+        .btn-success {
+            background: #28a745;
+            border-color: #218838;
+        }
+
+            .btn-success:hover:not(:disabled) {
+                background: #218838;
+            }
+
+        /* Menú desplegable para eventos rápidos */
+        .quick-menu {
+            position: relative;
+            display: inline-block;
+        }
+
+        .quick-menu-content {
+            display: none;
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background-color: #2a2a2a;
+            min-width: 200px;
+            box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.3);
+            z-index: 1;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+
+            .quick-menu-content a {
+                color: #eee;
+                padding: 12px 16px;
+                text-decoration: none;
+                display: block;
+                transition: background 0.3s;
+            }
+
+                .quick-menu-content a:hover {
+                    background-color: #444;
+                }
+
+        .quick-menu:hover .quick-menu-content {
+            display: block;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .nav-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            footer {
+                padding: 15px 10px;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Barra de navegación superior -->
+    <nav>
+        <div class="nav-brand">
+            <span>📹</span>
+            <span>Sistema de Cámaras</span>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-btn active">
+                <span>🎥</span>
+                <span>Visor en Vivo</span>
+            </a>
+            <a href="/visor-rango.html" class="nav-btn">
+                <span>🔍</span>
+                <span>Buscar Rango</span>
+            </a>
+            <a href="/eventos-lista.html" class="nav-btn">
+                <span>📁</span>
+                <span>Eventos Guardados</span>
+            </a>
+            <a href="/configuracion.html" class="nav-btn">
+                <span>⚙️</span>
+                <span>Configuración</span>
+            </a>
+        </div>
+    </nav>
+
     <header>
         <h1 id="titulo-camara">Cargando...</h1>
     </header>
@@ -83,10 +244,49 @@
     </div>
 
     <footer>
-        <button id="btnStart">Ver en Vivo</button>
-        <button id="btnPause">Pausar</button>
+        <button id="btnStart" class="btn-primary">▶ Ver en Vivo</button>
+        <button id="btnPause" class="btn-success">⏸ Pausar</button>
+
     </footer>
 
     <script src="app.js"></script>
+    <script>
+        // Funciones adicionales para las acciones rápidas
+        function guardarEventoRapido() {
+            // Obtener información de la cámara actual
+            const path = window.location.pathname;
+            const params = new URLSearchParams(window.location.search);
+            const cameraName = params.get("cam") || path.substring(1).replace(/\/$/, "") || 'camara1';
+
+            // Redirigir al visor de rango para guardar los últimos frames
+            // Asumiendo que los frames más recientes están numerados, por ejemplo del 950 al 1000
+            const nombre = prompt('Nombre del evento:', `Evento ${cameraName} - ${new Date().toLocaleString()}`);
+            if (!nombre) return;
+
+            alert('Para guardar un evento, primero debes cargar el rango específico en el Visor de Rango.\n\nTe redirigiremos ahí.');
+            window.location.href = `/visor-rango.html?cam=${cameraName}`;
+        }
+
+        function abrirRangoPersonalizado() {
+            const path = window.location.pathname;
+            const params = new URLSearchParams(window.location.search);
+            const cameraName = params.get("cam") || path.substring(1).replace(/\/$/, "") || 'camara1';
+
+            window.location.href = `/visor-rango.html?cam=${cameraName}`;
+        }
+
+        // Marcar el botón activo según la página actual
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.getAttribute('href') === currentPath ||
+                    (currentPath === '/' && btn.getAttribute('href') === '/')) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        });
+    </script>
 </body>
 </html>

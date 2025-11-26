@@ -1,0 +1,573 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración del Sistema</title>
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            color: #667eea;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 12px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .info-label {
+            color: #666;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .info-value {
+            color: #333;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            word-break: break-all;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            font-family: 'Courier New', monospace;
+        }
+
+            input[type="text"]:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background: #5568d3;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+            .btn-secondary:hover {
+                background: #5a6268;
+            }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+            .btn-success:hover {
+                background: #218838;
+            }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+            .alert.show {
+                display: block;
+                animation: slideDown 0.3s ease-out;
+            }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+            .loading.show {
+                display: block;
+            }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .icon {
+            font-size: 20px;
+        }
+
+        .validation-result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none;
+        }
+
+            .validation-result.show {
+                display: block;
+            }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR - Copiar en todas las páginas -->
+    <nav style="
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+">
+        <div style="
+        font-size: 18px;
+        font-weight: bold;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    ">
+            <span>📹</span>
+            <span>Sistema de Cámaras</span>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="/" class="nav-btn">
+                <span>🎥</span>
+                <span>Visor en Vivo</span>
+            </a>
+            <a href="/visor-rango.html" class="nav-btn">
+                <span>🔍</span>
+                <span>Buscar Rango</span>
+            </a>
+            <a href="/eventos-lista.html" class="nav-btn">
+                <span>📁</span>
+                <span>Eventos</span>
+            </a>
+            <a href="/configuracion.html" class="nav-btn">
+                <span>⚙️</span>
+                <span>Configuración</span>
+            </a>
+        </div>
+    </nav>
+
+    <style>
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .nav-btn:hover {
+                background: rgba(255, 255, 255, 0.3);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            .nav-btn.active {
+                background: rgba(255, 255, 255, 0.4);
+                border-color: rgba(255, 255, 255, 0.5);
+            }
+
+        @media (max-width: 768px) {
+            nav {
+                flex-direction: column !important;
+                gap: 10px;
+            }
+
+                nav > div:last-child {
+                    justify-content: center;
+                }
+        }
+    </style>
+    <!-- FIN NAVBAR -->
+
+    <div class="container">
+        <div class="card">
+            <h1>⚙️ Configuración del Sistema</h1>
+            <p class="subtitle">Gestiona la ruta donde se almacenan las imágenes de las cámaras</p>
+
+            <!-- Alertas -->
+            <div id="alert" class="alert"></div>
+
+            <!-- Estado actual -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">📁</span>
+                    Estado Actual
+                </div>
+                <div class="loading" id="loadingCurrent">
+                    <div class="spinner"></div>
+                    <p>Cargando información...</p>
+                </div>
+                <div id="currentInfo" style="display: none;">
+                    <div class="info-grid">
+                        <span class="info-label">Ruta Actual:</span>
+                        <span class="info-value" id="rutaActual">-</span>
+
+                        <span class="info-label">Existe:</span>
+                        <span id="existeBadge">-</span>
+
+                        <span class="info-label">Permisos:</span>
+                        <span id="permisosBadge">-</span>
+                    </div>
+                    <button class="btn-secondary" onclick="cargarRutaActual()">🔄 Actualizar</button>
+                </div>
+            </div>
+
+            <!-- Cambiar ruta -->
+            <div class="section">
+                <div class="section-title">
+                    <span class="icon">✏️</span>
+                    Cambiar Ruta de Imágenes
+                </div>
+                <div class="input-group">
+                    <label for="nuevaRuta">Nueva Ruta:</label>
+                    <input type="text"
+                           id="nuevaRuta"
+                           placeholder="Ej: C:\Camaras\Imagenes o /var/cameras/images">
+                </div>
+
+                <div class="button-group">
+                    <button class="btn-secondary" onclick="validarRuta()">
+                        🔍 Validar Ruta
+                    </button>
+                    <button class="btn-success" onclick="actualizarRuta()">
+                        💾 Aplicar Nueva Ruta
+                    </button>
+                </div>
+
+                <!-- Resultado de validación -->
+                <div id="validationResult" class="validation-result"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+    const API_BASE = '';
+
+        // Cargar información actual al iniciar
+        window.addEventListener('load', () => {
+            cargarRutaActual();
+        });
+
+        async function cargarRutaActual() {
+            const loadingEl = document.getElementById('loadingCurrent');
+            const infoEl = document.getElementById('currentInfo');
+
+            loadingEl.classList.add('show');
+            infoEl.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/configuracion/ruta-imagenes`);
+                const data = await response.json();
+
+                document.getElementById('rutaActual').textContent = data.rutaActual;
+
+                document.getElementById('existeBadge').innerHTML = data.existe
+                    ? '<span class="status-badge status-success">✓ Existe</span>'
+                    : '<span class="status-badge status-error">✗ No existe</span>';
+
+                document.getElementById('permisosBadge').innerHTML = data.tienePermisoEscritura
+                    ? '<span class="status-badge status-success">✓ Lectura/Escritura</span>'
+                    : '<span class="status-badge status-error">✗ Sin permisos</span>';
+
+            } catch (error) {
+                mostrarAlerta('Error al cargar la información actual: ' + error.message, 'error');
+            } finally {
+                loadingEl.classList.remove('show');
+                infoEl.style.display = 'block';
+            }
+        }
+
+        async function validarRuta() {
+            const ruta = document.getElementById('nuevaRuta').value.trim();
+            const resultEl = document.getElementById('validationResult');
+
+            if (!ruta) {
+                mostrarAlerta('Por favor ingresa una ruta', 'error');
+                return;
+            }
+
+            resultEl.innerHTML = '<div class="spinner"></div><p>Validando...</p>';
+            resultEl.classList.add('show');
+
+            try {
+                const response = await fetch(`${API_BASE}/api/configuracion/ruta-imagenes/validar`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ruta })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    resultEl.innerHTML = `
+                            <strong style="color: #721c24;">❌ Validación fallida</strong>
+                            <p style="margin-top: 10px;">${data.error || 'Ruta inválida'}</p>
+                        `;
+                    return;
+                }
+
+                resultEl.innerHTML = `
+                        <div class="info-grid">
+                            <span class="info-label">Ruta:</span>
+                            <span class="info-value">${data.ruta}</span>
+
+                            <span class="info-label">Existe:</span>
+                            <span>${data.existe ? '<span class="status-badge status-success">✓ Sí</span>' : '<span class="status-badge status-warning">⚠ No (se creará)</span>'}</span>
+
+                            <span class="info-label">Lectura:</span>
+                            <span>${data.tienePermisoLectura ? '<span class="status-badge status-success">✓ Sí</span>' : '<span class="status-badge status-error">✗ No</span>'}</span>
+
+                            <span class="info-label">Escritura:</span>
+                            <span>${data.tienePermisoEscritura ? '<span class="status-badge status-success">✓ Sí</span>' : '<span class="status-badge status-error">✗ No</span>'}</span>
+
+                            <span class="info-label">Espacio:</span>
+                            <span class="info-value">${data.espacioDisponible}</span>
+                        </div>
+                    `;
+
+                if (data.tienePermisoEscritura) {
+                    mostrarAlerta('✓ La ruta es válida y tiene permisos adecuados', 'success');
+                } else {
+                    mostrarAlerta('⚠ La ruta no tiene permisos de escritura', 'error');
+                }
+
+            } catch (error) {
+                resultEl.innerHTML = `<strong style="color: #721c24;">Error: ${error.message}</strong>`;
+                mostrarAlerta('Error al validar la ruta: ' + error.message, 'error');
+            }
+        }
+
+        async function actualizarRuta() {
+            const ruta = document.getElementById('nuevaRuta').value.trim();
+
+            if (!ruta) {
+                mostrarAlerta('Por favor ingresa una ruta', 'error');
+                return;
+            }
+
+            if (!confirm(`¿Estás seguro de cambiar la ruta a:\n${ruta}\n\nEsto reiniciará el monitoreo de archivos.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/configuracion/ruta-imagenes`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nuevaRuta: ruta })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    mostrarAlerta('Error: ' + (data.error || 'No se pudo actualizar la ruta'), 'error');
+                    return;
+                }
+
+                mostrarAlerta('✓ Ruta actualizada correctamente. El sistema está usando la nueva ruta.', 'success');
+                document.getElementById('nuevaRuta').value = '';
+                document.getElementById('validationResult').classList.remove('show');
+
+                // Recargar información actual
+                setTimeout(cargarRutaActual, 1000);
+
+            } catch (error) {
+                mostrarAlerta('Error al actualizar la ruta: ' + error.message, 'error');
+            }
+        }
+
+        function usarRuta(ruta) {
+            document.getElementById('nuevaRuta').value = ruta;
+            mostrarAlerta(`Ruta "${ruta}" cargada. Haz clic en "Validar Ruta" para verificarla.`, 'info');
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const alertEl = document.getElementById('alert');
+            alertEl.className = `alert alert-${tipo} show`;
+            alertEl.textContent = mensaje;
+
+            setTimeout(() => {
+                alertEl.classList.remove('show');
+            }, 5000);
+        }</script>
+
+</body>
+
+</html>
