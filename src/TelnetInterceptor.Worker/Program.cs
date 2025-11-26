@@ -1,20 +1,12 @@
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using TelnetInterceptor.Worker;
 using TelnetInterceptor.Worker.Configuration;
 using TelnetInterceptor.Worker.Services;
-using TelnetInterceptor.Worker.Endpoints;
+using TelnetInterceptor.Worker.Endpoints; // Importante para ver el método de extensión
 using MassTransit;
 using Shared.Contracts;
 using Microsoft.OpenApi.Models;
 using RabbitMQ.Client;
-using System;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using System.Collections.Generic; // Added for List
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +51,7 @@ static async Task LimpiarExchangeConflictivoAsync(IConfiguration configuration)
 await LimpiarExchangeConflictivoAsync(builder.Configuration);
 
 // 1️⃣ Servicios base
+builder.Services.AddControllers();
 builder.Services.Configure<ConfiguracionInterceptor>(
     builder.Configuration.GetSection("ConfiguracionInterceptor"));
 
@@ -71,6 +64,12 @@ var rabbitMQConfig = builder.Configuration.GetSection("RabbitMQ");
 var rabbitHost = rabbitMQConfig["Host"] ?? "localhost";
 var rabbitUser = rabbitMQConfig["Username"] ?? "guest";
 var rabbitPass = rabbitMQConfig["Password"] ?? "guest";
+
+// Servicios imagenes
+// Nota: ServerSettings ahora está definida en ImagenesEndpoints.cs o Contracts, asegúrate de que el namespace coincida
+builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("ServerSettings"));
+builder.Services.AddSingleton<CameraStreamService>();
+builder.Services.AddHostedService(p => p.GetRequiredService<CameraStreamService>());
 
 // Get camera configurations
 var configuracionInterceptor = builder.Configuration.GetSection("ConfiguracionInterceptor").Get<ConfiguracionInterceptor>();
@@ -93,7 +92,6 @@ builder.Services.AddMassTransit(x =>
         {
             e.ConfigureConsumer<CameraDeletedConsumer>(context);
         });
-
     });
 });
 
@@ -125,9 +123,15 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+// Configuración para servir archivos estáticos (index.html)
+app.UseDefaultFiles(); 
+app.UseStaticFiles();
+
+// Registro de Endpoints
 app.MapTelnetEndpoints();
 app.MapCamaraEndpoints();
 
-app.MapGet("/", () => Results.Ok("✅ TelnetInterceptor Worker corriendo con Swagger y gestión de cámaras."));
+// Ya no necesitamos mapear "/" manualmente porque UseDefaultFiles se encarga de servir el index.html
+// app.MapGet("/", () => ...); 
 
 await app.RunAsync();

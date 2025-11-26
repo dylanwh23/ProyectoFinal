@@ -1,19 +1,21 @@
 ﻿@using Admin.Console.Models.Components
+@using Microsoft.AspNetCore.Components.Web
+
 <div class="h-100">
     <div class="row h-50 bg-light">
         <div class="col"> 
             <NewEvent />
         </div>
         <div class="col">
-            <Events Eventos="eventos" OnEventoSeleccionado="AlSeleccionarEvento" />
+            <Events Eventos="eventos" OnEventoSeleccionado="AlSeleccionarEvento"/>
         </div>
     </div>
     <div class="row h-50 bg-dark text-white" style="max-height: 50%;">
         <div class="col border-end mh-100">        
-            <Log />
+             <Log />
         </div>
         <div class="col border-start mh-100">
-            <Video Evento="eventoSeleccionado" />
+             <Video Evento="eventoSeleccionado" />
         </div>
     </div>
 </div>
