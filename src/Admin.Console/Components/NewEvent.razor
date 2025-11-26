@@ -1,68 +1,110 @@
-<div>
-<h3 class="text-center">Registrar nuevo evento</h3>
-<form action="" class="container text-center">
-    <div class="input-group mb-3">
-        <span class="input-group-text">IP Cámara/Evento</span>
-        <input type="number" aria-label="First octet" class="form-control" min="0" max="255" required
-            placeholder="0-255">
-        <input type="number" aria-label="Second octet" class="form-control" min="0" max="255" required
-            placeholder="0-255">
-        <input type="number" aria-label="Third octet" class="form-control" min="0" max="255" required
-            placeholder="0-255">
-        <input type="number" aria-label="Fourth octet" class="form-control" min="0" max="255" required
-            placeholder="0-255">
-        <input type="number" aria-label="Port" class="form-control bg-light" min="0" max="65535" required
-            placeholder="0-65535">
-        <button class="btn btn-primary">
-            Connect
+@page "/nuevo-evento"
+@using Admin.Console.Components
+@using Microsoft.AspNetCore.Components.Forms
 
-        </button>
-         <span class="input-group-text">
-            <i class="bi bi-check2-circle text-success ">Conexión exitosa</i>
-            <i class="bi bi-x-circle-fill text-danger visually-hidden">Conexión fallida</i>
-        </span>
-    </div>
-    <div class="input-group mb-3">
-        <span class="input-group-text">IP PC Cámaras</span>
-        <input type="number" aria-label="First octet" class="form-control" min="0" max="255" required
-            placeholder="0-255">
-        <input type="number" aria-label="Second octet" class="form-control" min="0" max="255" required
-            placeholder="0-255">
-        <input type="number" aria-label="Third octet" class="form-control" min="0" max="255" required
-            placeholder="0-255">
-        <input type="number" aria-label="Fourth octet" class="form-control" min="0" max="255" required
-            placeholder="0-255">
-        <input type="number" aria-label="Port" class="form-control bg-light" min="0" max="65535" required
-            placeholder="0-65535">
-        <button class="btn btn-primary">
-            Connect
+<div class="container mt-4">
+    <h3 class="text-center">Registrar nuevo evento</h3>
 
-        </button>
-        <span class="input-group-text">
-            <i class="bi bi-check2-circle text-success ">Conexión exitosa</i>
-            <i class="bi bi-x-circle-fill text-danger visually-hidden">Conexión fallida</i>
-        </span>
-    </div>
-     <div class="input-group">
-        <span class="input-group-text rounded-0">Ruta Carpeta</span>
-        <input type="text" aria-label="Folder path" class="form-control rounded-0" required
-            placeholder="Ruta de la carpeta de imágenes">
-    </div>
-     <div class=" input-group mb-3">
-        <span class="input-group-text rounded-0">Credenciales</span>
-        <input type="text" aria-label="User" class="form-control" required
-            placeholder="Usuario">
-            <input type="password" aria-label="Password" class="form-control" required
-            placeholder="Contraseña">
-             <button class="btn btn-primary rounded-0">
-            Connect
+    <EditForm Model="@FormModel" OnValidSubmit="@Submit" FormName="NewEventForm">
+        <DataAnnotationsValidator />
 
-        </button>
-        <span class="input-group-text">
-            <i class="bi bi-check2-circle text-success ">Conexión exitosa</i>
-            <i class="bi bi-x-circle-fill text-danger visually-hidden">Conexión fallida</i>
-        </span>
-    </div>
-    <input type="submit" class="btn btn-primary" value="Registrar evento" />
-</form>
+        @* --- GRUPO 1: IP CÁMARA --- *@
+        <div class="input-group mb-3">
+            <span class="input-group-text">IP Cámara/Evento</span>
+            <InputNumber @bind-Value="FormModel.CamIp1" class="form-control" min="0" max="255" placeholder="0" />
+            <InputNumber @bind-Value="FormModel.CamIp2" class="form-control" min="0" max="255" placeholder="0" />
+            <InputNumber @bind-Value="FormModel.CamIp3" class="form-control" min="0" max="255" placeholder="0" />
+            <InputNumber @bind-Value="FormModel.CamIp4" class="form-control" min="0" max="255" placeholder="0" />
+
+            @* Puerto *@
+            <InputNumber @bind-Value="FormModel.CamPort" class="form-control bg-light" min="0" max="65535"
+                placeholder="Port" />
+
+            <button type="button" class="btn btn-outline-primary" onclick="@TestCameraConnection"
+                disabled="@isLoadingCam">
+                @if (isLoadingCam)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                }
+                else
+                {
+                    <span>Test</span>
+                }
+            </button>
+
+            <span class="input-group-text" style="min-width: 45px; justify-content: center;">
+                @if (camConnectionStatus == true)
+                {
+                    <i class="bi bi-check-circle-fill text-success"
+                        title="Conexión Exitosa"></i>
+                }
+                else if (camConnectionStatus == false)
+                {
+
+                        <i class="bi bi-x-circle-fill text-danger"
+                        title="Error de Conexión"></i>
+                    }
+                else
+                {
+
+                        <i class="bi bi-question-circle text-muted"></i>
+                    }
+            </span>
+        </div>
+
+        @* --- GRUPO 2: PC Y ALMACENAMIENTO --- *@
+        <div class="card mb-3">
+            <div class="card-header">Almacenamiento (PC Microscan)</div>
+            <div class="card-body">
+
+                @* Input de Ruta *@
+                <div class="input-group">
+                    <span class="input-group-text">Ruta Carpeta</span>
+                    <InputText @bind-Value="FormModel.RutaCarpeta" class="form-control"
+                        placeholder="Ej: C:\Fotos (local) o \\192.168.1.50\Fotos (red)" />
+
+                    @* Botón que testea la CARPETA, no solo la IP *@
+                    <button type="button" class="btn btn-outline-primary" onclick="@TestFolderAccess"
+                        disabled="@isLoadingPc">
+                        @if (isLoadingPc)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                        }
+                        else
+                        {
+                            <span>Test Ruta</span>
+                        }
+                    </button>
+
+                    <span class="input-group-text" style="min-width: 45px; justify-content: center;">
+                        @if (pcConnectionStatus == true)
+                        {
+                            <i class="bi bi-check-circle-fill text-success"></i>
+                        }
+                        else if (pcConnectionStatus == false)
+                        {
+
+                            <i class="bi bi-x-circle-fill text-danger"></i>
+                        }
+                        else
+                        {
+
+                            <i class="bi bi-folder text-muted"></i>
+                        }
+                    </span>
+                </div>
+                <small class="text-muted">
+                    Nota: Si la PC es remota, usa una ruta de red (\\IP\Carpeta).
+                </small>
+            </div>
+        </div>
+
+        <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary btn-lg">Registrar evento</button>
+        </div>
+
+        <div class="text-danger mt-2">
+            <ValidationSummary />
+        </div>
+    </EditForm>
 </div>
