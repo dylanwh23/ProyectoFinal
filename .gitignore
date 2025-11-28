@@ -103,7 +103,7 @@ package-lock.json
 docker-compose.override.yml
 
 # RabbitMQ data (del volumen Docker)
-data/
+
 
 # ===============================================
 # OS SPECIFIC
