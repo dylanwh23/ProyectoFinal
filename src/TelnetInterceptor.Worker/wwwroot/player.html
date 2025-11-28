@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor Embebido</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #000; overflow: hidden; font-family: sans-serif;
+        }
+
+        #player-container {
+            position: relative; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        /* Imagen Principal */
+        #video-display {
+            width: 100%; height: 100%; object-fit: contain;
+        }
+
+        /* --- NUEVO ESTILO PARA EL AVISO SIN SEÑAL --- */
+        #no-signal {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%); /* Centrado perfecto */
+            
+            background: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
+            color: #ff4444;
+            border: 1px solid #ff4444;
+            padding: 20px 40px;
+            border-radius: 10px;
+            text-align: center;
+            
+            display: none; /* Oculto por defecto */
+            flex-direction: column;
+            align-items: center;
+            
+            z-index: 10; /* Por encima del video */
+            pointer-events: none; /* MAGIA: Permite hacer clic "a través" de él */
+            backdrop-filter: blur(2px);
+        }
+
+        /* Badges de estado */
+        .status-badge {
+            position: absolute; top: 10px; right: 10px;
+            padding: 4px 8px; border-radius: 4px;
+            font-size: 12px; font-weight: bold; color: white;
+            text-transform: uppercase; letter-spacing: 1px;
+            pointer-events: none;
+            background: rgba(0,0,0,0.5);
+            z-index: 15;
+        }
+        .status-live { background-color: #dc3545; animation: pulse 2s infinite; }
+        .status-playback { background-color: #0d6efd; }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+        /* --- BARRA DE CONTROLES (Z-Index más alto) --- */
+        .controls-bar {
+            position: absolute; bottom: 0; left: 0; right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 100%);
+            padding: 15px;
+            display: flex; align-items: center; gap: 15px;
+            
+            z-index: 100; /* SIEMPRE POR ENCIMA DE TODO */
+            opacity: 1; 
+            transition: opacity 0.3s;
+        }
+        /* Opcional: Ocultar controles si no hay mouse, pero mostrar si hay error */
+        /* #player-container:hover .controls-bar { opacity: 1; } */
+
+        .btn-play {
+            background: white; border: none; border-radius: 50%;
+            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: transform 0.1s;
+        }
+        .btn-play:active { transform: scale(0.95); }
+        .btn-play i { color: #000; font-size: 1.2rem; }
+
+        .range-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
+        input[type=range] { width: 100%; cursor: pointer; height: 6px; }
+        .time-info { color: #ccc; font-size: 11px; margin-top: 4px; display: flex; justify-content: space-between; }
+
+        .loader {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid #fff; border-radius: 50%;
+            animation: spin 1s linear infinite; display: none; z-index: 20;
+        }
+        @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+    </style>
+</head>
+<body>
+
+    <div id="player-container">
+        <img id="video-display" src="" alt="" />
+        
+        <div id="no-signal">
+            <i class="bi bi-wifi-off" style="font-size: 2.5rem; margin-bottom: 10px;"></i>
+            <h5 class="m-0">SIN SEÑAL</h5>
+            <small>Conexión perdida > 10s</small>
+        </div>
+
+        <div id="live-badge" class="status-badge status-live">EN VIVO</div>
+        <div id="loader" class="loader"></div>
+
+        <div class="controls-bar">
+            <button id="btn-toggle" class="btn-play" title="Pausar / En Vivo">
+                <i class="bi bi-pause-fill"></i>
+            </button>
+            
+            <div class="range-container">
+                <input type="range" id="scrubber" min="0" max="100" value="100" disabled>
+                <div class="time-info">
+                    <span id="lbl-start"></span>
+                    <span id="lbl-current">Tiempo Real</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="player.js"></script>
+</body>
+</html>

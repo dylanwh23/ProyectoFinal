@@ -1,14 +1,45 @@
 @using Admin.Console.Models.Components
 
+<div class="h-100 d-flex flex-column">
+    <div class="d-flex justify-content-between align-items-center mb-2 px-2">
+        <h4 class="text-center m-0">Eventos Registrados</h4>
+        <button class="btn btn-sm btn-outline-secondary" onclick="@CargarEventos" title="Actualizar lista">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
 
-<div class="h-75">
-    <h3 class="text-center">Eventos registrados</h3>
-<ul class="list-group h-75 overflow-auto">
-  @foreach (EventModel evento in Eventos)
-  {
-    <li class="list-group-item" onclick="@(() => SeleccionarEvento(evento))" style="cursor:pointer;">@evento.IpCamera</li>
-  }
-
-</ul>
-    <h4 class="text-center">Seleccione un evento para ver detalles</h4>
+    @if (IsLoading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="small text-muted mt-2">Cargando eventos...</p>
+        </div>
+    }
+    else if (Eventos == null || Eventos.Count == 0)
+    {
+        <div class="alert alert-info m-2 text-center">
+            No hay eventos registrados.
+        </div>
+    }
+    else
+    {
+        <div class="list-group h-100 overflow-auto px-2">
+            @foreach (var evento in Eventos)
+            {
+                <button type="button" 
+                        class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded"
+                        onclick="@(() => SeleccionarEvento(evento))">
+                    
+                    <div class="text-truncate">
+                        <div class="fw-bold text-primary">@evento.Nombre</div>
+                        <div class="small text-muted">
+                            <i class="bi bi-hdd-network me-1"></i>@evento.IpCamara : @evento.Puerto
+                        </div>
+                    </div>
+                    
+                    <i class="bi bi-chevron-right text-secondary"></i>
+                </button>
+            }
+        </div>
+    }
 </div>

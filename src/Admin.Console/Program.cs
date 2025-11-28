@@ -4,6 +4,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpClient();
+builder.Services.AddScoped(sp => new HttpClient 
+{ 
+    BaseAddress = new Uri("http://localhost:5000/") 
+});
 
 var app = builder.Build();
 

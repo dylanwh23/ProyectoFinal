@@ -1,11 +1,61 @@
-@if(Evento != null)
-{
-    <p class="border-bottom text-center">@Evento.IpCamera</p>
-}
-else
-{
-<div class="h-100 w-100">
-    <h3 class="border-bottom text-center">Video</h3>
-    <h4 class="text-center mt-5">Seleccione un evento para ver captura</h4>
+@namespace Admin.Console.Components
+
+<div class="player-container">
+    @if (Evento == null)
+    {
+        <div class="text-white text-center">
+            <i class="bi bi-camera-video-off" style="font-size: 3rem;"></i>
+            <h4 class="mt-3">Seleccione una cámara</h4>
+        </div>
+    }
+    else
+    {
+        <img src="@ImageSource" 
+             class="video-display" 
+             onerror="@HandleImageError" 
+             alt="Video Feed" />
+
+        @if (ShowNoSignal)
+        {
+            <div class="no-signal-overlay">
+                <i class="bi bi-wifi-off" style="font-size: 2.5rem; margin-bottom: 10px;"></i>
+                <h5 class="m-0">SIN SEÑAL</h5>
+                <small>Conexión perdida > 10s</small>
+            </div>
+        }
+
+        @if (IsLoading)
+        {
+            <div class="loader"></div>
+        }
+
+        @if (IsLive)
+        {
+            <div class="status-badge status-live">EN VIVO</div>
+        }
+        else
+        {
+            <div class="status-badge status-playback">BUFFER</div>
+        }
+
+        <div class="controls-bar">
+            <button class="btn-play" onclick="@TogglePlayPause" title="@(IsLive ? "Pausar" : "Volver al Vivo")">
+                <i class="bi @(IsLive ? "bi-pause-fill" : "bi-play-fill")"></i>
+            </button>
+
+            <div class="range-container">
+                <input type="range" 
+                       min="0" 
+                       max="@SliderMax" 
+                       value="@SliderValue" 
+                       oninput="@OnSliderInput" 
+                       disabled="@IsLive" />
+                
+                <div class="time-info">
+                    <span>@LabelStart</span>
+                    <span>@LabelCurrent</span>
+                </div>
+            </div>
+        </div>
+    }
 </div>
-}

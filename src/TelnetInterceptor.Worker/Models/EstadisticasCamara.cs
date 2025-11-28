@@ -6,6 +6,7 @@ namespace TelnetInterceptor.Worker.Models;
 [PrimaryKey(nameof(IpCamara), nameof(Puerto))]
 public class EstadisticasCamara
 {
+    public string Nombre { get; set; } = string.Empty;
     public string IpCamara { get; set; } = string.Empty;
     public int Puerto { get; set; }
     
@@ -20,12 +21,13 @@ public class EstadisticasCamara
     
     public EstadisticasCamara() { }
 
-    public EstadisticasCamara(string ipCamara, int puerto, string rutaCarpeta)
+    public EstadisticasCamara(string ipCamara, int puerto, string rutaCarpeta, string nombre)
     {
         IpCamara = ipCamara;
         Puerto = puerto;
         RutaCarpeta = rutaCarpeta;
         EstaConectada = false;
         MensajesRecibidos = 0;
+        Nombre = nombre;
     }
 }

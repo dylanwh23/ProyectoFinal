@@ -2,109 +2,108 @@
 @using Admin.Console.Components
 @using Microsoft.AspNetCore.Components.Forms
 
-<div class="container mt-4">
-    <h3 class="text-center">Registrar nuevo evento</h3>
-
-    <EditForm Model="@FormModel" OnValidSubmit="@Submit" FormName="NewEventForm">
-        <DataAnnotationsValidator />
-
-        @* --- GRUPO 1: IP CÁMARA --- *@
-        <div class="input-group mb-3">
-            <span class="input-group-text">IP Cámara/Evento</span>
-            <InputNumber @bind-Value="FormModel.CamIp1" class="form-control" min="0" max="255" placeholder="0" />
-            <InputNumber @bind-Value="FormModel.CamIp2" class="form-control" min="0" max="255" placeholder="0" />
-            <InputNumber @bind-Value="FormModel.CamIp3" class="form-control" min="0" max="255" placeholder="0" />
-            <InputNumber @bind-Value="FormModel.CamIp4" class="form-control" min="0" max="255" placeholder="0" />
-
-            @* Puerto *@
-            <InputNumber @bind-Value="FormModel.CamPort" class="form-control bg-light" min="0" max="65535"
-                placeholder="Port" />
-
-            <button type="button" class="btn btn-outline-primary" onclick="@TestCameraConnection"
-                disabled="@isLoadingCam">
-                @if (isLoadingCam)
-                {
-                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                }
-                else
-                {
-                    <span>Test</span>
-                }
-            </button>
-
-            <span class="input-group-text" style="min-width: 45px; justify-content: center;">
-                @if (camConnectionStatus == true)
-                {
-                    <i class="bi bi-check-circle-fill text-success"
-                        title="Conexión Exitosa"></i>
-                }
-                else if (camConnectionStatus == false)
-                {
-
-                        <i class="bi bi-x-circle-fill text-danger"
-                        title="Error de Conexión"></i>
-                    }
-                else
-                {
-
-                        <i class="bi bi-question-circle text-muted"></i>
-                    }
-            </span>
+<div class="container mt-4" style="max-width: 800px;">
+    <div class="bg-light p-4 rounded shadow-sm border">
+        
+        <div class="d-flex align-items-center mb-4 border-bottom pb-2">
+            <h5 class="m-0 text-primary"><i class="bi bi-camera-video me-2"></i>Registrar Nuevo Evento</h5>
         </div>
 
-        @* --- GRUPO 2: PC Y ALMACENAMIENTO --- *@
-        <div class="card mb-3">
-            <div class="card-header">Almacenamiento (PC Microscan)</div>
-            <div class="card-body">
+        <EditForm Model="@FormModel" OnValidSubmit="@Submit" FormName="NewEventForm">
+            <DataAnnotationsValidator />
 
-                @* Input de Ruta *@
+            @* --- 1. NOMBRE (Separado) --- *@
+            <div class="mb-3">
+                <label class="form-label fw-bold small text-secondary">NOMBRE DEL EVENTO</label>
                 <div class="input-group">
-                    <span class="input-group-text">Ruta Carpeta</span>
-                    <InputText @bind-Value="FormModel.RutaCarpeta" class="form-control"
-                        placeholder="Ej: C:\Fotos (local) o \\192.168.1.50\Fotos (red)" />
+                    <span class="input-group-text bg-white"><i class="bi bi-tag"></i></span>
+                    <InputText @bind-Value="FormModel.Nombre" class="form-control" placeholder="Ej: Cámara Acceso Norte" />
+                </div>
+                <ValidationMessage For="@(() => FormModel.Nombre)" />
+            </div>
 
-                    @* Botón que testea la CARPETA, no solo la IP *@
-                    <button type="button" class="btn btn-outline-primary" onclick="@TestFolderAccess"
-                        disabled="@isLoadingPc">
+            @* --- 2. IP y PUERTO (Agrupados) --- *@
+            <div class="mb-3">
+                <label class="form-label fw-bold small text-secondary">CONEXIÓN (IP : PUERTO)</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end"><i class="bi bi-hdd-network"></i></span>
+                 
+                    @* IP OCTETOS *@
+                    <InputNumber @bind-Value="FormModel.CamIp1" class="form-control text-center px-0 border-end-0" style="max-width: 55px;" placeholder="192" />
+                    <span class="input-group-text px-1 bg-white border-end-0 fw-bold">.</span>
+                    <InputNumber @bind-Value="FormModel.CamIp2" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 55px;" placeholder="168" />
+                    <span class="input-group-text px-1 bg-white border-start-0 border-end-0 fw-bold">.</span>
+                    <InputNumber @bind-Value="FormModel.CamIp3" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 55px;" placeholder="0" />
+                    <span class="input-group-text px-1 bg-white border-start-0 border-end-0 fw-bold">.</span>
+                    <InputNumber @bind-Value="FormModel.CamIp4" class="form-control text-center px-0 border-start-0" style="max-width: 60px;" placeholder="10" />
+
+                    @* PUERTO *@
+                    <span class="input-group-text bg-light fw-bold border-start-0">:</span>
+                    <InputNumber @bind-Value="FormModel.CamPort" class="form-control text-center" style="max-width: 100px;" placeholder="23" />
+
+                    @* BOTÓN TEST *@
+                    <button type="button" class="btn btn-outline-secondary" onclick="@TestCameraConnection" disabled="@isLoadingCam" title="Probar conexión">
+                        @if (isLoadingCam)
+                        {
+                            <span class="spinner-border spinner-border-sm"></span>
+                        }
+                        else if (camConnectionStatus == true)
+                        {
+                            <span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>OK</span>
+                        }
+                        else if (camConnectionStatus == false)
+                        {
+                            <span class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>Error</span>
+                        }
+                        else
+                        {
+                            <span>Test</span>
+                        }
+                    </button>
+                    
+                </div>
+            </div>
+
+            @* --- 3. RUTA DE ALMACENAMIENTO --- *@
+            <div class="mb-4">
+                <label class="form-label fw-bold small text-secondary">RUTA DE CARPETA (WATCH FOLDER)</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white"><i class="bi bi-folder2-open"></i></span>
+                    <InputText @bind-Value="FormModel.RutaCarpeta" class="form-control" placeholder="C:\Ruta\Local o \\Servidor\RutaRed" />
+                    
+                    <button type="button" class="btn btn-outline-secondary" onclick="@TestFolderAccess" disabled="@isLoadingPc" title="Validar permisos">
                         @if (isLoadingPc)
                         {
                             <span class="spinner-border spinner-border-sm"></span>
                         }
-                        else
+                        else if (pcConnectionStatus == true)
                         {
-                            <span>Test Ruta</span>
-                        }
-                    </button>
-
-                    <span class="input-group-text" style="min-width: 45px; justify-content: center;">
-                        @if (pcConnectionStatus == true)
-                        {
-                            <i class="bi bi-check-circle-fill text-success"></i>
+                            <span class="text-success fw-bold"><i class="bi bi-check-lg"></i> Accesible</span>
                         }
                         else if (pcConnectionStatus == false)
                         {
-
-                            <i class="bi bi-x-circle-fill text-danger"></i>
+                            <span class="text-danger fw-bold"><i class="bi bi-x-lg"></i> Inaccesible</span>
                         }
                         else
                         {
-
-                            <i class="bi bi-folder text-muted"></i>
+                            <span>Test</span>
                         }
-                    </span>
+                    </button>
                 </div>
-                <small class="text-muted">
-                    Nota: Si la PC es remota, usa una ruta de red (\\IP\Carpeta).
-                </small>
+                <div class="form-text small"><i class="bi bi-info-circle me-1"></i>La aplicación necesita permisos de lectura en esta ruta.</div>
             </div>
-        </div>
 
-        <div class="d-grid gap-2">
-            <button type="submit" class="btn btn-primary btn-lg">Registrar evento</button>
-        </div>
+            @* --- BOTÓN GUARDAR --- *@
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary py-2 fw-bold shadow-sm">
+                    <i class="bi bi-save2 me-2"></i>GUARDAR EVENTO
+                </button>
+            </div>
 
-        <div class="text-danger mt-2">
-            <ValidationSummary />
-        </div>
-    </EditForm>
+            @* ERRORES GLOBALES *@
+            <div class="mt-3">
+                <ValidationSummary />
+            </div>
+        </EditForm>
+    </div>
 </div>

@@ -1,5 +1,5 @@
 using System.Collections.Concurrent;
-using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -14,13 +14,15 @@ public class CameraManagerService : BackgroundService
     private readonly ILogger<CameraManagerService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     
-    // Estado en Memoria (Watchers activos y últimas fotos)
+    // Estado en Memoria
     private readonly ConcurrentDictionary<string, FileSystemWatcher> _watchers = new();
     private readonly ConcurrentDictionary<string, string> _rutasActivas = new();
+    
+    // Puntero a la última foto (Ruta completa)
     private readonly ConcurrentDictionary<string, string> _latestFilePerCamera = new();
     
-    // Ruta base para guardar eventos permanentes
-    private readonly string _eventosOutputPath = @"C:\TelnetInterceptor_Data\EventosGenerados";
+    // Hora UTC de la última foto recibida (Para la alerta de "Sin Señal")
+    private readonly ConcurrentDictionary<string, DateTime> _lastImageTime = new();
 
     public CameraManagerService(
         ILogger<CameraManagerService> logger, 
@@ -28,13 +30,61 @@ public class CameraManagerService : BackgroundService
     {
         _logger = logger;
         _scopeFactory = scopeFactory;
-        
-        if (!Directory.Exists(_eventosOutputPath)) 
-            Directory.CreateDirectory(_eventosOutputPath);
     }
 
     // =========================================================
-    // 1. GESTIÓN DE BASE DE DATOS (CRUD)
+    // 1. MÉTODOS DE LECTURA (STREAM, BUFFER, SALUD)
+    // =========================================================
+
+    public string? GetLatestFile(string ip) 
+    {
+        _latestFilePerCamera.TryGetValue(ip, out var f);
+        return f;
+    }
+
+    public DateTime? GetLastImageTime(string ip)
+    {
+        if (_lastImageTime.TryGetValue(ip, out var time)) return time;
+        return null;
+    }
+
+    /// <summary>
+    /// Obtiene las últimas 'count' imágenes basándose en el número secuencial del nombre.
+    /// Vital para el botón de PAUSA.
+    /// </summary>
+    public HistorySnapshot GetRecentFrames(string ip, int count)
+    {
+        if (!_rutasActivas.TryGetValue(ip, out var ruta)) 
+            return new HistorySnapshot { HistoryId = "Error: Cámara no activa" };
+
+        var files = new List<string>();
+        if (Directory.Exists(ruta))
+        {
+            var allFiles = Directory.GetFiles(ruta, "*.*")
+                .Where(f => IsImage(f));
+
+            var filtered = allFiles
+                // Extraemos el número: "Snapshot_500.bmp" -> 500
+                .Select(f => new { Path = f, Number = ExtractNumber(Path.GetFileNameWithoutExtension(f)) })
+                .Where(x => x.Number != -1) // Ignoramos archivos sin número
+                .OrderByDescending(x => x.Number) // Ordenamos del más nuevo al más viejo
+                .Take(count) // Tomamos los últimos N
+                .OrderBy(x => x.Number) // Reordenamos ascendente para la reproducción
+                .Select(x => x.Path)
+                .ToList();
+
+            files.AddRange(filtered);
+        }
+
+        return new HistorySnapshot 
+        { 
+            HistoryId = "Buffer", 
+            Files = files 
+        };
+    }
+
+    // =========================================================
+    // 2. GESTIÓN DE CÁMARAS (BASE DE DATOS)
     // =========================================================
 
     public async Task<List<EstadisticasCamara>> ObtenerCamarasBd()
@@ -44,20 +94,16 @@ public class CameraManagerService : BackgroundService
         return await db.Eventos.ToListAsync(); 
     }
 
-    public async Task<bool> AgregarCamara(string ip, int puerto, string ruta)
+    public async Task<bool> AgregarCamara(string ip, int puerto, string ruta, string nombre)
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // Validación básica
         if (await db.Eventos.AnyAsync(c => c.IpCamara == ip)) return false;
 
-        var nueva = new EstadisticasCamara(ip, puerto, ruta);
-        db.Eventos.Add(nueva);
+        db.Eventos.Add(new EstadisticasCamara(ip, puerto, ruta, nombre));
         await db.SaveChangesAsync();
-        
-        // Forzamos sincronización inmediata de watchers
-        await SincronizarWatchers(); 
+        await SincronizarWatchers(); // Aplicar cambios ya
         return true;
     }
 
@@ -71,30 +117,27 @@ public class CameraManagerService : BackgroundService
 
         db.Eventos.Remove(target);
         await db.SaveChangesAsync();
-
-        // Limpiamos recursos en memoria
         EliminarWatcher(ip);
         return true;
     }
 
     // =========================================================
-    // 2. LÓGICA DE WATCHERS (BACKGROUND)
+    // 3. WATCHERS (VIGILANCIA EN SEGUNDO PLANO)
     // =========================================================
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("🟢 CameraManagerService Iniciado (Gestión + Imágenes)");
+        _logger.LogInformation("🟢 CameraManagerService Iniciado");
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                await SincronizarWatchers();
-                // Revisa cambios en la BD cada 5 segundos
-                await Task.Delay(5000, stoppingToken); 
+            try 
+            { 
+                await SincronizarWatchers(); 
+                await Task.Delay(5000, stoppingToken); // Revisar BD cada 5s
             }
             catch (Exception ex)
             {
-                _logger.LogError("Error en ciclo de Watchers: {msg}", ex.Message);
+                _logger.LogError("Error en ciclo de vigilancia: {Msg}", ex.Message);
                 await Task.Delay(10000, stoppingToken);
             }
         }
@@ -105,30 +148,28 @@ public class CameraManagerService : BackgroundService
         var camaras = await ObtenerCamarasBd();
         var ipsBd = camaras.Select(c => c.IpCamara).ToHashSet();
 
-        // A. Eliminar watchers de cámaras que ya no están en BD
+        // Eliminar watchers de cámaras borradas
         foreach (var ip in _watchers.Keys)
         {
             if (!ipsBd.Contains(ip)) EliminarWatcher(ip);
         }
 
-        // B. Crear o actualizar watchers
+        // Crear/Actualizar watchers
         foreach (var cam in camaras)
         {
             if (string.IsNullOrWhiteSpace(cam.RutaCarpeta)) continue;
 
-            // Si ya existe, verificamos si cambió la ruta
             if (_rutasActivas.TryGetValue(cam.IpCamara, out var rutaActual))
             {
                 if (rutaActual != cam.RutaCarpeta)
                 {
-                    _logger.LogInformation("🔄 Ruta cambiada para {Ip}. Reiniciando watcher.", cam.IpCamara);
+                    _logger.LogInformation("🔄 Cambio de ruta para {Ip}", cam.IpCamara);
                     EliminarWatcher(cam.IpCamara);
                     IniciarWatcher(cam.IpCamara, cam.RutaCarpeta);
                 }
             }
             else
             {
-                // Es nueva
                 IniciarWatcher(cam.IpCamara, cam.RutaCarpeta);
             }
         }
@@ -140,147 +181,84 @@ public class CameraManagerService : BackgroundService
         {
             if (!Directory.Exists(ruta)) Directory.CreateDirectory(ruta);
 
-            var w = new FileSystemWatcher(ruta, "*.jpg") 
+            var w = new FileSystemWatcher(ruta) 
             { 
-                NotifyFilter = NotifyFilters.FileName | NotifyFilters.CreationTime,
+                Filter = "*.*", // Para detectar .bmp y .jpg
+                NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
                 EnableRaisingEvents = true 
             };
             
-            w.Created += (s, e) => _latestFilePerCamera[ip] = e.FullPath;
+            w.Created += (s, e) => ProcesarArchivo(ip, e.FullPath);
+            w.Changed += (s, e) => ProcesarArchivo(ip, e.FullPath);
             
             _watchers[ip] = w;
             _rutasActivas[ip] = ruta;
+
+            // Precarga inicial: Buscar la última imagen que YA existe en la carpeta
+            var lastFile = new DirectoryInfo(ruta).GetFiles("*.*")
+                .Where(f => IsImage(f.Name))
+                .Select(f => new { File = f, Number = ExtractNumber(Path.GetFileNameWithoutExtension(f.Name)) })
+                .OrderByDescending(x => x.Number) // Ordenar por número, no por fecha
+                .FirstOrDefault();
+
+            if (lastFile != null)
+            {
+                _latestFilePerCamera[ip] = lastFile.File.FullName;
+                _lastImageTime[ip] = DateTime.UtcNow;
+                _logger.LogInformation("📸 Inicializado {Ip} con {File}", ip, lastFile.File.Name);
+            }
+
             _logger.LogInformation("👀 Vigilando: {Ip} -> {Ruta}", ip, ruta);
         }
         catch (Exception ex) 
         { 
-            _logger.LogError("No se pudo iniciar watcher para {Ip}: {Msg}", ip, ex.Message); 
+            _logger.LogError("Error watcher {Ip}: {Msg}", ip, ex.Message); 
+        }
+    }
+
+    private void ProcesarArchivo(string ip, string path)
+    {
+        if (IsImage(path)) 
+        {
+            _latestFilePerCamera[ip] = path;
+            _lastImageTime[ip] = DateTime.UtcNow; // Actualizamos el "pulso" para la alerta
         }
     }
 
     private void EliminarWatcher(string ip)
     {
         if (_watchers.TryRemove(ip, out var w)) 
-        {
-            w.EnableRaisingEvents = false;
-            w.Dispose();
+        { 
+            w.EnableRaisingEvents = false; 
+            w.Dispose(); 
         }
         _rutasActivas.TryRemove(ip, out _);
         _latestFilePerCamera.TryRemove(ip, out _);
+        _lastImageTime.TryRemove(ip, out _);
     }
 
     // =========================================================
-    // 3. STREAMING E HISTORIAL TEMPORAL
+    // 4. HELPERS DE PARSEO
     // =========================================================
 
-    public string? GetLatestFile(string ip) 
+    private bool IsImage(string path)
     {
-        _latestFilePerCamera.TryGetValue(ip, out var f);
-        return f;
+        var ext = Path.GetExtension(path).ToLower();
+        return ext == ".bmp" || ext == ".jpg" || ext == ".jpeg" || ext == ".png";
     }
 
-    public HistorySnapshot FreezeHistory(string ip, DateTime start, DateTime end)
+    private int ExtractNumber(string filename)
     {
-        if (!_rutasActivas.TryGetValue(ip, out var ruta)) 
-            return new HistorySnapshot { HistoryId = "Error: Cámara no activa" };
-
-        var files = new List<string>();
-        if (Directory.Exists(ruta))
+        try 
         {
-            files = Directory.GetFiles(ruta, "*.jpg")
-                .Where(f => File.GetCreationTime(f) >= start && File.GetCreationTime(f) <= end)
-                .OrderBy(f => File.GetCreationTime(f))
-                .ToList();
-        }
-
-        return new HistorySnapshot 
-        { 
-            HistoryId = Guid.NewGuid().ToString(), 
-            Files = files 
-        };
-    }
-
-    // =========================================================
-    // 4. EVENTOS PERMANENTES
-    // =========================================================
-
-    public async Task<EventoGuardado?> CrearEventoPermanente(string ip, int segAntes, int segDespues, string nombre)
-    {
-        var ahora = DateTime.Now;
-        // Obtenemos snapshot temporal
-        var snapshot = FreezeHistory(ip, ahora.AddSeconds(-segAntes), ahora.AddSeconds(-segDespues));
-        
-        if (snapshot.Files.Count == 0) return null;
-
-        // Creamos carpeta permanente
-        var eventoId = Guid.NewGuid().ToString();
-        var carpetaDestino = Path.Combine(_eventosOutputPath, eventoId);
-        Directory.CreateDirectory(carpetaDestino);
-
-        var imagenes = new List<ImagenEvento>();
-
-        // Copiamos archivos
-        foreach (var file in snapshot.Files)
-        {
-            var nombreArchivo = Path.GetFileName(file);
-            var dest = Path.Combine(carpetaDestino, nombreArchivo);
-            File.Copy(file, dest, true);
-            imagenes.Add(new ImagenEvento { RutaRelativa = nombreArchivo });
-        }
-
-        var evento = new EventoGuardado 
-        { 
-            EventoId = eventoId, 
-            CameraName = ip, 
-            Imagenes = imagenes, 
-            FechaCreacion = ahora,
-            Nombre = nombre ?? $"Evento {ahora:HH:mm:ss}",
-            Desde = segAntes,
-            Hasta = segDespues,
-            CantidadImagenes = imagenes.Count
-        };
-        
-        // Guardamos metadata.json
-        var json = JsonSerializer.Serialize(evento, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(Path.Combine(carpetaDestino, "metadata.json"), json);
-
-        return evento;
-    }
-
-    public List<EventoGuardado> ListarEventosGuardados()
-    {
-        var lista = new List<EventoGuardado>();
-        if (!Directory.Exists(_eventosOutputPath)) return lista;
-        
-        foreach(var dir in Directory.GetDirectories(_eventosOutputPath))
-        {
-            var meta = Path.Combine(dir, "metadata.json");
-            if(File.Exists(meta)) 
+            var matches = Regex.Matches(filename, @"\d+");
+            if (matches.Count > 0)
             {
-                try {
-                    var obj = JsonSerializer.Deserialize<EventoGuardado>(File.ReadAllText(meta));
-                    if(obj != null) lista.Add(obj);
-                } catch {}
+                // Tomamos el último número encontrado en el nombre
+                if (int.TryParse(matches[^1].Value, out int number)) return number;
             }
         }
-        return lista.OrderByDescending(x => x.FechaCreacion).ToList();
+        catch { }
+        return -1;
     }
-}
-
-public class EventoGuardado
-{
-    public string EventoId { get; set; } = string.Empty;
-    public string Nombre { get; set; } = string.Empty;
-    public string? Descripcion { get; set; }
-    public string CameraName { get; set; } = string.Empty; // IP de la cámara
-    public int Desde { get; set; } // Segundos antes
-    public int Hasta { get; set; } // Segundos después
-    public int CantidadImagenes { get; set; }
-    public DateTime FechaCreacion { get; set; }
-    public List<ImagenEvento> Imagenes { get; set; } = new();
-}
-
-public class ImagenEvento
-{
-    public string RutaRelativa { get; set; } = string.Empty;
 }
