@@ -1,88 +1,85 @@
-@page "/nuevo-evento"
 @using Admin.Console.Components
 @using Microsoft.AspNetCore.Components.Forms
 
-<div class="container mt-4" style="max-width: 800px;">
-    <div class="bg-light p-4 rounded shadow-sm border">
-        
-        <div class="d-flex align-items-center mb-4 border-bottom pb-2">
+<div class="form-compact h-100 d-flex flex-column">
+    <div class="bg-light rounded shadow-sm border flex-shrink-0 mb-2 p-2">
+        <div class="d-flex align-items-center border-bottom pb-2 mb-2">
             <h5 class="m-0 text-primary"><i class="bi bi-camera-video me-2"></i>Registrar Nuevo Evento</h5>
         </div>
 
         <EditForm Model="@FormModel" OnValidSubmit="@Submit" FormName="NewEventForm">
             <DataAnnotationsValidator />
 
-            @* --- 1. NOMBRE (Separado) --- *@
-            <div class="mb-3">
-                <label class="form-label fw-bold small text-secondary">NOMBRE DEL EVENTO</label>
-                <div class="input-group">
+            @* --- NOMBRE --- *@
+            <div class="mb-2">
+                <label class="form-label fw-bold small text-secondary mb-1">NOMBRE DEL EVENTO</label>
+                <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-tag"></i></span>
                     <InputText @bind-Value="FormModel.Nombre" class="form-control" placeholder="Ej: Cámara Acceso Norte" />
                 </div>
                 <ValidationMessage For="@(() => FormModel.Nombre)" />
             </div>
 
-            @* --- 2. IP y PUERTO (Agrupados) --- *@
-            <div class="mb-3">
-                <label class="form-label fw-bold small text-secondary">CONEXIÓN (IP : PUERTO)</label>
-                <div class="input-group">
+            @* --- IP y PUERTO --- *@
+            <div class="mb-2">
+                <label class="form-label fw-bold small text-secondary mb-1">CONEXIÓN (IP : PUERTO)</label>
+                <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white border-end"><i class="bi bi-hdd-network"></i></span>
                  
                     @* IP OCTETOS *@
-                    <InputNumber @bind-Value="FormModel.CamIp1" class="form-control text-center px-0 border-end-0" style="max-width: 55px;" placeholder="192" />
+                    <InputNumber @bind-Value="FormModel.CamIp1" class="form-control text-center px-0 border-end-0" style="max-width: 45px;" placeholder="192" />
                     <span class="input-group-text px-1 bg-white border-end-0 fw-bold">.</span>
-                    <InputNumber @bind-Value="FormModel.CamIp2" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 55px;" placeholder="168" />
+                    <InputNumber @bind-Value="FormModel.CamIp2" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 45px;" placeholder="168" />
                     <span class="input-group-text px-1 bg-white border-start-0 border-end-0 fw-bold">.</span>
-                    <InputNumber @bind-Value="FormModel.CamIp3" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 55px;" placeholder="0" />
+                    <InputNumber @bind-Value="FormModel.CamIp3" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 45px;" placeholder="0" />
                     <span class="input-group-text px-1 bg-white border-start-0 border-end-0 fw-bold">.</span>
-                    <InputNumber @bind-Value="FormModel.CamIp4" class="form-control text-center px-0 border-start-0" style="max-width: 60px;" placeholder="10" />
+                    <InputNumber @bind-Value="FormModel.CamIp4" class="form-control text-center px-0 border-start-0" style="max-width: 50px;" placeholder="10" />
 
                     @* PUERTO *@
                     <span class="input-group-text bg-light fw-bold border-start-0">:</span>
-                    <InputNumber @bind-Value="FormModel.CamPort" class="form-control text-center" style="max-width: 100px;" placeholder="23" />
+                    <InputNumber @bind-Value="FormModel.CamPort" class="form-control text-center" style="max-width: 70px;" placeholder="23" />
 
                     @* BOTÓN TEST *@
-                    <button type="button" class="btn btn-outline-secondary" onclick="@TestCameraConnection" disabled="@isLoadingCam" title="Probar conexión">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="@TestCameraConnection" disabled="@isLoadingCam" title="Probar conexión">
                         @if (isLoadingCam)
                         {
                             <span class="spinner-border spinner-border-sm"></span>
                         }
                         else if (camConnectionStatus == true)
                         {
-                            <span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i>OK</span>
+                            <i class="bi bi-check-circle-fill text-success"></i>
                         }
                         else if (camConnectionStatus == false)
                         {
-                            <span class="text-danger fw-bold"><i class="bi bi-x-circle-fill me-1"></i>Error</span>
+                            <i class="bi bi-x-circle-fill text-danger"></i>
                         }
                         else
                         {
                             <span>Test</span>
                         }
                     </button>
-                    
                 </div>
             </div>
 
-            @* --- 3. RUTA DE ALMACENAMIENTO --- *@
-            <div class="mb-4">
-                <label class="form-label fw-bold small text-secondary">RUTA DE CARPETA (WATCH FOLDER)</label>
-                <div class="input-group">
+            @* --- RUTA DE ALMACENAMIENTO --- *@
+            <div class="mb-2">
+                <label class="form-label fw-bold small text-secondary mb-1">RUTA DE CARPETA (WATCH FOLDER)</label>
+                <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-folder2-open"></i></span>
                     <InputText @bind-Value="FormModel.RutaCarpeta" class="form-control" placeholder="C:\Ruta\Local o \\Servidor\RutaRed" />
                     
-                    <button type="button" class="btn btn-outline-secondary" onclick="@TestFolderAccess" disabled="@isLoadingPc" title="Validar permisos">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="@TestFolderAccess" disabled="@isLoadingPc" title="Validar permisos">
                         @if (isLoadingPc)
                         {
                             <span class="spinner-border spinner-border-sm"></span>
                         }
                         else if (pcConnectionStatus == true)
                         {
-                            <span class="text-success fw-bold"><i class="bi bi-check-lg"></i> Accesible</span>
+                            <i class="bi bi-check-lg text-success"></i>
                         }
                         else if (pcConnectionStatus == false)
                         {
-                            <span class="text-danger fw-bold"><i class="bi bi-x-lg"></i> Inaccesible</span>
+                            <i class="bi bi-x-lg text-danger"></i>
                         }
                         else
                         {
@@ -94,14 +91,14 @@
             </div>
 
             @* --- BOTÓN GUARDAR --- *@
-            <div class="d-grid">
-                <button type="submit" class="btn btn-primary py-2 fw-bold shadow-sm">
+            <div class="d-grid mt-2">
+                <button type="submit" class="btn btn-primary btn-sm shadow-sm">
                     <i class="bi bi-save2 me-2"></i>GUARDAR EVENTO
                 </button>
             </div>
 
             @* ERRORES GLOBALES *@
-            <div class="mt-3">
+            <div class="mt-2">
                 <ValidationSummary />
             </div>
         </EditForm>
