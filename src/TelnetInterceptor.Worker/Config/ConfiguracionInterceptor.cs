@@ -23,7 +23,6 @@ public class ConfiguracionInterceptor
     public int IntervaloReintentoSegundos { get; set; } = 5; // Valor por defecto de 5 segundos
     public int TimeoutConexionSegundos { get; set; } = 3;   // Valor por defecto de 3 segundos
 
-    // Lista de cámaras configuradas
-    public required List<ConfiguracionCamara> Camaras { get; set; }
+
     
 }

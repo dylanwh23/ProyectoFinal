@@ -10,193 +10,37 @@ public static class EventosEndpoints
 {
     public static IEndpointRouteBuilder MapEventosEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/eventos")
-            .WithTags("Eventos")
-            .WithDescription("Endpoints para gestionar eventos guardados permanentemente");
+        var group = app.MapGroup("/eventos").WithTags("Eventos Permanentes");
 
-        // Crear evento (copiar rango a carpeta permanente)
-        group.MapPost("/crear", CrearEvento)
-            .WithDescription("Guarda un rango de imágenes como evento permanente")
-            .WithOpenApi();
-
-        // Listar todos los eventos guardados
-        group.MapGet("/", ListarEventos)
-            .WithDescription("Obtiene la lista de eventos guardados")
-            .WithOpenApi();
-
-        // Obtener detalles de un evento específico
-        group.MapGet("/{eventoId}", ObtenerEvento)
-            .WithDescription("Obtiene los detalles de un evento específico")
-            .WithOpenApi();
-
-        // Obtener imagen de un evento
-        group.MapGet("/{eventoId}/image/{index}", ObtenerImagenEvento)
-            .WithDescription("Obtiene una imagen específica de un evento guardado")
-            .WithOpenApi();
-
-        // Eliminar evento
-        group.MapDelete("/{eventoId}", EliminarEvento)
-            .WithDescription("Elimina un evento guardado permanentemente")
-            .WithOpenApi();
-
-        return app;
-    }
-
-    private static async Task<IResult> CrearEvento(
-        [FromBody] CrearEventoRequest request,
-        EventosService eventosService,
-        ILogger<EventosService> logger)
-    {
-        try
+        group.MapPost("/crear", async (CrearEventoRequest req, CameraManagerService manager) =>
         {
-            if (string.IsNullOrWhiteSpace(request.CameraName))
-                return Results.BadRequest(new { error = "El nombre de la cámara es requerido" });
-
-            if (request.Desde < 0 || request.Hasta < 0)
-                return Results.BadRequest(new { error = "Los números deben ser positivos" });
-
-            if (request.Desde > request.Hasta)
-                return Results.BadRequest(new { error = "El número 'desde' debe ser menor o igual que 'hasta'" });
-
-            var evento = await eventosService.CrearEvento(
-                request.CameraName,
-                request.Desde,
-                request.Hasta,
-                request.Nombre,
-                request.Descripcion
-            );
-
-            if (evento == null)
-                return Results.BadRequest(new { error = "No se encontraron imágenes en el rango especificado" });
-
-            return Results.Ok(new
-            {
-                mensaje = "Evento creado correctamente",
-                evento = new
-                {
-                    evento.EventoId,
-                    evento.Nombre,
-                    evento.CameraName,
-                    evento.Desde,
-                    evento.Hasta,
-                    evento.CantidadImagenes,
-                    evento.FechaCreacion,
-                    urlVisor = $"/visor-evento.html?id={evento.EventoId}"
-                }
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error al crear evento");
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Error al crear el evento"
-            );
-        }
-    }
-
-    private static IResult ListarEventos(
-        EventosService eventosService,
-        [FromQuery] string? cameraName = null)
-    {
-        var eventos = eventosService.ListarEventos(cameraName);
-
-        return Results.Ok(new
-        {
-            count = eventos.Count,
-            eventos = eventos.Select(e => new
-            {
-                e.EventoId,
-                e.Nombre,
-                e.CameraName,
-                e.Desde,
-                e.Hasta,
-                e.CantidadImagenes,
-                e.FechaCreacion,
-                e.Descripcion,
-                urlVisor = $"/visor-evento.html?id={e.EventoId}"
-            })
+            var evento = await manager.CrearEventoPermanente(req.CameraName, req.Desde, req.Hasta, req.Nombre);
+            return evento != null 
+                ? Results.Ok(evento) 
+                : Results.NotFound("No se encontraron imágenes o la cámara no existe");
         });
-    }
 
-    private static IResult ObtenerEvento(
-        string eventoId,
-        EventosService eventosService)
-    {
-        var evento = eventosService.ObtenerEvento(eventoId);
-
-        if (evento == null)
-            return Results.NotFound(new { error = "Evento no encontrado" });
-
-        return Results.Ok(new
+        group.MapGet("/", (CameraManagerService manager) =>
         {
-            evento.EventoId,
-            evento.Nombre,
-            evento.CameraName,
-            evento.Desde,
-            evento.Hasta,
-            evento.CantidadImagenes,
-            evento.FechaCreacion,
-            evento.Descripcion,
-            imagenes = evento.Imagenes,
-            urlVisor = $"/visor-evento.html?id={evento.EventoId}"
+            return Results.Ok(manager.ListarEventosGuardados());
         });
-    }
 
-    private static IResult ObtenerImagenEvento(
-        string eventoId,
-        int index,
-        EventosService eventosService,
-        ILogger<EventosService> logger)
-    {
-        try
+        // Endpoint para servir imágenes de eventos guardados
+        group.MapGet("/{eventoId}/image/{imageName}", (string eventoId, string imageName, CameraManagerService manager) =>
         {
-            var imageBytes = eventosService.ObtenerImagenEvento(eventoId, index);
+            // Reconstruimos la ruta basándonos en la configuración interna del manager
+            // (Asumiendo que el manager expone o sabemos la ruta base _eventosOutputPath)
+            // Para hacerlo limpio, idealmente el Manager debería tener un método GetEventImagePath(id, name)
+            
+            var basePath = @"C:\TelnetInterceptor_Data\EventosGenerados"; // Misma ruta que en el servicio
+            var path = Path.Combine(basePath, eventoId, imageName);
 
-            if (imageBytes == null)
-                return Results.NotFound(new { error = "Imagen no encontrada" });
+            if (!System.IO.File.Exists(path)) return Results.NotFound();
+            return Results.File(path, "image/jpeg");
+        });
 
-            return Results.File(imageBytes, "image/bmp");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error al obtener imagen del evento {eventoId}, índice {index}", eventoId, index);
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Error al obtener la imagen"
-            );
-        }
-    }
-
-    private static IResult EliminarEvento(
-        string eventoId,
-        EventosService eventosService,
-        ILogger<EventosService> logger)
-    {
-        try
-        {
-            var resultado = eventosService.EliminarEvento(eventoId);
-
-            if (!resultado)
-                return Results.NotFound(new { error = "Evento no encontrado" });
-
-            return Results.Ok(new { mensaje = "Evento eliminado correctamente" });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error al eliminar evento {eventoId}", eventoId);
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Error al eliminar el evento"
-            );
-        }
+        return group;
     }
 }
 
-public record CrearEventoRequest(
-    string CameraName,
-    int Desde,
-    int Hasta,
-    string? Nombre = null,
-    string? Descripcion = null
-);
+public record CrearEventoRequest(string CameraName, int Desde, int Hasta, string Nombre);

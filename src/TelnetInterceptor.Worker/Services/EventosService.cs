@@ -1,5 +1,7 @@
 ﻿using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using TelnetInterceptor.Worker.Models; // Asegúrate de tener HistorySnapshot aquí
 
 namespace TelnetInterceptor.Worker.Services;
 
@@ -7,219 +9,142 @@ public class EventosService
 {
     private readonly ILogger<EventosService> _logger;
     private readonly CameraStreamService _cameraService;
-    private readonly string _eventosPath;
+    private readonly string _eventosOutputPath;
 
     public EventosService(
         ILogger<EventosService> logger,
         CameraStreamService cameraService,
-        IOptions<ServerSettings> settings)
+        IOptions<ServerSettings> settings) // Mantenemos ServerSettings para saber dónde guardar los eventos generados
     {
         _logger = logger;
         _cameraService = cameraService;
 
-        // Carpeta de eventos al mismo nivel que la carpeta de imágenes
-        var basePath = Path.GetDirectoryName(settings.Value.WatchPath) ?? settings.Value.WatchPath;
-        _eventosPath = Path.Combine(basePath, "Eventos");
+        // Definimos dónde se guardarán los reportes de eventos.
+        // Si ServerSettings tiene una ruta, usamos esa + "\Eventos", sino una por defecto.
+        var basePath = !string.IsNullOrEmpty(settings.Value.WatchPath) 
+            ? settings.Value.WatchPath 
+            : "C:\\TelnetInterceptor_Data";
 
-        if (!Directory.Exists(_eventosPath))
+        // Aseguramos que no sea la raíz de una unidad si es posible
+        if (Path.GetFileName(basePath) == "") basePath = Path.Combine(basePath, "Data");
+
+        _eventosOutputPath = Path.Combine(basePath, "EventosGenerados");
+
+        if (!Directory.Exists(_eventosOutputPath))
         {
-            Directory.CreateDirectory(_eventosPath);
-            _logger.LogInformation("📁 Carpeta de eventos creada en: {path}", _eventosPath);
+            Directory.CreateDirectory(_eventosOutputPath);
+            _logger.LogInformation("📁 Carpeta de eventos configurada en: {path}", _eventosOutputPath);
         }
     }
 
-    public async Task<EventoGuardado?> CrearEvento(
-        string cameraName,
-        int desde,
-        int hasta,
-        string? nombre = null,
-        string? descripcion = null)
-    {
-        _logger.LogInformation("🎬 Creando evento para {camera} del {desde} al {hasta}", cameraName, desde, hasta);
-
-        // Obtener las imágenes del rango
-        string cameraPath = _cameraService.GetCameraPath(cameraName);
-
-        if (!Directory.Exists(cameraPath))
-        {
-            _logger.LogWarning("No se encontró la carpeta de la cámara: {path}", cameraPath);
-            return null;
-        }
-
-        var dirInfo = new DirectoryInfo(cameraPath);
-        var allFiles = dirInfo.GetFiles("*.bmp", SearchOption.TopDirectoryOnly);
-        var filesInRange = new List<(FileInfo file, int number)>();
-
-        // Buscar archivos en el rango
-        foreach (var file in allFiles)
-        {
-            var fileName = Path.GetFileNameWithoutExtension(file.Name);
-            var parts = fileName.Split('_');
-
-            if (parts.Length >= 2 && int.TryParse(parts[^1], out int snapshotNumber))
-            {
-                if (snapshotNumber >= desde && snapshotNumber <= hasta)
-                {
-                    filesInRange.Add((file, snapshotNumber));
-                }
-            }
-        }
-
-        if (filesInRange.Count == 0)
-        {
-            _logger.LogWarning("No se encontraron imágenes en el rango {desde}-{hasta}", desde, hasta);
-            return null;
-        }
-
-        // Crear carpeta del evento
-        var eventoId = $"evt_{cameraName}_{desde}_{hasta}_{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
-        var eventoPath = Path.Combine(_eventosPath, eventoId);
-        Directory.CreateDirectory(eventoPath);
-
-        // Copiar las imágenes
-        var sortedFiles = filesInRange.OrderBy(x => x.number).ToList();
-        var imagenesCopiadas = new List<ImagenEvento>();
-
-        for (int i = 0; i < sortedFiles.Count; i++)
-        {
-            var (file, number) = sortedFiles[i];
-            var destFileName = $"{i:D4}_{file.Name}"; // 0000_Snapshot1_200.bmp
-            var destPath = Path.Combine(eventoPath, destFileName);
-
-            try
-            {
-                await Task.Run(() => file.CopyTo(destPath, overwrite: false));
-                imagenesCopiadas.Add(new ImagenEvento
-                {
-                    Index = i,
-                    FileName = destFileName,
-                    OriginalNumber = number,
-                    OriginalFileName = file.Name
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "No se pudo copiar {file}", file.Name);
-            }
-        }
-
-        // Crear metadata del evento
-        var evento = new EventoGuardado
-        {
-            EventoId = eventoId,
-            Nombre = nombre ?? $"Evento {cameraName} {desde}-{hasta}",
-            Descripcion = descripcion,
-            CameraName = cameraName,
-            Desde = desde,
-            Hasta = hasta,
-            CantidadImagenes = imagenesCopiadas.Count,
-            FechaCreacion = DateTime.UtcNow,
-            Imagenes = imagenesCopiadas
-        };
-
-        // Guardar metadata
-        var metadataPath = Path.Combine(eventoPath, "metadata.json");
-        var json = JsonSerializer.Serialize(evento, new JsonSerializerOptions { WriteIndented = true });
-        await File.WriteAllTextAsync(metadataPath, json);
-
-        _logger.LogInformation("✅ Evento {id} creado con {count} imágenes", eventoId, imagenesCopiadas.Count);
-
-        return evento;
-    }
-
-    public List<EventoGuardado> ListarEventos(string? cameraName = null)
+    // --- LISTAR EVENTOS (RESTAURADO) ---
+    public List<EventoGuardado> ListarEventos()
     {
         var eventos = new List<EventoGuardado>();
 
-        if (!Directory.Exists(_eventosPath))
-            return eventos;
+        if (!Directory.Exists(_eventosOutputPath)) return eventos;
 
-        var eventoDirs = Directory.GetDirectories(_eventosPath);
+        // Cada evento es una subcarpeta
+        var directorios = Directory.GetDirectories(_eventosOutputPath);
 
-        foreach (var dir in eventoDirs)
+        foreach (var dir in directorios)
         {
-            var metadataPath = Path.Combine(dir, "metadata.json");
-
-            if (!File.Exists(metadataPath))
-                continue;
-
-            try
+            // Buscamos el archivo metadata.json dentro de la carpeta
+            var jsonPath = Path.Combine(dir, "metadata.json");
+            if (File.Exists(jsonPath))
             {
-                var json = File.ReadAllText(metadataPath);
-                var evento = JsonSerializer.Deserialize<EventoGuardado>(json);
-
-                if (evento != null)
+                try
                 {
-                    // Filtrar por cámara si se especifica
-                    if (string.IsNullOrEmpty(cameraName) || evento.CameraName == cameraName)
+                    var json = File.ReadAllText(jsonPath);
+                    var evento = JsonSerializer.Deserialize<EventoGuardado>(json);
+                    if (evento != null)
                     {
                         eventos.Add(evento);
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Error al leer metadata de {dir}", dir);
+                catch (Exception ex)
+                {
+                    _logger.LogError("Error leyendo metadata de evento en {dir}: {msg}", dir, ex.Message);
+                }
             }
         }
 
         return eventos.OrderByDescending(e => e.FechaCreacion).ToList();
     }
 
-    public EventoGuardado? ObtenerEvento(string eventoId)
+    public async Task<EventoGuardado?> CrearEvento(
+        string ipCamara,
+        int desdeSegundos,
+        int hastaSegundos,
+        string? nombre = null,
+        string? descripcion = null)
     {
-        var eventoPath = Path.Combine(_eventosPath, eventoId);
+        _logger.LogInformation("🎬 Creando evento para {camera} (-{desde}s a -{hasta}s)", ipCamara, desdeSegundos, hastaSegundos);
 
-        if (!Directory.Exists(eventoPath))
-            return null;
+        // 1. Calcular rango de tiempo
+        var ahora = DateTime.Now;
+        var inicio = ahora.AddSeconds(-desdeSegundos);
+        var fin = ahora.AddSeconds(-hastaSegundos);
 
-        var metadataPath = Path.Combine(eventoPath, "metadata.json");
+        // 2. Obtener snapshots usando el servicio de cámaras (que sabe dónde está cada cámara)
+        var snapshot = _cameraService.FreezeHistoryByTimeRangeLocal(ipCamara, inicio, fin);
 
-        if (!File.Exists(metadataPath))
-            return null;
-
-        try
+        if (snapshot.Files.Count == 0)
         {
-            var json = File.ReadAllText(metadataPath);
-            return JsonSerializer.Deserialize<EventoGuardado>(json);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error al leer evento {id}", eventoId);
+            _logger.LogWarning("No se encontraron imágenes para el evento en {ip}", ipCamara);
             return null;
         }
-    }
 
-    public byte[]? ObtenerImagenEvento(string eventoId, int index)
-    {
-        var evento = ObtenerEvento(eventoId);
+        // 3. Crear estructura de carpetas para el evento
+        var eventoId = Guid.NewGuid().ToString();
+        var carpetaEvento = Path.Combine(_eventosOutputPath, eventoId);
+        Directory.CreateDirectory(carpetaEvento);
 
-        if (evento == null || index < 0 || index >= evento.Imagenes.Count)
-            return null;
+        var imagenesEvento = new List<ImagenEvento>();
 
-        var imagen = evento.Imagenes[index];
-        var imagePath = Path.Combine(_eventosPath, eventoId, imagen.FileName);
-
-        if (!File.Exists(imagePath))
-            return null;
-
-        try
+        // 4. Copiar imágenes
+        foreach (var file in snapshot.Files)
         {
-            return File.ReadAllBytes(imagePath);
+            try
+            {
+                var nombreArchivo = Path.GetFileName(file);
+                var destino = Path.Combine(carpetaEvento, nombreArchivo);
+                File.Copy(file, destino);
+                imagenesEvento.Add(new ImagenEvento { RutaRelativa = nombreArchivo });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Fallo al copiar imagen {img}: {msg}", file, ex.Message);
+            }
         }
-        catch (Exception ex)
+
+        // 5. Crear objeto de metadatos
+        var nuevoEvento = new EventoGuardado
         {
-            _logger.LogError(ex, "Error al leer imagen {index} del evento {id}", index, eventoId);
-            return null;
-        }
+            EventoId = eventoId,
+            Nombre = nombre ?? $"Evento {ahora:yyyy-MM-dd HH:mm:ss}",
+            Descripcion = descripcion,
+            CameraName = ipCamara,
+            Desde = desdeSegundos,
+            Hasta = hastaSegundos,
+            CantidadImagenes = imagenesEvento.Count,
+            FechaCreacion = ahora,
+            Imagenes = imagenesEvento
+        };
+
+        // 6. Guardar metadata.json
+        var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+        var jsonString = JsonSerializer.Serialize(nuevoEvento, jsonOptions);
+        await File.WriteAllTextAsync(Path.Combine(carpetaEvento, "metadata.json"), jsonString);
+
+        return nuevoEvento;
     }
 
     public bool EliminarEvento(string eventoId)
     {
-        var eventoPath = Path.Combine(_eventosPath, eventoId);
+        var eventoPath = Path.Combine(_eventosOutputPath, eventoId);
 
-        if (!Directory.Exists(eventoPath))
-            return false;
+        if (!Directory.Exists(eventoPath)) return false;
 
         try
         {
@@ -235,6 +160,7 @@ public class EventosService
     }
 }
 
+// Modelos para el JSON del evento
 public class EventoGuardado
 {
     public string EventoId { get; set; } = string.Empty;
@@ -250,8 +176,5 @@ public class EventoGuardado
 
 public class ImagenEvento
 {
-    public int Index { get; set; }
-    public string FileName { get; set; } = string.Empty;
-    public int OriginalNumber { get; set; }
-    public string OriginalFileName { get; set; } = string.Empty;
+    public string RutaRelativa { get; set; } = string.Empty;
 }

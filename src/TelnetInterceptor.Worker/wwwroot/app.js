@@ -10,7 +10,7 @@ const historySlider = document.getElementById("history-slider");
 let cameraName = null;
 let isStreaming = false;
 let fileHistory = [];
-let currentHistoryId = null; // ID del historial congelado
+let currentHistoryId = null;
 
 // --- Inicialización ---
 async function iniciarVisor() {
@@ -38,7 +38,7 @@ async function iniciarVisor() {
 async function freezeHistory() {
     if (!cameraName) return;
     if (!isStreaming && currentHistoryId) {
-        return; // Ya estamos en modo historial
+        return;
     }
 
     console.log("Congelando historial...");
@@ -75,37 +75,26 @@ function showFrozenFrame(index) {
     if (!currentHistoryId || isStreaming) return;
 
     const fileIndex = parseInt(index, 10);
-    const fileName = fileHistory[fileIndex];
-    if (!fileName) return;
+    const filePath = fileHistory[fileIndex];
+    if (!filePath) return;
 
-    liveStreamImg.src = `/api/frame/${cameraName}?file=${fileName}&historyId=${currentHistoryId}&t=${Date.now()}`;
-    titleElement.textContent = `Viendo: ${cameraName} (Historial: ${fileName})`;
+    // Usar el endpoint correcto que acepta la ruta completa
+    liveStreamImg.src = `/api/frame/${cameraName}?file=${encodeURIComponent(filePath)}&t=${Date.now()}`;
+    titleElement.textContent = `Viendo: ${cameraName} (Historial: imagen ${fileIndex + 1}/${fileHistory.length})`;
     historySlider.value = fileIndex;
 }
 
-// --- MODIFICADO: Iniciar el stream en vivo ---
+// --- Iniciar el stream en vivo ---
 function iniciarStream() {
     if (!cameraName) return;
 
-    // --- NUEVO: Limpiar el historial anterior ---
-    if (currentHistoryId) {
-        console.log(`Solicitando borrado de historial: ${currentHistoryId}`);
-        // Enviamos la petición de borrado. No necesitamos 'await',
-        // que se borre en segundo plano.
-        fetch(`/api/history/cleanup/${cameraName}/${currentHistoryId}`, {
-            method: 'DELETE'
-        });
-    }
-    // --- FIN DE LA MODIFICACIÓN ---
-
     isStreaming = true;
-    currentHistoryId = null; // Salir del modo historial
+    currentHistoryId = null;
     fileHistory = [];
 
     liveStreamImg.src = `/api/stream/${cameraName}?t=${Date.now()}`;
     titleElement.textContent = `Viendo: ${cameraName} (En Vivo)`;
 
-    // Dejamos la barra habilitada y al final
     historySlider.disabled = false;
     historySlider.max = 1;
     historySlider.value = 1;
@@ -114,9 +103,8 @@ function iniciarStream() {
 // --- Detener el stream ---
 function detenerStream() {
     isStreaming = false;
-    liveStreamImg.src = ""; // Quita la fuente de la imagen
+    liveStreamImg.src = "";
 
-    // Habilitar el slider para que el usuario PUEDA usarlo
     historySlider.disabled = false;
 
     if (!currentHistoryId) {
@@ -132,24 +120,55 @@ async function verUltimoFrame() {
     }
 }
 
+// --- Cargar historial por tiempo (segundos hacia atrás) ---
+async function cargarHistorialPorTiempo(segundosAtras) {
+    if (!cameraName) return;
 
-// --- Event Listeners ---
-btnStart.onclick = iniciarStream;
-btnPause.onclick = verUltimoFrame;
+    detenerStream();
+    titleElement.textContent = `Viendo: ${cameraName} (Cargando últimos ${segundosAtras} segundos...)`;
+    historySlider.disabled = true;
 
-historySlider.addEventListener("input", async (e) => {
-    if (isStreaming) {
-        await freezeHistory();
+    try {
+        const endTime = new Date();
+        const startTime = new Date(endTime.getTime() - (segundosAtras * 1000));
+
+        const formatLocalISO = (dt) => {
+            const pad = (n) => n.toString().padStart(2, '0');
+            return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
+        };
+
+        const startTimeISO = formatLocalISO(startTime);
+        const endTimeISO = formatLocalISO(endTime);
+
+        const response = await fetch(`/api/history/freeze-by-range-local/${cameraName}?startTime=${startTimeISO}&endTime=${endTimeISO}`);
+
+        if (!response.ok) {
+            throw new Error("No se pudo cargar el historial");
+        }
+
+        const snapshot = await response.json();
+
+        currentHistoryId = snapshot.historyId;
+        fileHistory = snapshot.files;
+
+        if (fileHistory.length > 0) {
+            historySlider.max = fileHistory.length - 1;
+            historySlider.disabled = false;
+            console.log(`Historial cargado: ${fileHistory.length} archivos.`);
+            showFrozenFrame(0);
+            historySlider.value = 0;
+        } else {
+            titleElement.textContent = `Viendo: ${cameraName} (No se encontraron imágenes)`;
+        }
+
+    } catch (error) {
+        console.error("Error cargando historial:", error);
+        titleElement.textContent = `Viendo: ${cameraName} (Error al cargar historial)`;
+        iniciarStream();
     }
+}
 
-    // Si 'freezeHistory' falló (ej. 0 archivos), 'currentHistoryId' será null
-    if (currentHistoryId) {
-        showFrozenFrame(e.target.value);
-    }
-});
-
-// En app.js, añade esta nueva función:
-
+// --- Cargar historial por rango de fechas ---
 async function loadEventHistoryLocal(startTime, endTime) {
     if (!cameraName) return;
 
@@ -157,9 +176,6 @@ async function loadEventHistoryLocal(startTime, endTime) {
     titleElement.textContent = `Viendo: ${cameraName} (Cargando evento...)`;
     historySlider.disabled = true;
 
-    // --- LÓGICA DE HORA LOCAL ---
-    // Formateamos la fecha a ISO pero SIN la 'Z'
-    // Esto produce: 2025-11-09T21:30:00
     const formatLocalISO = (dt) => {
         const pad = (n) => n.toString().padStart(2, '0');
         return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}`;
@@ -169,7 +185,6 @@ async function loadEventHistoryLocal(startTime, endTime) {
     const endTimeISO = formatLocalISO(endTime);
 
     try {
-        // Llamamos al NUEVO endpoint "-local"
         const response = await fetch(`/api/history/freeze-by-range-local/${cameraName}?startTime=${startTimeISO}&endTime=${endTimeISO}`);
 
         if (!response.ok) {
@@ -195,91 +210,30 @@ async function loadEventHistoryLocal(startTime, endTime) {
     } catch (error) {
         console.error("Error cargando historial de evento local:", error);
         titleElement.textContent = `Viendo: ${cameraName} (Error al cargar evento)`;
-        iniciarStream(); // Volver a "En Vivo" si falla
+        iniciarStream();
     }
 }
 
-// Añade esta función a tu app.js existente
-// para cargar historial por rango de números
+// --- Event Listeners ---
+if (btnStart) btnStart.onclick = iniciarStream;
+if (btnStop) btnStop.onclick = detenerStream;
+if (btnFrame) btnFrame.onclick = verUltimoFrame;
 
-async function loadEventHistoryByNumbers(startNumber, endNumber) {
-    if (!cameraName) return;
-
-    detenerStream();
-    titleElement.textContent = `Viendo: ${cameraName} (Cargando rango ${startNumber}-${endNumber}...)`;
-    historySlider.disabled = true;
-
-    try {
-        const response = await fetch(
-            `/api/configuracion/history/freeze-by-range/${cameraName}?desde=${startNumber}&hasta=${endNumber}`
-        );
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || "No se pudo cargar el historial por rango numérico.");
+if (historySlider) {
+    historySlider.addEventListener("input", async (e) => {
+        if (isStreaming) {
+            await freezeHistory();
         }
 
-        const snapshot = await response.json();
-
-        currentHistoryId = snapshot.historyId;
-        fileHistory = snapshot.files;
-
-        if (fileHistory.length > 0) {
-            historySlider.max = fileHistory.length - 1;
-            historySlider.disabled = false;
-            console.log(`Historial por rango numérico cargado: ${currentHistoryId} con ${fileHistory.length} archivos.`);
-            titleElement.textContent = `Viendo: ${cameraName} (Rango ${startNumber}-${endNumber}: ${fileHistory.length} imágenes)`;
-            showFrozenFrame(0);
-            historySlider.value = 0;
-        } else {
-            titleElement.textContent = `Viendo: ${cameraName} (No se encontraron imágenes en el rango ${startNumber}-${endNumber})`;
+        if (currentHistoryId) {
+            showFrozenFrame(e.target.value);
         }
-
-    } catch (error) {
-        console.error("Error cargando historial por rango numérico:", error);
-        titleElement.textContent = `Viendo: ${cameraName} (Error al cargar rango)`;
-        iniciarStream(); // Volver a "En Vivo" si falla
-    }
+    });
 }
-
-
-// navbar.js - Componente de navegación reutilizable
-
-
-// Función para insertar el navbar
-function insertNavbar() {
-    // Insertar el navbar al inicio del body
-    const navContainer = document.createElement('div');
-    navContainer.innerHTML = NavbarHTML;
-    document.body.insertBefore(navContainer.firstElementChild, document.body.firstChild);
-
-    // Marcar la página activa
-    const currentPath = window.location.pathname;
-    const pageMap = {
-        '/': 'home',
-        '/index.html': 'home',
-        '/visor-rango.html': 'rango',
-        '/eventos-lista.html': 'eventos',
-        '/visor-evento.html': 'eventos',
-        '/configuracion.html': 'config'
-    };
-
-    const currentPage = pageMap[currentPath] || 'home';
-    const activeBtn = document.querySelector(`[data-page="${currentPage}"]`);
-    if (activeBtn) {
-        activeBtn.classList.add('active');
-    }
-}
-
-// Insertar automáticamente cuando el DOM esté listo
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', insertNavbar);
-} else {
-    insertNavbar();
-}
-
-// Ejemplo de uso:
-// loadEventHistoryByNumbers(200, 210);
 
 // Iniciar todo
-iniciarVisor();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', iniciarVisor);
+} else {
+    iniciarVisor();
+}

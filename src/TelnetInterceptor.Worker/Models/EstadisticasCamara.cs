@@ -1,18 +1,30 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+
 namespace TelnetInterceptor.Worker.Models;
 
+[PrimaryKey(nameof(IpCamara), nameof(Puerto))]
 public class EstadisticasCamara
 {
-    public string IpCamara { get; }
-    public int Puerto { get; }
+    public string IpCamara { get; set; } = string.Empty;
+    public int Puerto { get; set; }
+    
+    // --- NUEVO: Configuración de Almacenamiento por Cámara ---
+    public string RutaCarpeta { get; set; } = string.Empty; // Ruta UNC o Local
+
+    // Estadísticas en tiempo real
     public bool EstaConectada { get; set; }
     public int MensajesRecibidos { get; set; }
     public DateTime? HoraUltimoMensaje { get; set; }
     public string? UltimoMensaje { get; set; }
     
-    public EstadisticasCamara(string ipCamara, int puerto)
+    public EstadisticasCamara() { }
+
+    public EstadisticasCamara(string ipCamara, int puerto, string rutaCarpeta)
     {
         IpCamara = ipCamara;
         Puerto = puerto;
+        RutaCarpeta = rutaCarpeta;
         EstaConectada = false;
         MensajesRecibidos = 0;
     }

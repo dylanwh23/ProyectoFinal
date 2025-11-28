@@ -16,76 +16,76 @@ public static class CamaraEndpoints
             .WithDescription("Endpoints para gestionar las cámaras");
 
         group.MapGet("/", ObtenerCamaras)
-            .WithDescription("Obtiene la lista de cámaras registradas")
-            .WithOpenApi();
+            .WithDescription("Obtiene la lista de cámaras registradas");
 
         group.MapGet("/estado", ObtenerEstadoCamaras)
-            .WithDescription("Obtiene el estado actual de todas las cámaras")
-            .WithOpenApi();
+            .WithDescription("Obtiene el estado actual (conexión y mensajes) de todas las cámaras");
 
         group.MapPost("/", AgregarCamara)
-            .WithDescription("Registra una nueva cámara")
-            .WithOpenApi();
+            .WithDescription("Registra una nueva cámara");
 
         group.MapDelete("/{ip}", EliminarCamara)
-            .WithDescription("Elimina una cámara registrada")
-            .WithOpenApi();
+            .WithDescription("Elimina una cámara registrada");
     }
 
-    private static IResult ObtenerCamaras(IGestorEndpointsCamaras gestor)
+    private static async Task<IResult> ObtenerCamaras(CameraManagerService manager)
     {
-        var camaras = gestor.ObtenerCamaras();
+        var camaras = await manager.ObtenerCamarasBd();
         return Results.Ok(camaras);
     }
 
-    private static IResult ObtenerEstadoCamaras(Worker worker, IGestorEndpointsCamaras gestor)
-{
-    var todasLasIps = gestor.ObtenerCamaras();
-    var estadisticas = worker.ObtenerEstadisticas().ToDictionary(e => e.IpCamara);
-
-    var resultado = todasLasIps.Select(ip =>
+    private static async Task<IResult> ObtenerEstadoCamaras(
+        CameraManagerService manager, 
+        TelnetWorkerService telnetWorker) // Inyectamos ambos para cruzar datos
     {
-        if (estadisticas.TryGetValue(ip, out var stat))
-            return stat;
+        // 1. Configuración desde BD (Manager)
+        var camarasEnBd = await manager.ObtenerCamarasBd();
+        
+        // 2. Estado en vivo (TelnetWorker)
+        var statsEnVivo = telnetWorker.ObtenerEstadisticas();
 
-        // Si no hay estadísticas aún, devolvemos un estado "Desconectada"
-        return new EstadisticasCamara(ip, 0)
+        // 3. Fusión
+        var resultado = camarasEnBd.Select(cam => 
         {
-            EstaConectada = false,
-            UltimoMensaje = "Sin conexión",
-            HoraUltimoMensaje = DateTime.UtcNow
-        };
-    });
+            if (statsEnVivo.TryGetValue(cam.IpCamara, out var vivo)) return vivo;
+            
+            // Si no está conectada, devolvemos el objeto base desconectado
+            return new EstadisticasCamara(cam.IpCamara, cam.Puerto, cam.RutaCarpeta)
+            {
+                EstaConectada = false,
+                UltimoMensaje = "Desconectada / Sin Tráfico"
+            };
+        });
 
-    return Results.Ok(resultado);
-}
+        return Results.Ok(resultado);
+    }
 
     private static async Task<IResult> AgregarCamara(
-        IGestorEndpointsCamaras gestor,
+        CameraManagerService manager,
         [FromBody] CamaraRequest request)
     {
-        try
-        {
-            var resultado = await gestor.AgregarCamara(request.IpCamara, request.Puerto);
-            return resultado 
-                ? Results.Ok(new { mensaje = "Cámara agregada correctamente" })
-                : Results.BadRequest(new { error = "La cámara ya existe" });
-        }
-        catch (ArgumentException ex)
-        {
-            return Results.BadRequest(new { error = ex.Message });
-        }
+        var exito = await manager.AgregarCamara(request.IpCamara, request.Puerto, request.RutaCarpeta);
+        return exito 
+            ? Results.Ok(new { mensaje = "Cámara agregada" }) 
+            : Results.BadRequest(new { error = "La cámara ya existe" });
     }
 
     private static async Task<IResult> EliminarCamara(
-        IGestorEndpointsCamaras gestor,
+        CameraManagerService manager,
         string ip)
     {
-        var resultado = await gestor.EliminarCamara(ip);
-        return resultado
-            ? Results.Ok(new { mensaje = "Cámara eliminada correctamente" })
-            : Results.NotFound(new { error = "Cámara no encontrada" });
+        var exito = await manager.EliminarCamara(ip);
+        // También desconectamos del socket si estaba activa
+        if (exito) 
+        {
+            // Nota: Aquí necesitaríamos inyectar TelnetWorkerService si queremos forzar desconexión inmediata,
+            // pero el TelnetWorkerService se dará cuenta solo en su próximo ciclo de limpieza.
+        }
+
+        return exito
+            ? Results.Ok(new { mensaje = "Cámara eliminada" })
+            : Results.NotFound(new { error = "No encontrada" });
     }
 }
 
-public record CamaraRequest(string IpCamara, int Puerto);
+public record CamaraRequest(string IpCamara, int Puerto, string RutaCarpeta);

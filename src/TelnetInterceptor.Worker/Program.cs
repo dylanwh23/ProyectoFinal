@@ -1,105 +1,66 @@
 using Microsoft.AspNetCore.Builder;
-using TelnetInterceptor.Worker;
-using TelnetInterceptor.Worker.Configuration;
-using TelnetInterceptor.Worker.Services;
-using TelnetInterceptor.Worker.Endpoints; // Importante para ver el método de extensión
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.EntityFrameworkCore;
 using MassTransit;
-using Shared.Contracts;
-using Microsoft.OpenApi.Models;
 using RabbitMQ.Client;
+using Microsoft.OpenApi.Models;
+
+// Namespaces de tu proyecto
+using TelnetInterceptor.Worker.Data;
+using TelnetInterceptor.Worker.Services;
+using TelnetInterceptor.Worker.Configuration;
+using TelnetInterceptor.Worker.Models;
+using TelnetInterceptor.Worker.Endpoints;
+using Shared.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- Limpieza del exchange conflictivo ---
-static async Task LimpiarExchangeConflictivoAsync(IConfiguration configuration)
-{
-    var rabbitMQConfig = configuration.GetSection("RabbitMQ");
-    string rabbitHost = rabbitMQConfig["Host"] ?? "localhost";
-    string exchangeName = typeof(EventoMovimientoDetectado).FullName!.Replace('.', ':');
+// ==================================================================
+// 1️⃣ CONFIGURACIÓN DE SERVICIOS (DI)
+// ==================================================================
 
-    Console.WriteLine($"RabbitMQ Cleanup: Intentando limpiar Exchange: {exchangeName} en host: {rabbitHost}");
+// A. Base de Datos SQLite
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlite("Data Source=app.db"));
 
-    try
-    {
-        var factory = new ConnectionFactory
-        {
-            HostName = rabbitHost,
-            UserName = "guest",
-            Password = "guest",
-            ContinuationTimeout = TimeSpan.FromSeconds(5)
-        };
+// B. Servicios Unificados (Singleton + Hosted)
+// --------------------------------------------------
+// 1. CameraManager: Dueño de la BD, Watchers e Imágenes
+builder.Services.AddSingleton<CameraManagerService>();
+builder.Services.AddHostedService(p => p.GetRequiredService<CameraManagerService>());
 
-        var connection = await factory.CreateConnectionAsync();
-        var channel = await connection.CreateChannelAsync();
+// 2. TelnetWorker: Dueño de Conexiones TCP y RabbitMQ
+builder.Services.AddSingleton<TelnetWorkerService>();
+builder.Services.AddHostedService(p => p.GetRequiredService<TelnetWorkerService>());
+// --------------------------------------------------
 
-        try
-        {
-            await channel.ExchangeDeleteAsync(exchangeName, ifUnused: false);
-            Console.WriteLine($"✅ Exchange '{exchangeName}' eliminado con éxito.");
-        }
-        catch (Exception ex) when (ex.Message.Contains("NOT_FOUND") || ex.Message.Contains("404"))
-        {
-            Console.WriteLine($"Exchange '{exchangeName}' no encontrado. No requiere limpieza.");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Error de conexión a RabbitMQ: {ex.Message}");
-    }
-}
-
-await LimpiarExchangeConflictivoAsync(builder.Configuration);
-
-// 1️⃣ Servicios base
-builder.Services.AddControllers();
+// C. Configuración Típada (Opcional, si usas IOptions)
 builder.Services.Configure<ConfiguracionInterceptor>(
-builder.Configuration.GetSection("ConfiguracionInterceptor"));
-builder.Services.AddSingleton<EventosService>();
+    builder.Configuration.GetSection("ConfiguracionInterceptor"));
 
-builder.Services.AddSingleton<IServicioFiltradoEventos, ServicioFiltradoEventos>();
-builder.Services.AddSingleton<Worker>();
-builder.Services.AddHostedService(sp => sp.GetRequiredService<Worker>());
-
-// 2️⃣ MassTransit (Publisher & Consumers)
-var rabbitMQConfig = builder.Configuration.GetSection("RabbitMQ");
-var rabbitHost = rabbitMQConfig["Host"] ?? "localhost";
-var rabbitUser = rabbitMQConfig["Username"] ?? "guest";
-var rabbitPass = rabbitMQConfig["Password"] ?? "guest";
-
-// Servicios imagenes
-// Nota: ServerSettings ahora está definida en ImagenesEndpoints.cs o Contracts, asegúrate de que el namespace coincida
-builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("ServerSettings"));
-builder.Services.AddSingleton<CameraStreamService>();
-builder.Services.AddHostedService(p => p.GetRequiredService<CameraStreamService>());
-
-// Get camera configurations
-var configuracionInterceptor = builder.Configuration.GetSection("ConfiguracionInterceptor").Get<ConfiguracionInterceptor>();
-var cameras = configuracionInterceptor?.Camaras ?? new List<ConfiguracionCamara>();
-
+// D. MassTransit (RabbitMQ)
+var rabbitConf = builder.Configuration.GetSection("RabbitMQ");
 builder.Services.AddMassTransit(x =>
 {
-    x.AddConsumer<CameraDeletedConsumer>();
+    // Si tienes consumidores (como CameraDeletedConsumer), regístralos aquí:
+    // x.AddConsumer<CameraDeletedConsumer>();
 
     x.UsingRabbitMq((context, cfg) =>
     {
-        cfg.Host(rabbitHost, "/", h =>
+        cfg.Host(rabbitConf["Host"] ?? "localhost", "/", h =>
         {
-            h.Username(rabbitUser);
-            h.Password(rabbitPass);
+            h.Username(rabbitConf["Username"] ?? "guest");
+            h.Password(rabbitConf["Password"] ?? "guest");
         });
-
-        // Configura un endpoint de recepción para el consumidor de eliminación de cámaras
-        cfg.ReceiveEndpoint("camera-deleted-events", e =>
-        {
-            e.ConfigureConsumer<CameraDeletedConsumer>(context);
-        });
+        
+        // Configuración de endpoints de recepción si fuera necesario
+        // cfg.ReceiveEndpoint("...", e => ... );
     });
 });
 
-// 3️⃣ Registro del Gestor
-builder.Services.AddSingleton<IGestorEndpointsCamaras, GestorEndpointsCamaras>();
-
-// 4️⃣ Swagger
+// E. API Controllers y Swagger
+builder.Services.AddControllers(); // Necesario para ImagenesController
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -107,36 +68,52 @@ builder.Services.AddSwaggerGen(c =>
     {
         Title = "Telnet Interceptor API",
         Version = "v1",
-        Description = "Microservicio para interceptar y gestionar cámaras con MassTransit y RabbitMQ"
+        Description = "Sistema Unificado de Gestión de Cámaras y Eventos"
     });
 });
 
 var app = builder.Build();
 
-// 5️⃣ Middleware y endpoints
+// ==================================================================
+// 2️⃣ MIDDLEWARE PIPELINE
+// ==================================================================
+
+// A. Swagger (Solo en desarrollo o si quieres verlo siempre)
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Telnet Interceptor API v1");
-        c.RoutePrefix = "swagger";
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API v1");
+        c.RoutePrefix = "swagger"; // Accesible en /swagger
     });
 }
 
-// Configuración para servir archivos estáticos (index.html)
+// B. Archivos Estáticos (¡IMPORTANTE PARA TU FRONTEND!)
+// UseDefaultFiles hará que al entrar a "/" te sirva "index.html"
 app.UseDefaultFiles(); 
+// UseStaticFiles permite servir los .css, .js y .html de wwwroot
 app.UseStaticFiles();
 
-// Registro de Endpoints
-app.MapControllers();
-app.MapTelnetEndpoints();
+// C. Mapeo de Rutas
+app.MapControllers(); // Mapea ImagenesController
+
+// D. Mapeo de Minimal APIs (Endpoints)
 app.MapCamaraEndpoints();
-app.MapConfiguracionEndpoints();
+app.MapTelnetEndpoints();
 app.MapHistoryEndpoints();
 app.MapEventosEndpoints();
-//app.MapImagenesEndpoints();
-// Ya no necesitamos mapear "/" manualmente porque UseDefaultFiles se encarga de servir el index.html
-// app.MapGet("/", () => ...); 
+// app.MapConfiguracionEndpoints(); // Si decides mantenerlo
+
+// ==================================================================
+// 3️⃣ ARRANQUE
+// ==================================================================
+
+// (Opcional) Migración automática al iniciar
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    // db.Database.EnsureCreated(); // O db.Database.Migrate();
+}
 
 await app.RunAsync();
