@@ -4,21 +4,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventProcessor.Worker.Services;
 
-public class EventProcessorService
+public class EventProcessorService(
+    EventDbContext context,
+    VideoLinkService videoLinkService,
+    ILogger<EventProcessorService> logger)
 {
-    private readonly EventDbContext _context;
-    private readonly VideoLinkService _videoLinkService;
-    private readonly ILogger<EventProcessorService> _logger;
-
-    public EventProcessorService(
-        EventDbContext context,
-        VideoLinkService videoLinkService,
-        ILogger<EventProcessorService> logger)
-    {
-        _context = context;
-        _videoLinkService = videoLinkService;
-        _logger = logger;
-    }
+    private readonly EventDbContext _context = context;
+    private readonly VideoLinkService _videoLinkService = videoLinkService;
+    private readonly ILogger<EventProcessorService> _logger = logger;
 
     public async Task<bool> ProcessAndStoreEventAsync(EventoMovimientoDetectado rawEvent)
     {
@@ -66,7 +59,7 @@ public class EventProcessorService
         }
     }
 
-    private string CategorizeCamera(string ipCamara)
+    private static string CategorizeCamera(string ipCamara)
     {
         return ipCamara switch
         {
@@ -77,7 +70,7 @@ public class EventProcessorService
         };
     }
 
-    private string GetWarehouseZone(string ipCamara)
+    private static string GetWarehouseZone(string ipCamara)
     {
         return ipCamara switch
         {
@@ -88,7 +81,7 @@ public class EventProcessorService
         };
     }
 
-    private string? ExtractQrCodeFromMessage(string mensajeCrudo)
+    private static string? ExtractQrCodeFromMessage(string mensajeCrudo)
     {
         if (mensajeCrudo.Contains("QR:") || mensajeCrudo.Contains("QR="))
         {

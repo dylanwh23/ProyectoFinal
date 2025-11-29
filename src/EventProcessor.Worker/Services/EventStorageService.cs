@@ -4,16 +4,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace EventProcessor.Worker.Services;
 
-public class EventStorageService
+public class EventStorageService(EventDbContext context, ILogger<EventStorageService> logger)
 {
-    private readonly EventDbContext _context;
-    private readonly ILogger<EventStorageService> _logger;
-
-    public EventStorageService(EventDbContext context, ILogger<EventStorageService> logger)
-    {
-        _context = context;
-        _logger = logger;
-    }
+    private readonly EventDbContext _context = context;
+    private readonly ILogger<EventStorageService> _logger = logger;
 
     public async Task<IEnumerable<EnrichedEvent>> GetRecentEventsAsync(int count = 50)
     {

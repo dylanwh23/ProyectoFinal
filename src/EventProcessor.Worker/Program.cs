@@ -14,16 +14,18 @@ builder.Services.AddDbContext<EventDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("EventDatabase")),
     contextLifetime: ServiceLifetime.Singleton);
 
+// HttpClient para CameraDiscoveryService
+builder.Services.AddHttpClient();
+
 // Servicios
 builder.Services.AddSingleton<VideoLinkService>();
 builder.Services.AddSingleton<EventProcessorService>();
 builder.Services.AddSingleton<EventStorageService>();
-builder.Services.AddSingleton<RabbitMQConsumerService>();
-// builder.Services.AddSingleton<EventSimulatorService>(); // Simulador de eventos
+builder.Services.AddSingleton<CameraDiscoveryService>();
+builder.Services.AddSingleton<DynamicRabbitMQConsumerService>();
 
 // Hosted Services
-builder.Services.AddHostedService(provider => provider.GetRequiredService<RabbitMQConsumerService>());
-// builder.Services.AddHostedService(provider => provider.GetRequiredService<EventSimulatorService>()); // Simulador de eventos
+builder.Services.AddHostedService(provider => provider.GetRequiredService<DynamicRabbitMQConsumerService>());
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();

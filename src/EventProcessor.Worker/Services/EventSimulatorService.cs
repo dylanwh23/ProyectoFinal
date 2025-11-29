@@ -21,8 +21,8 @@ public class EventSimulatorService : BackgroundService
         _logger = logger;
 
         // Camaras basadas en casos de uso reales
-        _cameras = new List<CameraSimulation>
-        {
+        _cameras =
+        [
             // Monitoreo de Inventario en Grilla Fija
             new() {
                 CameraId = "cam_inventario_1",
@@ -58,7 +58,7 @@ public class EventSimulatorService : BackgroundService
                 Zone = "Almacen-Central",
                 EventType = "QR_DETECTED"
             }
-        };
+        ];
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -116,7 +116,7 @@ public class EventSimulatorService : BackgroundService
             camera.CameraId, eventCount);
     }
 
-    private string GenerateRealisticMessage(CameraSimulation camera, Random random, int eventNumber)
+    private static string GenerateRealisticMessage(CameraSimulation camera, Random random, int eventNumber)
     {
         return camera.EventType switch
         {
@@ -127,7 +127,7 @@ public class EventSimulatorService : BackgroundService
         };
     }
 
-    private string GenerateQREvent(CameraSimulation camera, Random random, int eventNumber)
+    private static string GenerateQREvent(CameraSimulation camera, Random random, int eventNumber)
     {
         var qrCodes = new[] { "QR_INV_", "QR_BOX_", "QR_LOC_", "QR_PALLET_" };
         var actions = new[] { "detected", "scanned", "identified", "read" };
@@ -141,7 +141,7 @@ public class EventSimulatorService : BackgroundService
         return $"{qrPrefix}{qrNumber} {action} at {camera.Zone} - Status: {stat} - Event#{eventNumber}";
     }
 
-    private string GeneratePalletEvent(CameraSimulation camera, Random random, int eventNumber)
+    private static string GeneratePalletEvent(CameraSimulation camera, Random random, int eventNumber)
     {
         var palletIds = new[] { "PALLET-A", "PALLET-B", "PALLET-C", "PALLET-D" };
         var boxCount = random.Next(5, 25);
@@ -150,7 +150,7 @@ public class EventSimulatorService : BackgroundService
         return $"Pallet {palletIds[random.Next(palletIds.Length)]} scanned with {boxCount} boxes - Condition: {conditions[random.Next(conditions.Length)]} - Zone: {camera.Zone} - Event#{eventNumber}";
     }
 
-    private string GenerateTruckEvent(CameraSimulation camera, Random random, int eventNumber)
+    private static string GenerateTruckEvent(CameraSimulation camera, Random random, int eventNumber)
     {
         var truckIds = new[] { "TRUCK-7845", "TRUCK-9210", "TRUCK-3567", "TRUCK-1489" };
         var directions = new[] { "entering", "exiting", "parked at", "departing from" };
