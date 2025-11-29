@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using System.Net.Http.Json;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Admin.Console.Models.Components;
 using Shared.Contracts.Models;
+using System.Text.Json;
 
 namespace Admin.Console.Components
 {
@@ -15,38 +14,63 @@ namespace Admin.Console.Components
         [Inject]
         public ILogger<Events> Logger { get; set; } = default!;
 
-        // Evento para comunicar al padre (Layout) que se eligió una cámara
+        // Evento para comunicar al padre (Layout)
         [Parameter]
         public EventCallback<AltaEventoModel> OnEventoSeleccionado { get; set; }
 
-        // La lista ya no es un Parámetro, es estado local
-        public List<AltaEventoModel> Eventos { get; set; } = new();
-        
+        // --- LISTAS DE DATOS ---
+        // 1. Lista de cámaras en vivo
+        public List<AltaEventoModel> Camaras { get; set; } = new();
+
+        // 2. Lista de eventos históricos guardados
+        public List<AltaEventoModel> EventosGuardados { get; set; } = new();
+
+        // --- ESTADO DE LA VISTA ---
         public bool IsLoading { get; set; } = false;
+
+        // Controla qué pestaña estamos viendo: "camaras" o "eventos"
+        private string _vistaActual = "camaras";
 
         protected override async Task OnInitializedAsync()
         {
-            await CargarEventos();
+            await CargarTodo();
         }
 
-        public async Task CargarEventos()
+        public async Task CargarTodo()
         {
             IsLoading = true;
             StateHasChanged();
 
             try
             {
-                // Llamamos al backend para obtener las cámaras reales
-                var resultado = await Http.GetFromJsonAsync<List<AltaEventoModel>>("api/camaras/estado");
-                
-                if (resultado != null)
+                // 1. Configurar opciones para ignorar mayúsculas/minúsculas
+                var options = new JsonSerializerOptions
                 {
-                    Eventos = resultado;
+                    PropertyNameCaseInsensitive = true
+                };
+
+                // Cargar Cámaras (Live)
+                var camaras = await Http.GetFromJsonAsync<List<AltaEventoModel>>("api/camaras/estado", options);
+                if (camaras != null) Camaras = camaras;
+
+                // 2. Cargar Eventos Guardados USANDO LAS OPCIONES
+                var eventos = await Http.GetFromJsonAsync<List<AltaEventoModel>>("api/eventos/lista", options);
+
+                if (eventos != null)
+                {
+                    EventosGuardados = eventos;
+
+                    // LOG DE VERIFICACIÓN: Ahora deberían aparecer los números
+                    foreach (var evt in EventosGuardados)
+                    {
+                        Logger.LogInformation("Evento cargado: {Nombre} Frames: {From}-{To}",
+                            evt.Nombre, evt.FromFrame, evt.ToFrame);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error cargando la lista de eventos");
+                Logger.LogError(ex, "Error cargando datos");
             }
             finally
             {
@@ -55,10 +79,27 @@ namespace Admin.Console.Components
             }
         }
 
-        private Task SeleccionarEvento(AltaEventoModel evento)
+        // Método para cambiar de pestaña desde el HTML
+        public void CambiarVista(string vista)
         {
-            Logger.LogInformation("Evento seleccionado: {Ip}", evento.IpCamara);
-            return OnEventoSeleccionado.InvokeAsync(evento);
+            _vistaActual = vista;
+            StateHasChanged();
         }
+
+        private Task SeleccionarItem(AltaEventoModel item)
+        {
+            // Log para depurar qué estamos mandando
+            Logger.LogInformation("Seleccionado: {Nombre} - Frames: {From}-{To}",
+                item.Nombre, item.FromFrame, item.ToFrame);
+
+            return OnEventoSeleccionado.InvokeAsync(item);
+        }
+
+
+
+
     }
+
+
+
 }

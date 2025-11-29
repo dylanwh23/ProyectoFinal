@@ -1,8 +1,23 @@
-namespace Shared.Contracts.Models;
-public class AltaEventoModel
+namespace Shared.Contracts.Models
 {
-    public string Nombre {get; set;}
-    public string IpCamara {get; set;}
-    public int Puerto {get; set;}
-    public string RutaCarpeta {get; set;}
+    public class AltaEventoModel
+    {
+        public string Nombre { get; set; } = string.Empty;
+        public string IpCamara { get; set; } = string.Empty;
+        public int Puerto { get; set; }
+        public string RutaCarpeta { get; set; } = string.Empty;
+
+        // Nuevos campos para eventos guardados
+        public bool EsEventoGuardado { get; set; } = false;
+        public int? FrameInicio { get; set; }
+        public int? FrameFin { get; set; }
+        public DateTime? FechaEvento { get; set; }
+        public string? Descripcion { get; set; }
+
+        // Frame de inicio (Nulo si es una cámara en vivo)
+        public int? FromFrame { get; set; }
+
+        // Frame de fin (Nulo si es una cámara en vivo)
+        public int? ToFrame { get; set; }
+    }
 }

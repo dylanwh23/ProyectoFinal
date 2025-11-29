@@ -13,19 +13,19 @@ public class CameraManagerService : BackgroundService
 {
     private readonly ILogger<CameraManagerService> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
-    
+
     // Estado en Memoria
     private readonly ConcurrentDictionary<string, FileSystemWatcher> _watchers = new();
     private readonly ConcurrentDictionary<string, string> _rutasActivas = new();
-    
+
     // Puntero a la última foto (Ruta completa)
     private readonly ConcurrentDictionary<string, string> _latestFilePerCamera = new();
-    
+
     // Hora UTC de la última foto recibida (Para la alerta de "Sin Señal")
     private readonly ConcurrentDictionary<string, DateTime> _lastImageTime = new();
 
     public CameraManagerService(
-        ILogger<CameraManagerService> logger, 
+        ILogger<CameraManagerService> logger,
         IServiceScopeFactory scopeFactory)
     {
         _logger = logger;
@@ -36,7 +36,7 @@ public class CameraManagerService : BackgroundService
     // 1. MÉTODOS DE LECTURA (STREAM, BUFFER, SALUD)
     // =========================================================
 
-    public string? GetLatestFile(string ip) 
+    public string? GetLatestFile(string ip)
     {
         _latestFilePerCamera.TryGetValue(ip, out var f);
         return f;
@@ -48,50 +48,148 @@ public class CameraManagerService : BackgroundService
         return null;
     }
 
+    // =========================================================
+    // 6. MÉTODO DE INTEGRACIÓN CON EL CONTROLADOR
+    // =========================================================
+
+    public string? ObtenerRutaCarpeta(string identificador)
+    {
+        // 1. Buscamos si el identificador es una IP que ya estamos vigilando
+        if (_rutasActivas.TryGetValue(identificador, out var ruta))
+        {
+            return ruta;
+        }
+
+        // 2. Si no es IP (es un Nombre como "Camara1"), tenemos que buscar en la BD.
+        // Como esto se llama desde un Controller, creamos un scope rápido.
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var camara = db.Eventos.FirstOrDefault(c => c.Nombre == identificador);
+            return camara?.RutaCarpeta;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError("Error buscando ruta para {Id}: {Msg}", identificador, ex.Message);
+            return null;
+        }
+    }
+
     /// <summary>
     /// Obtiene las últimas 'count' imágenes basándose en el número secuencial del nombre.
     /// Vital para el botón de PAUSA.
     /// </summary>
-    public HistorySnapshot GetRecentFrames(string ip, int count)
+    public HistorySnapshot GetRecentFrames(string identificador, int count)
     {
-        if (!_rutasActivas.TryGetValue(ip, out var ruta)) 
-            return new HistorySnapshot { HistoryId = "Error: Cámara no activa" };
+        // CAMBIO: Usamos el método inteligente que busca en memoria o BD
+        var ruta = ObtenerRutaCarpeta(identificador);
+
+        if (string.IsNullOrEmpty(ruta) || !Directory.Exists(ruta))
+            return new HistorySnapshot { HistoryId = "Error: Cámara no encontrada o ruta inválida" };
 
         var files = new List<string>();
-        if (Directory.Exists(ruta))
+
+        // El resto de la lógica de archivos se mantiene igual, pero ahora 'ruta' es correcta
+        var allFiles = Directory.GetFiles(ruta, "*.*")
+            .Where(f => IsImage(f));
+
+        var filtered = allFiles
+            .Select(f => new { Path = f, Number = ExtractNumber(Path.GetFileNameWithoutExtension(f)) })
+            .Where(x => x.Number != -1)
+            .OrderByDescending(x => x.Number)
+            .Take(count)
+            .OrderBy(x => x.Number)
+            .Select(x => x.Path)
+            .ToList();
+
+        files.AddRange(filtered);
+
+        return new HistorySnapshot
         {
-            var allFiles = Directory.GetFiles(ruta, "*.*")
-                .Where(f => IsImage(f));
-
-            var filtered = allFiles
-                // Extraemos el número: "Snapshot_500.bmp" -> 500
-                .Select(f => new { Path = f, Number = ExtractNumber(Path.GetFileNameWithoutExtension(f)) })
-                .Where(x => x.Number != -1) // Ignoramos archivos sin número
-                .OrderByDescending(x => x.Number) // Ordenamos del más nuevo al más viejo
-                .Take(count) // Tomamos los últimos N
-                .OrderBy(x => x.Number) // Reordenamos ascendente para la reproducción
-                .Select(x => x.Path)
-                .ToList();
-
-            files.AddRange(filtered);
-        }
-
-        return new HistorySnapshot 
-        { 
-            HistoryId = "Buffer", 
-            Files = files 
+            HistoryId = "Buffer",
+            Files = files
         };
     }
 
     // =========================================================
-    // 2. GESTIÓN DE CÁMARAS (BASE DE DATOS)
+    // 2. NUEVOS MÉTODOS PARA RANGO DE IMÁGENES
+    // =========================================================
+
+    /// <summary>
+    /// Obtiene imágenes dentro de un rango de números (ej: 1100 a 1200)
+    /// </summary>
+    public HistorySnapshot GetFramesByRange(string identificador, int fromNumber, int toNumber)
+    {
+        // CAMBIO: Usamos ObtenerRutaCarpeta
+        var ruta = ObtenerRutaCarpeta(identificador);
+
+        if (string.IsNullOrEmpty(ruta) || !Directory.Exists(ruta))
+            return new HistorySnapshot { HistoryId = "Error: Cámara no encontrada o ruta inválida" };
+
+        var files = new List<string>();
+
+        var allFiles = Directory.GetFiles(ruta, "*.*")
+            .Where(f => IsImage(f));
+
+        var filtered = allFiles
+            .Select(f => new { Path = f, Number = ExtractNumber(Path.GetFileNameWithoutExtension(f)) })
+            .Where(x => x.Number >= fromNumber && x.Number <= toNumber)
+            .OrderBy(x => x.Number)
+            .Select(x => x.Path)
+            .ToList();
+
+        files.AddRange(filtered);
+
+        return new HistorySnapshot
+        {
+            HistoryId = $"Range_{fromNumber}-{toNumber}",
+            Files = files,
+            FromNumber = fromNumber,
+            ToNumber = toNumber
+        };
+    }
+
+    /// <summary>
+    /// Obtiene información del rango disponible (mínimo y máximo número de imagen)
+    /// </summary>
+    public RangeInfo? GetAvailableRange(string identificador)
+    {
+        // CAMBIO: Usamos ObtenerRutaCarpeta
+        var ruta = ObtenerRutaCarpeta(identificador);
+
+        if (string.IsNullOrEmpty(ruta) || !Directory.Exists(ruta))
+            return null;
+
+        var allFiles = Directory.GetFiles(ruta, "*.*")
+            .Where(f => IsImage(f))
+            .Select(f => new { Path = f, Number = ExtractNumber(Path.GetFileNameWithoutExtension(f)) })
+            .Where(x => x.Number != -1)
+            .ToList();
+
+        if (allFiles.Count == 0)
+            return null;
+
+        return new RangeInfo
+        {
+            CameraIp = identificador, // Devolvemos el identificador usado (Nombre o IP)
+            MinNumber = allFiles.Min(x => x.Number),
+            MaxNumber = allFiles.Max(x => x.Number),
+            TotalFiles = allFiles.Count,
+            FolderPath = ruta
+        };
+    }
+
+    // =========================================================
+    // 3. GESTIÓN DE CÁMARAS (BASE DE DATOS)
     // =========================================================
 
     public async Task<List<EstadisticasCamara>> ObtenerCamarasBd()
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        return await db.Eventos.ToListAsync(); 
+        return await db.Eventos.ToListAsync();
     }
 
     public async Task<bool> AgregarCamara(string ip, int puerto, string ruta, string nombre)
@@ -103,7 +201,7 @@ public class CameraManagerService : BackgroundService
 
         db.Eventos.Add(new EstadisticasCamara(ip, puerto, ruta, nombre));
         await db.SaveChangesAsync();
-        await SincronizarWatchers(); // Aplicar cambios ya
+        await SincronizarWatchers();
         return true;
     }
 
@@ -122,7 +220,7 @@ public class CameraManagerService : BackgroundService
     }
 
     // =========================================================
-    // 3. WATCHERS (VIGILANCIA EN SEGUNDO PLANO)
+    // 4. WATCHERS (VIGILANCIA EN SEGUNDO PLANO)
     // =========================================================
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -130,10 +228,10 @@ public class CameraManagerService : BackgroundService
         _logger.LogInformation("🟢 CameraManagerService Iniciado");
         while (!stoppingToken.IsCancellationRequested)
         {
-            try 
-            { 
-                await SincronizarWatchers(); 
-                await Task.Delay(5000, stoppingToken); // Revisar BD cada 5s
+            try
+            {
+                await SincronizarWatchers();
+                await Task.Delay(5000, stoppingToken);
             }
             catch (Exception ex)
             {
@@ -148,13 +246,11 @@ public class CameraManagerService : BackgroundService
         var camaras = await ObtenerCamarasBd();
         var ipsBd = camaras.Select(c => c.IpCamara).ToHashSet();
 
-        // Eliminar watchers de cámaras borradas
         foreach (var ip in _watchers.Keys)
         {
             if (!ipsBd.Contains(ip)) EliminarWatcher(ip);
         }
 
-        // Crear/Actualizar watchers
         foreach (var cam in camaras)
         {
             if (string.IsNullOrWhiteSpace(cam.RutaCarpeta)) continue;
@@ -181,24 +277,23 @@ public class CameraManagerService : BackgroundService
         {
             if (!Directory.Exists(ruta)) Directory.CreateDirectory(ruta);
 
-            var w = new FileSystemWatcher(ruta) 
-            { 
-                Filter = "*.*", // Para detectar .bmp y .jpg
+            var w = new FileSystemWatcher(ruta)
+            {
+                Filter = "*.*",
                 NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime,
-                EnableRaisingEvents = true 
+                EnableRaisingEvents = true
             };
-            
+
             w.Created += (s, e) => ProcesarArchivo(ip, e.FullPath);
             w.Changed += (s, e) => ProcesarArchivo(ip, e.FullPath);
-            
+
             _watchers[ip] = w;
             _rutasActivas[ip] = ruta;
 
-            // Precarga inicial: Buscar la última imagen que YA existe en la carpeta
             var lastFile = new DirectoryInfo(ruta).GetFiles("*.*")
                 .Where(f => IsImage(f.Name))
                 .Select(f => new { File = f, Number = ExtractNumber(Path.GetFileNameWithoutExtension(f.Name)) })
-                .OrderByDescending(x => x.Number) // Ordenar por número, no por fecha
+                .OrderByDescending(x => x.Number)
                 .FirstOrDefault();
 
             if (lastFile != null)
@@ -210,27 +305,27 @@ public class CameraManagerService : BackgroundService
 
             _logger.LogInformation("👀 Vigilando: {Ip} -> {Ruta}", ip, ruta);
         }
-        catch (Exception ex) 
-        { 
-            _logger.LogError("Error watcher {Ip}: {Msg}", ip, ex.Message); 
+        catch (Exception ex)
+        {
+            _logger.LogError("Error watcher {Ip}: {Msg}", ip, ex.Message);
         }
     }
 
     private void ProcesarArchivo(string ip, string path)
     {
-        if (IsImage(path)) 
+        if (IsImage(path))
         {
             _latestFilePerCamera[ip] = path;
-            _lastImageTime[ip] = DateTime.UtcNow; // Actualizamos el "pulso" para la alerta
+            _lastImageTime[ip] = DateTime.UtcNow;
         }
     }
 
     private void EliminarWatcher(string ip)
     {
-        if (_watchers.TryRemove(ip, out var w)) 
-        { 
-            w.EnableRaisingEvents = false; 
-            w.Dispose(); 
+        if (_watchers.TryRemove(ip, out var w))
+        {
+            w.EnableRaisingEvents = false;
+            w.Dispose();
         }
         _rutasActivas.TryRemove(ip, out _);
         _latestFilePerCamera.TryRemove(ip, out _);
@@ -238,7 +333,7 @@ public class CameraManagerService : BackgroundService
     }
 
     // =========================================================
-    // 4. HELPERS DE PARSEO
+    // 5. HELPERS DE PARSEO
     // =========================================================
 
     private bool IsImage(string path)
@@ -249,16 +344,30 @@ public class CameraManagerService : BackgroundService
 
     private int ExtractNumber(string filename)
     {
-        try 
+        try
         {
             var matches = Regex.Matches(filename, @"\d+");
             if (matches.Count > 0)
             {
-                // Tomamos el último número encontrado en el nombre
                 if (int.TryParse(matches[^1].Value, out int number)) return number;
             }
         }
         catch { }
         return -1;
     }
+}
+
+
+
+
+// =========================================================
+// NUEVO MODELO: Información de rango disponible
+// =========================================================
+public class RangeInfo
+{
+    public string CameraIp { get; set; } = string.Empty;
+    public int MinNumber { get; set; }
+    public int MaxNumber { get; set; }
+    public int TotalFiles { get; set; }
+    public string FolderPath { get; set; } = string.Empty;
 }

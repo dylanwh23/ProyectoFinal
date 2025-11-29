@@ -27,12 +27,11 @@ namespace TelnetInterceptor.Worker.Controllers
         public IActionResult GetBufferList(string cameraName, [FromQuery] int count)
         {
             int limit = count > 0 ? count : 500;
-            // Usamos la lógica de "Recientes por Secuencia" del servicio
             var snapshot = _cameraManager.GetRecentFrames(cameraName, limit);
-            
-            if (snapshot.Files.Count == 0) 
+
+            if (snapshot.Files.Count == 0)
                 return NotFound("No hay imágenes en el buffer.");
-                
+
             return Ok(snapshot);
         }
 
@@ -47,16 +46,16 @@ namespace TelnetInterceptor.Worker.Controllers
             while (!ct.IsCancellationRequested)
             {
                 string? latestFile = _cameraManager.GetLatestFile(cameraName);
-                
-                if (!string.IsNullOrEmpty(latestFile) && 
-                    latestFile != ultimoArchivoProcesado && 
+
+                if (!string.IsNullOrEmpty(latestFile) &&
+                    latestFile != ultimoArchivoProcesado &&
                     System.IO.File.Exists(latestFile))
                 {
                     byte[]? jpegData = await ProcessImageToJpegAsync(latestFile);
-                    
+
                     if (jpegData != null)
                     {
-                        ultimoArchivoProcesado = latestFile; 
+                        ultimoArchivoProcesado = latestFile;
                         await Response.WriteAsync("--frame\r\n", ct);
                         await Response.WriteAsync("Content-Type: image/jpeg\r\n", ct);
                         await Response.WriteAsync($"Content-Length: {jpegData.Length}\r\n\r\n", ct);
@@ -65,7 +64,7 @@ namespace TelnetInterceptor.Worker.Controllers
                         await Response.Body.FlushAsync(ct);
                     }
                 }
-                await Task.Delay(100, ct); 
+                await Task.Delay(100, ct);
             }
         }
 
@@ -94,6 +93,95 @@ namespace TelnetInterceptor.Worker.Controllers
             return File(jpegData, "image/jpeg");
         }
 
+        // ============================================================
+        // 4. NUEVO: Endpoint para obtener imágenes por RANGO de número
+        // GET: api/range/{cameraName}?from=1100&to=1200
+        // ============================================================
+        [HttpGet("range/{cameraName}")]
+        public IActionResult GetRangeList(string cameraName, [FromQuery] int from, [FromQuery] int to)
+        {
+            if (from <= 0 || to <= 0)
+                return BadRequest("Debe especificar 'from' y 'to' con valores positivos.");
+
+            if (from > to)
+                return BadRequest("'from' debe ser menor o igual a 'to'.");
+
+            var snapshot = _cameraManager.GetFramesByRange(cameraName, from, to);
+
+            if (snapshot.Files.Count == 0)
+                return NotFound($"No hay imágenes en el rango {from}-{to}.");
+
+            return Ok(snapshot);
+        }
+
+        // ============================================================
+        // 5. NUEVO: Obtener información de rango disponible
+        // GET: api/range-info/{cameraName}
+        // ============================================================
+        [HttpGet("range-info/{cameraName}")]
+        public IActionResult GetRangeInfo(string cameraName)
+        {
+            var info = _cameraManager.GetAvailableRange(cameraName);
+
+            if (info == null)
+                return NotFound("Cámara no encontrada o sin imágenes.");
+
+            return Ok(info);
+        }
+
+        // ============================================================
+        // 6. NUEVO: Stream MJPEG de un rango específico (Playback)
+        // GET: api/playback/{cameraName}?from=1100&to=1200&fps=10
+        // ============================================================
+        [HttpGet("playback/{cameraName}")]
+        public async Task PlaybackStream(
+            string cameraName,
+            [FromQuery] int from,
+            [FromQuery] int to,
+            [FromQuery] int fps = 10,
+            CancellationToken ct = default)
+        {
+            if (from <= 0 || to <= 0 || from > to)
+            {
+                Response.StatusCode = 400;
+                await Response.WriteAsync("Parámetros inválidos");
+                return;
+            }
+
+            var snapshot = _cameraManager.GetFramesByRange(cameraName, from, to);
+
+            if (snapshot.Files.Count == 0)
+            {
+                Response.StatusCode = 404;
+                await Response.WriteAsync("No hay imágenes en el rango especificado");
+                return;
+            }
+
+            Response.ContentType = "multipart/x-mixed-replace; boundary=--frame";
+            int delayMs = 1000 / Math.Clamp(fps, 1, 30);
+
+            foreach (var filePath in snapshot.Files)
+            {
+                if (ct.IsCancellationRequested) break;
+
+                if (!System.IO.File.Exists(filePath)) continue;
+
+                byte[]? jpegData = await ProcessImageToJpegAsync(filePath);
+
+                if (jpegData != null)
+                {
+                    await Response.WriteAsync("--frame\r\n", ct);
+                    await Response.WriteAsync("Content-Type: image/jpeg\r\n", ct);
+                    await Response.WriteAsync($"Content-Length: {jpegData.Length}\r\n\r\n", ct);
+                    await Response.Body.WriteAsync(jpegData, ct);
+                    await Response.WriteAsync("\r\n", ct);
+                    await Response.Body.FlushAsync(ct);
+                }
+
+                await Task.Delay(delayMs, ct);
+            }
+        }
+
         // --- Helper Privado ---
         private async Task<byte[]?> ProcessImageToJpegAsync(string filePath)
         {
@@ -108,9 +196,10 @@ namespace TelnetInterceptor.Worker.Controllers
                     return ms.ToArray();
                 }
                 catch (IOException) { await Task.Delay(50); }
-                catch (Exception ex) { 
-                    _logger.LogError($"Error imagen {filePath}: {ex.Message}"); 
-                    return null; 
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error imagen {filePath}: {ex.Message}");
+                    return null;
                 }
             }
             return null;

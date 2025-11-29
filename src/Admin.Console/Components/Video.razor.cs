@@ -1,27 +1,36 @@
 using Microsoft.AspNetCore.Components;
-using Admin.Console.Models.Components;
 using Shared.Contracts.Models;
+using System.Text.Json; // Necesario para opciones JSON
 
 namespace Admin.Console.Components
 {
     public partial class Video : IDisposable
     {
-        [Inject] 
+        [Inject]
         public HttpClient Http { get; set; } = default!;
 
         [Parameter]
         public AltaEventoModel? Evento { get; set; }
 
+        [Parameter]
+        public EventCallback<AltaEventoModel> OnGuardarEvento { get; set; }
+
+        // ============================================================
+        // CONFIGURACIÓN (Cambia el puerto aquí si es necesario)
+        // ============================================================
+        private const string API_BASE = "http://localhost:5000";
+
         // --- Estado ---
         private string _currentIp = string.Empty;
+        private bool _isEventoGuardado = false;
         private bool IsLive { get; set; } = true;
         private bool IsLoading { get; set; } = false;
         private bool ShowNoSignal { get; set; } = false;
-        
+
         // --- Imágenes y Buffer ---
         private string ImageSource { get; set; } = string.Empty;
         private List<string> FramesBuffer { get; set; } = new();
-        
+
         // --- Slider ---
         private int SliderValue { get; set; } = 100;
         private int SliderMax { get; set; } = 100;
@@ -30,12 +39,24 @@ namespace Admin.Console.Components
 
         // --- Timers ---
         private System.Timers.Timer? _watchdogTimer;
+        private System.Timers.Timer? _loopTimer;
         private const int HISTORY_BUFFER_SIZE = 600;
         private const int SIGNAL_TIMEOUT_SECONDS = 10;
+        private const int EVENTO_FRAMES = 10;
+
+        // --- Estado para guardar evento ---
+        private bool _mostrandoDialogoGuardar = false;
+        private string _nombreEvento = "";
+        private string _descripcionEvento = "";
+
+        // Opciones para ignorar mayúsculas/minúsculas en JSON
+        private readonly JsonSerializerOptions _jsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
         protected override void OnInitialized()
         {
-            // Configurar timer para chequear salud cada 2 segundos
             _watchdogTimer = new System.Timers.Timer(2000);
             _watchdogTimer.Elapsed += async (sender, e) => await CheckHealth();
             _watchdogTimer.AutoReset = true;
@@ -43,11 +64,26 @@ namespace Admin.Console.Components
 
         protected override void OnParametersSet()
         {
-            // Si cambia la cámara seleccionada
-            if (Evento != null && Evento.IpCamara != _currentIp)
+            if (Evento != null)
             {
-                _currentIp = Evento.IpCamara;
-                GoLive();
+                // Detectar si cambió la cámara o el tipo de evento
+                bool cambioCamara = Evento.IpCamara != _currentIp;
+                bool esGuardado = Evento.FromFrame != null && Evento.ToFrame != null; // Usamos FromFrame/ToFrame
+
+                if (cambioCamara || esGuardado != _isEventoGuardado)
+                {
+                    _currentIp = Evento.IpCamara;
+                    _isEventoGuardado = esGuardado;
+
+                    if (_isEventoGuardado)
+                    {
+                        PlayEventoGuardado();
+                    }
+                    else
+                    {
+                        GoLive();
+                    }
+                }
             }
         }
 
@@ -57,29 +93,25 @@ namespace Admin.Console.Components
             IsLoading = false;
             ShowNoSignal = false;
             FramesBuffer.Clear();
+            _loopTimer?.Stop();
 
-            // UI Reset
             SliderMax = 100;
             SliderValue = 100;
             LabelCurrent = "Tiempo Real";
             LabelStart = "";
 
-            // Iniciar Stream (usamos timestamp para romper cache)
             UpdateStreamUrl();
-
-            // Iniciar vigilancia
             _watchdogTimer?.Start();
         }
 
         private async Task GoPause()
         {
             IsLive = false;
-            _watchdogTimer?.Stop(); // No chequear señal en pausa
+            _watchdogTimer?.Stop();
+            _loopTimer?.Stop();
             ShowNoSignal = false;
             IsLoading = true;
-            
-            // Cortar stream visualmente
-            ImageSource = ""; 
+            ImageSource = "";
 
             await LoadHistoryBuffer();
 
@@ -88,6 +120,7 @@ namespace Admin.Console.Components
 
         private void TogglePlayPause()
         {
+            if (_isEventoGuardado) return;
             if (IsLive) _ = GoPause();
             else GoLive();
         }
@@ -96,20 +129,14 @@ namespace Admin.Console.Components
         {
             try
             {
-                // Llamada al endpoint backend: /api/buffer/{ip}?count=600
-                var url = $"http://localhost:5000/api/buffer/{_currentIp}?count={HISTORY_BUFFER_SIZE}";
-                
-                // Nota: Asegúrate de que la URL base del HttpClient apunte a tu API .NET 8 (puerto 5000/5001)
-                // Si HttpClient ya tiene BaseAddress, usa solo la ruta relativa.
-                
-                var snapshot = await Http.GetFromJsonAsync<HistorySnapshotDto>(url);
+                var url = $"{API_BASE}/api/buffer/{_currentIp}?count={HISTORY_BUFFER_SIZE}";
+                var snapshot = await Http.GetFromJsonAsync<HistorySnapshotDto>(url, _jsonOptions);
 
                 if (snapshot != null && snapshot.Files.Count > 0)
                 {
                     FramesBuffer = snapshot.Files;
                     SliderMax = FramesBuffer.Count - 1;
-                    SliderValue = FramesBuffer.Count - 1; // Ir al final
-                    
+                    SliderValue = FramesBuffer.Count - 1;
                     LabelStart = $"-{FramesBuffer.Count} frames";
                     ShowFrame(SliderValue);
                 }
@@ -120,15 +147,149 @@ namespace Admin.Console.Components
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"Error cargando buffer: {ex.Message}");
+                System.Console.WriteLine($"Error buffer: {ex.Message}");
                 LabelCurrent = "Error historial";
             }
         }
 
+        // ========== REPRODUCCIÓN DE EVENTO (CORREGIDO) ==========
+        private async void PlayEventoGuardado()
+        {
+            // CORRECCIÓN: Usamos FromFrame y ToFrame
+            if (Evento == null || !Evento.FromFrame.HasValue || !Evento.ToFrame.HasValue) return;
+
+            IsLive = false;
+            _watchdogTimer?.Stop();
+            _loopTimer?.Stop();
+            ShowNoSignal = false;
+            IsLoading = true;
+
+            try
+            {
+                // CORRECCIÓN: Usamos las propiedades correctas en la URL
+                var url = $"{API_BASE}/api/range/{_currentIp}?from={Evento.FromFrame}&to={Evento.ToFrame}";
+                var snapshot = await Http.GetFromJsonAsync<HistorySnapshotDto>(url, _jsonOptions);
+
+                if (snapshot != null && snapshot.Files.Count > 0)
+                {
+                    FramesBuffer = snapshot.Files;
+                    SliderMax = FramesBuffer.Count - 1;
+                    SliderValue = 0;
+                    LabelStart = "Evento Guardado";
+                    LabelCurrent = $"{FramesBuffer.Count} frames";
+
+                    StartLoopPlayback();
+                }
+                else
+                {
+                    LabelCurrent = "Evento sin frames";
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"Error evento: {ex.Message}");
+                LabelCurrent = "Error evento";
+            }
+            finally
+            {
+                IsLoading = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+
+        private void StartLoopPlayback()
+        {
+            if (FramesBuffer.Count == 0) return;
+
+            int currentIndex = 0;
+            _loopTimer?.Stop();
+            _loopTimer = new System.Timers.Timer(250); // 4 FPS para que se vea bien
+
+            _loopTimer.Elapsed += async (sender, e) =>
+            {
+                if (FramesBuffer.Count == 0) return;
+                ShowFrame(currentIndex);
+                await InvokeAsync(() =>
+                {
+                    SliderValue = currentIndex;
+                    StateHasChanged();
+                });
+                currentIndex = (currentIndex + 1) % FramesBuffer.Count;
+            };
+
+            _loopTimer.AutoReset = true;
+            _loopTimer.Start();
+        }
+
+        // ========== GUARDAR EVENTO (CORREGIDO) ==========
+        public void MostrarDialogoGuardar()
+        {
+            // No permitimos guardar si ya es un evento guardado
+            if (Evento == null || Evento.FromFrame != null) return;
+
+            _mostrandoDialogoGuardar = true;
+            _nombreEvento = $"Evento {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+            _descripcionEvento = "";
+            StateHasChanged();
+        }
+
+        public void CancelarGuardar()
+        {
+            _mostrandoDialogoGuardar = false;
+            StateHasChanged();
+        }
+
+        public async Task ConfirmarGuardarEvento()
+        {
+            if (Evento == null || string.IsNullOrWhiteSpace(_nombreEvento)) return;
+
+            try
+            {
+                var rangeInfo = await Http.GetFromJsonAsync<RangeInfoDto>(
+                    $"{API_BASE}/api/range-info/{_currentIp}", _jsonOptions);
+
+                if (rangeInfo != null && rangeInfo.MaxNumber > 0)
+                {
+                    // Calculamos el rango de los últimos frames
+                    int frameFin = rangeInfo.MaxNumber;
+                    int frameInicio = frameFin - EVENTO_FRAMES + 1;
+                    if (frameInicio < rangeInfo.MinNumber) frameInicio = rangeInfo.MinNumber;
+
+                    var nuevoEvento = new AltaEventoModel
+                    {
+                        Nombre = _nombreEvento,
+                        IpCamara = Evento.IpCamara,
+                        Puerto = Evento.Puerto,
+                        // CORRECCIÓN: Nombres de propiedades correctos
+                        FromFrame = frameInicio,
+                        ToFrame = frameFin,
+                        // EsEventoGuardado se puede inferir si FromFrame tiene valor, 
+                        // pero si tienes la propiedad explícita, úsala:
+                        // EsEventoGuardado = true, 
+                        FechaEvento = DateTime.Now,
+                        Descripcion = _descripcionEvento
+                    };
+
+                    var response = await Http.PostAsJsonAsync($"{API_BASE}/api/eventos/guardar", nuevoEvento);
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var eventoCreado = await response.Content.ReadFromJsonAsync<AltaEventoModel>(_jsonOptions);
+                        await OnGuardarEvento.InvokeAsync(eventoCreado);
+                        _mostrandoDialogoGuardar = false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"Error guardando: {ex.Message}");
+            }
+            StateHasChanged();
+        }
+
         private void OnSliderInput(ChangeEventArgs e)
         {
-            if (IsLive) return;
-            
+            if (IsLive || _isEventoGuardado) return;
             if (int.TryParse(e.Value?.ToString(), out int val))
             {
                 SliderValue = val;
@@ -141,22 +302,21 @@ namespace Admin.Console.Components
             if (index < 0 || index >= FramesBuffer.Count) return;
 
             var filePath = FramesBuffer[index];
-            // Encode para enviar la ruta como query string
             var encodedPath = Uri.EscapeDataString(filePath);
-            
-            ImageSource = $"http://localhost:5000/api/frame/{_currentIp}?file={encodedPath}";
-            LabelCurrent = $"Frame -{FramesBuffer.Count - index}";
+
+            ImageSource = $"{API_BASE}/api/frame/{_currentIp}?file={encodedPath}";
+
+            if (!_isEventoGuardado)
+                LabelCurrent = $"Frame -{FramesBuffer.Count - index}";
         }
 
         private async Task CheckHealth()
         {
-            if (!IsLive || string.IsNullOrEmpty(_currentIp)) return;
-
+            if (!IsLive || string.IsNullOrEmpty(_currentIp) || _isEventoGuardado) return;
             try
             {
-                var url = $"http://localhost:5000/api/camaras/health/{_currentIp}";
-                var health = await Http.GetFromJsonAsync<HealthDto>(url);
-
+                var url = $"{API_BASE}/api/camaras/health/{_currentIp}";
+                var health = await Http.GetFromJsonAsync<HealthDto>(url, _jsonOptions);
                 bool shouldShowSignal = health != null && health.SecondsAgo > SIGNAL_TIMEOUT_SECONDS;
 
                 if (ShowNoSignal != shouldShowSignal)
@@ -167,7 +327,6 @@ namespace Admin.Console.Components
             }
             catch
             {
-                // Si falla la petición health, asumimos error de red (no signal)
                 if (!ShowNoSignal)
                 {
                     ShowNoSignal = true;
@@ -178,16 +337,14 @@ namespace Admin.Console.Components
 
         private void UpdateStreamUrl()
         {
-            // Apuntar a la API de streaming
-            ImageSource = $"http://localhost:5000/api/stream/{_currentIp}?t={DateTime.Now.Ticks}";
+            ImageSource = $"{API_BASE}/api/stream/{_currentIp}?t={DateTime.Now.Ticks}";
         }
 
         private void HandleImageError()
         {
-            // Si el stream se rompe, reintentar en 3 segundos si estamos en vivo
-            if (IsLive)
+            if (IsLive && !_isEventoGuardado)
             {
-                Task.Delay(3000).ContinueWith(_ => 
+                Task.Delay(3000).ContinueWith(_ =>
                 {
                     UpdateStreamUrl();
                     InvokeAsync(StateHasChanged);
@@ -197,20 +354,25 @@ namespace Admin.Console.Components
 
         public void Dispose()
         {
-            _watchdogTimer?.Stop();
-            _watchdogTimer?.Dispose();
+            _watchdogTimer?.Stop(); _watchdogTimer?.Dispose();
+            _loopTimer?.Stop(); _loopTimer?.Dispose();
         }
 
-        // --- DTOs internos para deserializar JSON ---
+        // --- DTOs ---
         private class HistorySnapshotDto
         {
             public string HistoryId { get; set; } = "";
             public List<string> Files { get; set; } = new();
         }
-
         private class HealthDto
         {
             public double SecondsAgo { get; set; }
+        }
+        private class RangeInfoDto
+        {
+            public int MinNumber { get; set; }
+            public int MaxNumber { get; set; }
+            public int TotalFrames { get; set; }
         }
     }
 }

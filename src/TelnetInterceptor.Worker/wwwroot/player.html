@@ -3,126 +3,424 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visor Embebido</title>
+    <title>Visor de C�maras</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
         body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #000; overflow: hidden; font-family: sans-serif;
+            width: 100%;
+            height: 100%;
+            background: #111;
+            font-family: 'Segoe UI', sans-serif;
+            color: #fff;
         }
 
-        #player-container {
-            position: relative; width: 100%; height: 100%;
-            display: flex; justify-content: center; align-items: center;
+        .app-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Imagen Principal */
-        #video-display {
-            width: 100%; height: 100%; object-fit: contain;
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
         }
 
-        /* --- NUEVO ESTILO PARA EL AVISO SIN SEÑAL --- */
-        #no-signal {
+            .header h1 {
+                font-size: 1.3rem;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+                .header h1 i {
+                    color: #e94560;
+                }
+
+        /* Selector de c�mara */
+        .camera-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            .camera-selector select {
+                background: #333;
+                border: 1px solid #444;
+                color: #fff;
+                padding: 8px 15px;
+                border-radius: 5px;
+                min-width: 250px;
+                cursor: pointer;
+            }
+
+                .camera-selector select:focus {
+                    outline: none;
+                    border-color: #e94560;
+                }
+
+        .btn-refresh {
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .btn-refresh:hover {
+                background: #e94560;
+                border-color: #e94560;
+            }
+
+        /* Contenedor del video */
+        .video-wrapper {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        #stream-image {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        /* Estado de conexi�n */
+        .status-badge {
             position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%); /* Centrado perfecto */
-            
-            background: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
-            color: #ff4444;
-            border: 1px solid #ff4444;
-            padding: 20px 40px;
-            border-radius: 10px;
-            text-align: center;
-            
-            display: none; /* Oculto por defecto */
+            top: 15px;
+            right: 15px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .status-badge.live {
+                background: #e94560;
+                animation: pulse 2s infinite;
+            }
+
+            .status-badge.offline {
+                background: #666;
+            }
+
+            .status-badge.connecting {
+                background: #f39c12;
+            }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* Mensaje cuando no hay c�mara */
+        .no-camera {
+            display: flex;
             flex-direction: column;
             align-items: center;
-            
-            z-index: 10; /* Por encima del video */
-            pointer-events: none; /* MAGIA: Permite hacer clic "a través" de él */
-            backdrop-filter: blur(2px);
+            gap: 15px;
+            color: #666;
         }
 
-        /* Badges de estado */
-        .status-badge {
-            position: absolute; top: 10px; right: 10px;
-            padding: 4px 8px; border-radius: 4px;
-            font-size: 12px; font-weight: bold; color: white;
-            text-transform: uppercase; letter-spacing: 1px;
-            pointer-events: none;
-            background: rgba(0,0,0,0.5);
-            z-index: 15;
-        }
-        .status-live { background-color: #dc3545; animation: pulse 2s infinite; }
-        .status-playback { background-color: #0d6efd; }
+            .no-camera i {
+                font-size: 4rem;
+            }
 
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+            .no-camera p {
+                font-size: 1.1rem;
+            }
 
-        /* --- BARRA DE CONTROLES (Z-Index más alto) --- */
+        /* Controles inferiores */
         .controls-bar {
-            position: absolute; bottom: 0; left: 0; right: 0;
-            background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 100%);
-            padding: 15px;
-            display: flex; align-items: center; gap: 15px;
-            
-            z-index: 100; /* SIEMPRE POR ENCIMA DE TODO */
-            opacity: 1; 
-            transition: opacity 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #1a1a1a;
+            border-top: 1px solid #333;
         }
-        /* Opcional: Ocultar controles si no hay mouse, pero mostrar si hay error */
-        /* #player-container:hover .controls-bar { opacity: 1; } */
 
-        .btn-play {
-            background: white; border: none; border-radius: 50%;
-            width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
-            cursor: pointer; transition: transform 0.1s;
+        .camera-info {
+            display: flex;
+            gap: 20px;
+            font-size: 13px;
+            color: #888;
         }
-        .btn-play:active { transform: scale(0.95); }
-        .btn-play i { color: #000; font-size: 1.2rem; }
 
-        .range-container { flex-grow: 1; display: flex; flex-direction: column; justify-content: center; }
-        input[type=range] { width: 100%; cursor: pointer; height: 6px; }
-        .time-info { color: #ccc; font-size: 11px; margin-top: 4px; display: flex; justify-content: space-between; }
+            .camera-info span {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
 
+            .camera-info .value {
+                color: #fff;
+            }
+
+        .btn-fullscreen {
+            background: #333;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+            .btn-fullscreen:hover {
+                background: #e94560;
+                border-color: #e94560;
+            }
+
+        /* Loader */
         .loader {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid #fff; border-radius: 50%;
-            animation: spin 1s linear infinite; display: none; z-index: 20;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
         }
-        @keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+
+            .loader.active {
+                display: block;
+            }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #333;
+            border-top-color: #e94560;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 </head>
 <body>
 
-    <div id="player-container">
-        <img id="video-display" src="" alt="" />
-        
-        <div id="no-signal">
-            <i class="bi bi-wifi-off" style="font-size: 2.5rem; margin-bottom: 10px;"></i>
-            <h5 class="m-0">SIN SEÑAL</h5>
-            <small>Conexión perdida > 10s</small>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <h1>
+                <i class="bi bi-camera-video-fill"></i>
+                Visor de C�maras
+            </h1>
+            <div class="camera-selector">
+                <select id="camera-select">
+                    <option value="">-- Seleccionar c�mara --</option>
+                </select>
+                <button class="btn-refresh" onclick="loadCameras()" title="Recargar c�maras">
+                    <i class="bi bi-arrow-clockwise"></i>
+                </button>
+            </div>
         </div>
 
-        <div id="live-badge" class="status-badge status-live">EN VIVO</div>
-        <div id="loader" class="loader"></div>
-
-        <div class="controls-bar">
-            <button id="btn-toggle" class="btn-play" title="Pausar / En Vivo">
-                <i class="bi bi-pause-fill"></i>
-            </button>
-            
-            <div class="range-container">
-                <input type="range" id="scrubber" min="0" max="100" value="100" disabled>
-                <div class="time-info">
-                    <span id="lbl-start"></span>
-                    <span id="lbl-current">Tiempo Real</span>
-                </div>
+        <!-- Video -->
+        <div class="video-wrapper" id="video-wrapper">
+            <div class="no-camera" id="no-camera">
+                <i class="bi bi-camera-video-off"></i>
+                <p>Seleccione una c�mara para ver el stream</p>
             </div>
+
+            <img id="stream-image" src="" alt="Stream" style="display: none;" />
+
+            <div class="status-badge offline" id="status-badge">
+                <i class="bi bi-circle-fill"></i>
+                <span id="status-text">Sin conexi�n</span>
+            </div>
+
+            <div class="loader" id="loader">
+                <div class="spinner"></div>
+            </div>
+        </div>
+
+        <!-- Controles -->
+        <div class="controls-bar">
+            <div class="camera-info">
+                <span>
+                    <i class="bi bi-camera"></i>
+                    C�mara: <span class="value" id="info-camera">-</span>
+                </span>
+                <span>
+                    <i class="bi bi-hdd-network"></i>
+                    IP: <span class="value" id="info-ip">-</span>
+                </span>
+            </div>
+            <button class="btn-fullscreen" onclick="toggleFullscreen()">
+                <i class="bi bi-fullscreen"></i>
+                Pantalla completa
+            </button>
         </div>
     </div>
 
-    <script src="player.js"></script>
+    <script>// ============================================================
+    // ELEMENTOS
+    // ============================================================
+    const cameraSelect = document.getElementById('camera-select');
+    const streamImage = document.getElementById('stream-image');
+    const noCamera = document.getElementById('no-camera');
+    const statusBadge = document.getElementById('status-badge');
+    const statusText = document.getElementById('status-text');
+    const loader = document.getElementById('loader');
+    const infoCamera = document.getElementById('info-camera');
+    const infoIp = document.getElementById('info-ip');
+
+    let currentCamera = null;
+
+    // ============================================================
+    // INICIALIZACI�N
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', () => {
+        loadCameras();
+    });
+
+    // ============================================================
+    // CARGAR LISTA DE C�MARAS
+    // ============================================================
+    async function loadCameras() {
+        try {
+            const response = await fetch('/api/camaras');
+            const cameras = await response.json();
+
+            cameraSelect.innerHTML = '<option value="">-- Seleccionar c�mara --</option>';
+
+            cameras.forEach(cam => {
+                const option = document.createElement('option');
+                option.value = cam.ipCamara;
+                option.textContent = `${cam.nombre || cam.ipCamara} (${cam.ipCamara})`;
+                option.dataset.nombre = cam.nombre || cam.ipCamara;
+                cameraSelect.appendChild(option);
+            });
+
+        } catch (error) {
+            console.error('Error cargando c�maras:', error);
+        }
+    }
+
+    // ============================================================
+    // CAMBIAR C�MARA
+    // ============================================================
+    cameraSelect.addEventListener('change', function() {
+        const selectedIp = this.value;
+        const selectedOption = this.options[this.selectedIndex];
+        const nombre = selectedOption.dataset.nombre || selectedIp;
+
+        if (selectedIp) {
+            startStream(selectedIp, nombre);
+        } else {
+            stopStream();
+        }
+    });
+
+    // ============================================================
+    // INICIAR STREAM
+    // ============================================================
+    function startStream(cameraIp, cameraName) {
+        currentCamera = cameraIp;
+
+        // Mostrar loader
+        loader.classList.add('active');
+        setStatus('connecting', 'Conectando...');
+
+        // Ocultar mensaje de "sin c�mara"
+        noCamera.style.display = 'none';
+        streamImage.style.display = 'block';
+
+        // Actualizar info
+        infoCamera.textContent = cameraName;
+        infoIp.textContent = cameraIp;
+
+        // Conectar al stream MJPEG
+        streamImage.src = `/api/stream/${cameraIp}`;
+
+        // Eventos de la imagen
+        streamImage.onload = function() {
+            loader.classList.remove('active');
+            setStatus('live', 'EN VIVO');
+        };
+
+        streamImage.onerror = function() {
+            loader.classList.remove('active');
+            setStatus('offline', 'Error de conexi�n');
+        };
+    }
+
+    // ============================================================
+    // DETENER STREAM
+    // ============================================================
+    function stopStream() {
+        currentCamera = null;
+        streamImage.src = '';
+        streamImage.style.display = 'none';
+        noCamera.style.display = 'flex';
+        setStatus('offline', 'Sin conexi�n');
+        infoCamera.textContent = '-';
+        infoIp.textContent = '-';
+    }
+
+    // ============================================================
+    // ACTUALIZAR ESTADO
+    // ============================================================
+    function setStatus(status, text) {
+        statusBadge.className = 'status-badge ' + status;
+        statusText.textContent = text;
+    }
+
+    // ============================================================
+    // PANTALLA COMPLETA
+    // ============================================================
+    function toggleFullscreen() {
+        const wrapper = document.getElementById('video-wrapper');
+
+        if (!document.fullscreenElement) {
+            wrapper.requestFullscreen().catch(err => {
+                console.error('Error al entrar en pantalla completa:', err);
+            });
+        } else {
+            document.exitFullscreen();
+        }
+    }
+
+    // Atajos de teclado
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'f' || e.key === 'F') {
+            toggleFullscreen();
+        }
+    });</script>
+
 </body>
 </html>

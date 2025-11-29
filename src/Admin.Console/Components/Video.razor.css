@@ -8,7 +8,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    border-radius: 8px; /* Opcional */
+    border-radius: 8px;
 }
 
 .video-display {
@@ -33,7 +33,7 @@
     flex-direction: column;
     align-items: center;
     z-index: 10;
-    pointer-events: none; /* Permite clics a través */
+    pointer-events: none;
     backdrop-filter: blur(2px);
 }
 
@@ -63,7 +63,58 @@
     background-color: #0d6efd;
 }
 
-@keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+.status-evento {
+    background-color: #ffc107;
+    color: #000;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.6;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* --- Botón Guardar Evento --- */
+.btn-save-event {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(255, 193, 7, 0.9);
+    border: none;
+    border-radius: 50%;
+    width: 45px;
+    height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    z-index: 15;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+    .btn-save-event:hover {
+        background: rgba(255, 193, 7, 1);
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(255, 193, 7, 0.5);
+    }
+
+    .btn-save-event:active {
+        transform: scale(0.95);
+    }
+
+    .btn-save-event i {
+        color: #000;
+        font-size: 1.3rem;
+    }
 
 /* --- Controles --- */
 .controls-bar {
@@ -93,8 +144,19 @@
     transition: transform 0.1s;
 }
 
-.btn-play:active { transform: scale(0.95); }
-.btn-play i { color: #000; font-size: 1.2rem; }
+    .btn-play:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .btn-play:active:not(:disabled) {
+        transform: scale(0.95);
+    }
+
+    .btn-play i {
+        color: #000;
+        font-size: 1.2rem;
+    }
 
 .range-container {
     flex-grow: 1;
@@ -108,6 +170,11 @@ input[type=range] {
     cursor: pointer;
     height: 6px;
 }
+
+    input[type=range]:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
 
 .time-info {
     color: #ccc;
@@ -131,4 +198,151 @@ input[type=range] {
     z-index: 20;
 }
 
-@keyframes spin { 0% { transform: translate(-50%, -50%) rotate(0deg); } 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+@keyframes spin {
+    0% {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* --- Modal Overlay --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(3px);
+}
+
+.modal-dialog {
+    background: white;
+    border-radius: 8px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    animation: modalFadeIn 0.3s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-content {
+    padding: 0;
+}
+
+.modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #dee2e6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #212529;
+}
+
+.btn-close {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+    .btn-close:hover {
+        opacity: 1;
+    }
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+    .form-control:focus {
+        outline: none;
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+
+.alert-info {
+    background-color: #cfe2ff;
+    border: 1px solid #b6d4fe;
+    color: #084298;
+    padding: 12px;
+    border-radius: 4px;
+}
+
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+    .btn-secondary:hover {
+        background-color: #5c636a;
+    }
+
+.btn-primary {
+    background-color: #0d6efd;
+    color: white;
+}
+
+    .btn-primary:hover {
+        background-color: #0b5ed7;
+    }
+
+.btn:active {
+    transform: scale(0.98);
+}
