@@ -1,0 +1,91 @@
+﻿@using Admin.Console.Models.Components
+@using Shared.Contracts.Models
+@using System.Text.Json
+@inject HttpClient Http
+@inject ILogger<SavedEvents> Logger
+
+<div class="h-100 d-flex flex-column">
+    <div class="d-flex justify-content-between align-items-center mb-2 px-2 pt-2">
+        <h6 class="m-0 text-primary"><i class="bi bi-collection-play me-1"></i>Eventos Guardados</h6>
+        <button class="btn btn-sm btn-outline-secondary" onclick="@CargarEventos" title="Refrescar">
+            <i class="bi bi-arrow-clockwise"></i>
+        </button>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+            <p class="small text-muted mt-2">Cargando...</p>
+        </div>
+    }
+    else
+    {
+        <div class="list-group h-100 overflow-auto px-2">
+            @if (EventosGuardados.Count == 0)
+            {
+                <div class="alert alert-info small text-center">No hay eventos grabados.</div>
+            }
+            else
+            {
+                @foreach (var evt in EventosGuardados)
+                {
+                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded"
+                            onclick="@(() => SeleccionarItem(evt))">
+                        <div class="text-truncate">
+                            <div class="fw-bold text-primary">@evt.Nombre</div>
+                            <div class="small text-muted">
+                                <i class="bi bi-film me-1"></i>Clip: @evt.FromFrame - @evt.ToFrame
+                            </div>
+                        </div>
+                        <i class="bi bi-chevron-right text-secondary"></i>
+                    </button>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public EventCallback<AltaEventoModel> OnEventoSeleccionado { get; set; }
+
+    public List<AltaEventoModel> EventosGuardados { get; set; } = new();
+    public bool IsLoading { get; set; } = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarEventos();
+    }
+
+    public async Task CargarEventos()
+    {
+        IsLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var eventos = await Http.GetFromJsonAsync<List<AltaEventoModel>>("api/eventos/lista", options);
+
+            if (eventos != null)
+            {
+                EventosGuardados = eventos;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error cargando eventos guardados");
+        }
+        finally
+        {
+            IsLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private Task SeleccionarItem(AltaEventoModel item)
+    {
+        return OnEventoSeleccionado.InvokeAsync(item);
+    }
+}

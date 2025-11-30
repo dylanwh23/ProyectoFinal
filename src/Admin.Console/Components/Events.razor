@@ -2,22 +2,10 @@
 @using Shared.Contracts.Models
 
 <div class="h-100 d-flex flex-column">
-
     <div class="d-flex justify-content-between align-items-center mb-2 px-2 pt-2 gap-2">
-        <div class="btn-group w-100" role="group">
-            <button type="button"
-                    class="btn btn-sm @(_vistaActual == "camaras" ? "btn-primary" : "btn-outline-primary")"
-                    onclick="@(() => CambiarVista("camaras"))">
-                <i class="bi bi-camera-video me-1"></i> En Vivo
-            </button>
-            <button type="button"
-                    class="btn btn-sm @(_vistaActual == "eventos" ? "btn-primary" : "btn-outline-primary")"
-                    onclick="@(() => CambiarVista("eventos"))">
-                <i class="bi bi-collection-play me-1"></i> Guardados
-            </button>
-        </div>
+        <h6 class="m-0 text-success"><i class="bi bi-camera-video me-1"></i>Cámaras en Vivo</h6>
 
-        <button class="btn btn-sm btn-outline-secondary" onclick="@CargarTodo" title="Refrescar">
+        <button class="btn btn-sm btn-outline-secondary" onclick="@CargarCamaras" title="Refrescar">
             <i class="bi bi-arrow-clockwise"></i>
         </button>
     </div>
@@ -26,57 +14,29 @@
     {
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="small text-muted mt-2">Sincronizando...</p>
+            <p class="small text-muted mt-2">Buscando cámaras...</p>
         </div>
     }
     else
     {
         <div class="list-group h-100 overflow-auto px-2">
-
-            @if (_vistaActual == "camaras")
+            @if (Camaras.Count == 0)
             {
-                @if (Camaras.Count == 0)
-                {
-                    <div class="alert alert-warning small text-center">No hay cámaras conectadas.</div>
-                }
-                else
-                {
-                    @foreach (var cam in Camaras)
-                    {
-                        <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded"
-                                onclick="@(() => SeleccionarItem(cam))">
-                            <div class="text-truncate">
-                                <div class="fw-bold text-dark"><i class="bi text-success me-2"></i>@cam.Nombre</div>
-                                <div class="fw-bold text-dark"><i class="bi bi-camera-video-fill text-success me-2"></i>@cam.IpCamara</div>
-                                <div class="small text-muted">Puerto: @cam.Puerto</div>
-                            </div>
-                            <i class="bi bi-play-circle text-primary fs-4"></i>
-                        </button>
-                    }
-                }
+                <div class="alert alert-warning small text-center">No hay cámaras conectadas.</div>
             }
-
-            @if (_vistaActual == "eventos")
+            else
             {
-                @if (EventosGuardados.Count == 0)
+                @foreach (var cam in Camaras)
                 {
-                    <div class="alert alert-info small text-center">No hay eventos grabados.</div>
-                }
-                else
-                {
-                    @foreach (var evt in EventosGuardados)
-                    {
-                        <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded"
-                                onclick="@(() => SeleccionarItem(evt))">
-                            <div class="text-truncate">
-                                <div class="fw-bold text-primary">@evt.Nombre</div>
-                                <div class="small text-muted">
-                                    <i class="bi bi-film me-1"></i>Clip: @evt.FromFrame - @evt.ToFrame
-                                </div>
-                            </div>
-                            <i class="bi bi-chevron-right text-secondary"></i>
-                        </button>
-                    }
+                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded"
+                            onclick="@(() => SeleccionarItem(cam))">
+                        <div class="text-truncate">
+                            <div class="fw-bold text-dark"><i class="bi text-success me-2"></i>@cam.Nombre</div>
+                            <div class="fw-bold text-dark"><i class="bi bi-camera-video-fill text-success me-2"></i>@cam.IpCamara</div>
+                            <div class="small text-muted">Puerto: @cam.Puerto</div>
+                        </div>
+                        <i class="bi bi-play-circle text-primary fs-4"></i>
+                    </button>
                 }
             }
         </div>
