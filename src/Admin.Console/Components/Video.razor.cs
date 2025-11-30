@@ -23,6 +23,8 @@ namespace Admin.Console.Components
         // --- Estado ---
         private string _currentIp = string.Empty;
         private bool _isEventoGuardado = false;
+        private AltaEventoModel? _previousEvento; // Para detectar cambios en el objeto Evento
+
         private bool IsLive { get; set; } = true;
         private bool IsLoading { get; set; } = false;
         private bool ShowNoSignal { get; set; } = false;
@@ -64,25 +66,42 @@ namespace Admin.Console.Components
 
         protected override void OnParametersSet()
         {
-            if (Evento != null)
+            // Si el Evento cambia a null (deselección), reseteamos el estado
+            if (Evento == null)
             {
-                // Detectar si cambió la cámara o el tipo de evento
-                bool cambioCamara = Evento.IpCamara != _currentIp;
-                bool esGuardado = Evento.FromFrame != null && Evento.ToFrame != null; // Usamos FromFrame/ToFrame
+                _previousEvento = null;
+                _currentIp = string.Empty;
+                _isEventoGuardado = false;
+                IsLive = true;
+                IsLoading = false;
+                ShowNoSignal = false;
+                FramesBuffer.Clear();
+                _watchdogTimer?.Stop();
+                _loopTimer?.Stop();
+                // No llamamos a GoLive aquí para evitar carga innecesaria si no hay evento
+                return;
+            }
 
-                if (cambioCamara || esGuardado != _isEventoGuardado)
+            // Detectar si el objeto Evento es una referencia diferente
+            bool eventoObjetoCambio = Evento != _previousEvento;
+
+            // Detectar si cambió la cámara o el tipo de evento (vivo vs guardado)
+            bool cambioCamara = Evento.IpCamara != _currentIp;
+            bool esGuardado = Evento.FromFrame != null && Evento.ToFrame != null;
+
+            if (eventoObjetoCambio || cambioCamara || esGuardado != _isEventoGuardado)
+            {
+                _previousEvento = Evento; // Actualizar la referencia del evento anterior
+                _currentIp = Evento.IpCamara;
+                _isEventoGuardado = esGuardado;
+
+                if (_isEventoGuardado)
                 {
-                    _currentIp = Evento.IpCamara;
-                    _isEventoGuardado = esGuardado;
-
-                    if (_isEventoGuardado)
-                    {
-                        PlayEventoGuardado();
-                    }
-                    else
-                    {
-                        GoLive();
-                    }
+                    PlayEventoGuardado();
+                }
+                else
+                {
+                    GoLive();
                 }
             }
         }

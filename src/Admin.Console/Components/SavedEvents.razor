@@ -50,12 +50,28 @@
     [Parameter]
     public EventCallback<AltaEventoModel> OnEventoSeleccionado { get; set; }
 
+    [Parameter]
+    public string CameraIp { get; set; }
+
     public List<AltaEventoModel> EventosGuardados { get; set; } = new();
     public bool IsLoading { get; set; } = false;
+
+    private string? _previousCameraIp; // Para detectar cambios en el parámetro
 
     protected override async Task OnInitializedAsync()
     {
         await CargarEventos();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Solo cargar eventos si la IP de la cámara ha cambiado
+        if (CameraIp != _previousCameraIp && !string.IsNullOrEmpty(CameraIp))
+        {
+            _previousCameraIp = CameraIp;
+            await CargarEventos();
+        }
+        await base.OnParametersSetAsync(); // Llama a la implementación base para otros parámetros
     }
 
     public async Task CargarEventos()
@@ -66,11 +82,11 @@
         try
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var eventos = await Http.GetFromJsonAsync<List<AltaEventoModel>>("api/eventos/lista", options);
+            var eventos = await Http.GetFromJsonAsync<List<AltaEventoModel>>($"api/eventos/buscar/{CameraIp}", options);
 
             if (eventos != null)
             {
-                EventosGuardados = eventos;
+                EventosGuardados = eventos.OrderByDescending(e => e.ToFrame).ToList();
             }
         }
         catch (Exception ex)
