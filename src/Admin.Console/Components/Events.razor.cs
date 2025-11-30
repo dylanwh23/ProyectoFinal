@@ -46,5 +46,31 @@ namespace Admin.Console.Components
         {
             return OnEventoSeleccionado.InvokeAsync(item);
         }
+
+        public async Task EliminarCamara(string ip)
+        {
+            try
+            {
+                var response = await Http.DeleteAsync($"api/camaras/{ip}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    // Quitar de la lista sin recargar todo
+                    Camaras.RemoveAll(c => c.IpCamara == ip);
+                }
+                else
+                {
+                    Logger.LogWarning("No se pudo eliminar la cámara con IP {Ip}", ip);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error al eliminar cámara con IP {Ip}", ip);
+            }
+
+            StateHasChanged();
+        }
+
+
     }
 }
