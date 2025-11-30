@@ -26,11 +26,13 @@ builder.Services.AddSingleton<CameraDiscoveryService>();
 builder.Services.AddSingleton<DynamicRabbitMQConsumerService>();
 builder.Services.AddSingleton<SimpleHttpServerService>();
 builder.Services.AddSingleton<EventSimulatorService>(); // Comentar/Descomentar para activar/desactivar simulador
+builder.Services.AddSingleton<CleanupService>();
 
 // Hosted Services
 builder.Services.AddHostedService(provider => provider.GetRequiredService<DynamicRabbitMQConsumerService>());
 builder.Services.AddHostedService<SimpleHttpServerService>();
 builder.Services.AddHostedService<EventSimulatorService>(); // Comentar/Descomentar para activar/desactivar simulador
+builder.Services.AddHostedService<CleanupService>();
 builder.Services.AddHostedService<Worker>();
 
 var host = builder.Build();
