@@ -3,19 +3,20 @@
 
 <div class="h-100 d-flex flex-column">
     <div class="row flex-grow-1 bg-light m-0" style="min-height: 0; height: 50%;">
-        <div class="col p-2 border-end" style="overflow-y: auto;"> 
+        <div class="col p-2 border-end" style="overflow-y: auto;">
             <NewEvent />
         </div>
         <div class="col p-2" style="overflow-y: auto;">
-            <Events OnEventoSeleccionado="AlSeleccionarEvento"/>
+            <Events OnEventoSeleccionado="AlSeleccionarEvento" />
         </div>
     </div>
+
     <div class="row flex-grow-1 bg-dark text-white m-0" style="min-height: 0; height: 50%;">
-        <div class="col p-2 border-end h-100 d-flex flex-column" style="overflow: hidden;">        
-             <Log />
+        <div class="col p-2 border-end h-100 d-flex flex-column" style="overflow: hidden;">
+            <SavedEvents OnEventoSeleccionado="AlSeleccionarEvento" />
         </div>
         <div class="col p-2 h-100" style="overflow: hidden;">
-             <Video Evento="eventoSeleccionado" />
+            <Video Evento="eventoSeleccionado" />
         </div>
     </div>
 </div>
