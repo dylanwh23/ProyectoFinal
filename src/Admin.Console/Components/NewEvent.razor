@@ -4,7 +4,7 @@
 <div class="form-compact h-100 d-flex flex-column">
     <div class="bg-light rounded shadow-sm border flex-shrink-0 mb-2 p-2">
         <div class="d-flex align-items-center border-bottom pb-2 mb-2">
-            <h5 class="m-0 text-primary"><i class="bi bi-camera-video me-2"></i>Registrar Nuevo Evento</h5>
+            <h5 class="m-0 text-primary"><i class="bi bi-camera-video me-2"></i>Registrar Nueva Camara</h5>
         </div>
 
         <EditForm Model="@FormModel" OnValidSubmit="@Submit" FormName="NewEventForm">
@@ -12,7 +12,7 @@
 
             @* --- NOMBRE --- *@
             <div class="mb-2">
-                <label class="form-label fw-bold small text-secondary mb-1">NOMBRE DEL EVENTO</label>
+                <label class="form-label fw-bold small text-secondary mb-1">NOMBRE DE LA CAMARA</label>
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-tag"></i></span>
                     <InputText @bind-Value="FormModel.Nombre" class="form-control" placeholder="Ej: Cámara Acceso Norte" />
@@ -93,7 +93,7 @@
             @* --- BOTÓN GUARDAR --- *@
             <div class="d-grid mt-2">
                 <button type="submit" class="btn btn-primary btn-sm shadow-sm">
-                    <i class="bi bi-save2 me-2"></i>GUARDAR EVENTO
+                    <i class="bi bi-save2 me-2"></i>REGISTRAR CAMARA
                 </button>
             </div>
 

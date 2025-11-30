@@ -1,14 +1,15 @@
+using MassTransit;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
-using MassTransit;
 using Microsoft.OpenApi.Models;
-using TelnetInterceptor.Worker.Data;
-using TelnetInterceptor.Worker.Services;
 using TelnetInterceptor.Worker.Configuration;
+using TelnetInterceptor.Worker.Data;
+using TelnetInterceptor.Worker.Hubs;
+using TelnetInterceptor.Worker.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
+builder.Services.AddSignalR();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=app.db"));
 
@@ -60,5 +61,5 @@ if (app.Environment.IsDevelopment())
 app.UseDefaultFiles(); 
 app.UseStaticFiles();
 app.MapControllers();
-
+app.MapHub<EventsHub>("/eventsHub");
 await app.RunAsync();

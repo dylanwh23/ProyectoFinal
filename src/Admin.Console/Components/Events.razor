@@ -32,7 +32,11 @@
                             onclick="@(() => SeleccionarItem(cam))">
                         <div class="text-truncate">
                             <div class="fw-bold text-dark"><i class="bi text-success me-2"></i>@cam.Nombre</div>
-                            <div class="fw-bold text-dark"><i class="bi bi-camera-video-fill text-success me-2"></i>@cam.IpCamara</div>
+                            <div class="fw-bold text-dark">
+                                @* Si está conectada usa 'text-success' (verde), si no, usa 'text-danger' (rojo) *@
+                                <i class="bi bi-camera-video-fill @(cam.EstaConectada ? "text-success" : "text-danger") me-2"></i>
+                                @cam.IpCamara
+                            </div>
                             <div class="small text-muted">Puerto: @cam.Puerto</div>
                         </div>
                         <i class="bi bi-play-circle text-primary fs-4"></i>

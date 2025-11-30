@@ -19,5 +19,7 @@ namespace Shared.Contracts.Models
 
         // Frame de fin (Nulo si es una cámara en vivo)
         public int? ToFrame { get; set; }
+
+        public bool EstaConectada { get; set; }
     }
 }
