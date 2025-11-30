@@ -1,23 +1,38 @@
 ﻿using Shared.Contracts.Models;
 using EventProcessor.Worker.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EventProcessor.Worker.Services;
 
-public class EventProcessorService(
-    EventDbContext context,
-    VideoLinkService videoLinkService,
-    ILogger<EventProcessorService> logger)
+public class EventProcessorService
 {
-    private readonly EventDbContext _context = context;
-    private readonly VideoLinkService _videoLinkService = videoLinkService;
-    private readonly ILogger<EventProcessorService> _logger = logger;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly VideoLinkService _videoLinkService;
+    private readonly JsonExportService _jsonExportService;
+    private readonly ILogger<EventProcessorService> _logger;
+
+    public EventProcessorService(
+        IServiceProvider serviceProvider,
+        VideoLinkService videoLinkService,
+        JsonExportService jsonExportService,
+        ILogger<EventProcessorService> logger)
+    {
+        _serviceProvider = serviceProvider;
+        _videoLinkService = videoLinkService;
+        _jsonExportService = jsonExportService;
+        _logger = logger;
+    }
 
     public async Task<bool> ProcessAndStoreEventAsync(EventoMovimientoDetectado rawEvent)
     {
+        // Crear un nuevo scope para cada procesamiento
+        using var scope = _serviceProvider.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<EventDbContext>();
+
         try
         {
-            _logger.LogInformation("Processing event from IP: {Ip}", rawEvent.IpCamara);
+            _logger.LogInformation("🔍 Procesando evento desde IP: {Ip}", rawEvent.IpCamara);
 
             // 1. Generar enlace de video
             var videoLink = _videoLinkService.GenerateVideoLink(rawEvent.IpCamara, rawEvent.Momento);
@@ -44,17 +59,20 @@ public class EventProcessorService(
             };
 
             // 5. Persistir en base de datos
-            _context.Events.Add(enrichedEvent);
-            await _context.SaveChangesAsync();
+            context.Events.Add(enrichedEvent);
+            await context.SaveChangesAsync();
 
-            _logger.LogInformation("Event stored successfully - ID: {Id}, IP: {Ip}",
+            // 6. Exportar a JSON para el WMS
+            await _jsonExportService.ExportarEventoAJsonAsync(enrichedEvent);
+
+            _logger.LogInformation("✅ Evento almacenado exitosamente - ID: {Id}, IP: {Ip}",
                 enrichedEvent.Id, rawEvent.IpCamara);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing event from IP: {Ip}", rawEvent.IpCamara);
+            _logger.LogError(ex, "❌ Error procesando evento desde IP: {Ip}", rawEvent.IpCamara);
             return false;
         }
     }

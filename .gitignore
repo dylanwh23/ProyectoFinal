@@ -161,6 +161,9 @@ apphost
 # Scoped CSS
 */scopedcss/
 
+/EventJsonExports/
+EventJsonExports/
+
 # ===============================================
 # KEEP THESE - IMPORTANT FILES
 # ===============================================

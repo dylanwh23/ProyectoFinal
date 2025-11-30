@@ -175,28 +175,42 @@ public class DynamicRabbitMQConsumerService : BackgroundService
 
             var envelope = JsonSerializer.Deserialize<JsonElement>(message);
 
+            EventoMovimientoDetectado? cameraEvent = null;
+
+            // Intentar deserializar como mensaje envuelto { "message": { ... } }
             if (envelope.TryGetProperty("message", out var messageProperty))
             {
-                var cameraEvent = messageProperty.Deserialize<EventoMovimientoDetectado>(_jsonOptions);
+                cameraEvent = messageProperty.Deserialize<EventoMovimientoDetectado>(_jsonOptions);
+            }
+            else
+            {
+                // Intentar deserializar como mensaje directo { ... }
+                cameraEvent = JsonSerializer.Deserialize<EventoMovimientoDetectado>(message, _jsonOptions);
+            }
 
-                if (cameraEvent != null)
+            if (cameraEvent != null)
+            {
+                _logger.LogInformation("🔍 Procesando evento de la IP: {Ip}, Cola: {Queue}",
+                    cameraEvent.IpCamara, queueName);
+
+                var success = await _eventProcessor.ProcessAndStoreEventAsync(cameraEvent);
+
+                if (success)
                 {
-                    _logger.LogInformation("🔍 Procesando evento de la IP: {Ip}, Cola: {Queue}",
-                        cameraEvent.IpCamara, queueName);
-
-                    var success = await _eventProcessor.ProcessAndStoreEventAsync(cameraEvent);
-
-                    if (success)
-                    {
-                        GetChannelByQueue(queueName)?.BasicAck(ea.DeliveryTag, false);
-                        _logger.LogInformation("✅ Evento procesado exitosamente - IP: {Ip}", cameraEvent.IpCamara);
-                    }
-                    else
-                    {
-                        GetChannelByQueue(queueName)?.BasicNack(ea.DeliveryTag, false, true);
-                        _logger.LogWarning("🔄 Falló el procesamiento del evento - reencolado - IP: {Ip}", cameraEvent.IpCamara);
-                    }
+                    GetChannelByQueue(queueName)?.BasicAck(ea.DeliveryTag, false);
+                    _logger.LogInformation("✅ Evento procesado exitosamente - IP: {Ip}", cameraEvent.IpCamara);
                 }
+                else
+                {
+                    // CAMBIO CRUCIAL: No reencolar mensajes fallidos para evitar bucles
+                    GetChannelByQueue(queueName)?.BasicNack(ea.DeliveryTag, false, false);
+                    _logger.LogWarning("❌ Falló el procesamiento - mensaje rechazado - IP: {Ip}", cameraEvent.IpCamara);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("⚠️ No se pudo deserializar el mensaje: {Message}", message);
+                GetChannelByQueue(queueName)?.BasicNack(ea.DeliveryTag, false, false);
             }
         }
         catch (Exception ex)
