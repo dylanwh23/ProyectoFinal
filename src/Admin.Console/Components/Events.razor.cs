@@ -27,7 +27,6 @@ namespace Admin.Console.Components
             try
             {
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                // Solo cargamos cámaras
                 var camaras = await Http.GetFromJsonAsync<List<AltaEventoModel>>("api/camaras/estado", options);
                 if (camaras != null) Camaras = camaras;
             }
@@ -39,6 +38,30 @@ namespace Admin.Console.Components
             {
                 IsLoading = false;
                 StateHasChanged();
+            }
+        }
+
+        private async Task EliminarCamara(string ip)
+        {
+            try
+            {
+                var response = await Http.DeleteAsync($"api/camaras/{ip}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Logger.LogInformation("Cámara {Ip} eliminada exitosamente", ip);
+                    // Remover de la lista local
+                    Camaras.RemoveAll(c => c.IpCamara == ip);
+                    StateHasChanged();
+                }
+                else
+                {
+                    Logger.LogWarning("Error al eliminar cámara {Ip}: {StatusCode}", ip, response.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error eliminando cámara {Ip}", ip);
             }
         }
 
