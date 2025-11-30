@@ -2,6 +2,7 @@ namespace Shared.Contracts.Models
 {
     public class AltaEventoModel
     {
+        public int Id { get; set; } // Clave primaria
         public string Nombre { get; set; } = string.Empty;
         public string IpCamara { get; set; } = string.Empty;
         public int Puerto { get; set; }
@@ -14,12 +15,13 @@ namespace Shared.Contracts.Models
         public DateTime? FechaEvento { get; set; }
         public string? Descripcion { get; set; }
 
-        // Frame de inicio (Nulo si es una c·mara en vivo)
+        // Frame de inicio (Nulo si es una c√°mara en vivo)
         public int? FromFrame { get; set; }
 
-        // Frame de fin (Nulo si es una c·mara en vivo)
+        // Frame de fin (Nulo si es una c√°mara en vivo)
         public int? ToFrame { get; set; }
 
         public bool EstaConectada { get; set; }
+        public string? FramePath { get; set; }
     }
 }

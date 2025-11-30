@@ -6,6 +6,7 @@ using TelnetInterceptor.Worker.Configuration;
 using TelnetInterceptor.Worker.Data;
 using TelnetInterceptor.Worker.Hubs;
 using TelnetInterceptor.Worker.Services;
+// La directiva using TelnetInterceptor.Worker.Services; ya existe, pero la aseguro para EventStorageService
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddSingleton<CameraManagerService>();
 builder.Services.AddHostedService(p => p.GetRequiredService<CameraManagerService>());
 
+builder.Services.AddScoped<IEventStorageService, EventStorageService>(); // Registrar EventStorageService
 builder.Services.AddSingleton<TelnetWorkerService>();
 builder.Services.AddHostedService(p => p.GetRequiredService<TelnetWorkerService>());
 

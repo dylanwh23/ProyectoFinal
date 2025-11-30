@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Shared.Contracts.Models;
+using TelnetInterceptor.Worker.Services; // Importar el nuevo servicio
+using TelnetInterceptor.Worker.Models; // Para EstadisticasCamara
 
 namespace TelnetInterceptor.Worker.Controllers
 {
@@ -8,42 +10,27 @@ namespace TelnetInterceptor.Worker.Controllers
     public class EventosController : ControllerBase
     {
         private readonly ILogger<EventosController> _logger;
+        private readonly IEventStorageService _eventStorageService; // Inyectar el servicio de almacenamiento
+        private readonly CameraManagerService _cameraManagerService; // Inyectar CameraManagerService
 
-        // 1. INICIALIZAMOS CON DATOS DE PRUEBA
-        // Para que cuando abras la consola, veas algo inmediatamente.
-        private static List<AltaEventoModel> _eventosGuardados = new()
-        {
-            new AltaEventoModel
-            {
-                Nombre = "Intruso Detectado",
-                IpCamara = "Camara1", // Asegúrate de usar nombres/IPs que tengas en tu config o UI
-                Puerto = 23,
-                FromFrame = 500,
-                ToFrame = 510
-            },
-            new AltaEventoModel
-            {
-                Nombre = "Movimiento Nocturno",
-                IpCamara = "Camara4",
-                Puerto = 23,
-                FromFrame = 200,
-                ToFrame = 210
-            }
-        };
-
-        public EventosController(ILogger<EventosController> logger)
+        public EventosController(
+            ILogger<EventosController> logger,
+            IEventStorageService eventStorageService,
+            CameraManagerService cameraManagerService)
         {
             _logger = logger;
+            _eventStorageService = eventStorageService;
+            _cameraManagerService = cameraManagerService;
         }
 
         // GET: api/eventos/lista
         [HttpGet("lista")]
-        public IActionResult GetEventos()
+        public async Task<IActionResult> GetEventos()
         {
             try
             {
-                // Ordenamos por fecha (si existe) o por nombre
-                return Ok(_eventosGuardados);
+                var eventos = await _eventStorageService.GetEventsAsync();
+                return Ok(eventos);
             }
             catch (Exception ex)
             {
@@ -52,59 +39,52 @@ namespace TelnetInterceptor.Worker.Controllers
             }
         }
 
-        // POST: api/eventos/guardar
+        // POST: api/eventos/guardar (ahora se usará para registrar eventos en tiempo real o guardar clips)
         [HttpPost("guardar")]
-public async Task<IActionResult> GuardarEvento([FromBody] AltaEventoModel evento)
-{
-    try
-    {
-        if (evento == null) return BadRequest("Evento inválido");
-        if (string.IsNullOrWhiteSpace(evento.Nombre)) return BadRequest("Falta nombre");
-        if (string.IsNullOrWhiteSpace(evento.IpCamara)) return BadRequest("Falta IP");
-
-        // --- VALIDACIÓN INTELIGENTE ---
-        
-        // CASO A: Es un Evento (Clip de video) -> DEBE tener frames
-        if (evento.EsEventoGuardado)
+        public async Task<IActionResult> GuardarEvento([FromBody] AltaEventoModel evento)
         {
-             if (evento.FromFrame == null || evento.ToFrame == null)
-                return BadRequest("Un evento grabado debe tener rango de frames.");
+            try
+            {
+                if (evento == null) return BadRequest("Evento inválido");
+                if (string.IsNullOrWhiteSpace(evento.Nombre)) return BadRequest("Falta nombre");
+                if (string.IsNullOrWhiteSpace(evento.IpCamara)) return BadRequest("Falta IP");
+
+                // Obtener el último frame de la cámara si no es un evento guardado con frames específicos
+                if (!evento.EsEventoGuardado || string.IsNullOrWhiteSpace(evento.FramePath))
+                {
+                    evento.FramePath = _cameraManagerService.GetLatestFile(evento.IpCamara);
+                }
+
+                evento.FechaEvento = DateTime.UtcNow; // Establecer la fecha del evento
+
+                await _eventStorageService.SaveEventAsync(evento);
+
+                _logger.LogInformation("Evento guardado: {Nombre} de {IpCamara}. Frame: {FramePath}",
+                    evento.Nombre, evento.IpCamara, evento.FramePath ?? "N/A");
+
+                return Ok(evento);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error guardando evento");
+                return StatusCode(500, "Error interno al guardar evento");
+            }
         }
-        
-        // CASO B: Es una Cámara nueva -> NO TIENE frames (y está bien)
-        // El Frontend manda FromFrame=null, así que pasará esta validación sin problemas.
-
-        // 1. Guardar en Base de Datos (o memoria)
-        // (Aquí asumo que usas tu servicio o lista estática)
-        
-        // Si usas el servicio CameraManager para agregarlo a la BD real:
-        // await _cameraManager.AgregarCamara(evento.IpCamara, evento.Puerto, evento.RutaCarpeta, evento.Nombre);
-        
-        // O si sigues usando la lista estática de prueba del controlador:
-        // _eventosGuardados.Add(evento); 
-
-        _logger.LogInformation("Guardado: {Nombre} ({Type})", 
-            evento.Nombre, 
-            evento.FromFrame == null ? "Cámara Nueva" : "Evento Grabado");
-
-        return Ok(evento);
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Error guardando");
-        return StatusCode(500, "Error interno");
-    }
-}
 
         // GET: api/eventos/buscar/{cameraIp}
         [HttpGet("buscar/{cameraIp}")]
-        public IActionResult GetEventosPorCamara(string cameraIp)
+        public async Task<IActionResult> GetEventosPorCamara(string cameraIp)
         {
-            var eventos = _eventosGuardados
-                .Where(e => e.IpCamara.Equals(cameraIp, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            return Ok(eventos);
+            try
+            {
+                var eventos = await _eventStorageService.GetEventsByCameraIpAsync(cameraIp);
+                return Ok(eventos);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error buscando eventos por cámara {CameraIp}", cameraIp);
+                return StatusCode(500, "Error obteniendo eventos por cámara");
+            }
         }
     }
 }

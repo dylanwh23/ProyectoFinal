@@ -6,7 +6,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Shared.Contracts;
+using Shared.Contracts.Models; // Para AltaEventoModel
 using TelnetInterceptor.Worker.Configuration;
+// using TelnetInterceptor.Worker.Controllers; // No es necesario EventosController directamente
 using TelnetInterceptor.Worker.Models;
 
 namespace TelnetInterceptor.Worker.Services;
@@ -14,9 +16,10 @@ namespace TelnetInterceptor.Worker.Services;
 public class TelnetWorkerService : BackgroundService
 {
     private readonly ILogger<TelnetWorkerService> _logger;
-    private readonly CameraManagerService _cameraManager; // Inyección del otro servicio
+    private readonly CameraManagerService _cameraManager;
     private readonly IBus _bus;
     private readonly ConfiguracionInterceptor _config;
+    private readonly IServiceScopeFactory _scopeFactory; // Inyectar IServiceScopeFactory para crear un scope para el EventStorageService
 
     // Estado de Conexiones
     private readonly ConcurrentDictionary<string, TcpClient> _clients = new();
@@ -34,12 +37,14 @@ public class TelnetWorkerService : BackgroundService
         ILogger<TelnetWorkerService> logger,
         CameraManagerService cameraManager,
         IBus bus,
-        IOptions<ConfiguracionInterceptor> config)
+        IOptions<ConfiguracionInterceptor> config,
+        IServiceScopeFactory scopeFactory) // Reemplazar EventosController por IServiceScopeFactory
     {
         _logger = logger;
         _cameraManager = cameraManager;
         _bus = bus;
         _config = config.Value;
+        _scopeFactory = scopeFactory;
     }
 
     // Método usado por el Endpoint Telnet/Status
@@ -169,14 +174,59 @@ public class TelnetWorkerService : BackgroundService
 
         _logger.LogInformation("📨 [{Ip}] Evento: {Msg}", ip, msg);
 
-        // --- PUBLICAR A RABBITMQ ---
-        try 
+        // --- GUARDAR EVENTO EN LA BASE DE DATOS A TRAVÉS DE IEventStorageService ---
+        using var scope = _scopeFactory.CreateScope();
+        var eventStorageService = scope.ServiceProvider.GetRequiredService<IEventStorageService>();
+
+        try
         {
+            var puertoCamara = _stats.TryGetValue(ip, out var statsCamara) ? statsCamara.Puerto : 23; // Obtener el puerto de las estadísticas
+
+            var eventoParaGuardar = new AltaEventoModel
+            {
+                Nombre = "Evento Telnet: " + msg,
+                IpCamara = ip,
+                Puerto = puertoCamara, 
+                EsEventoGuardado = false, // Es un evento en tiempo real
+                FechaEvento = DateTime.UtcNow,
+                Descripcion = msg
+            };
+
+            EventFrameRange? frameRange = null; // Declarar frameRange aquí
+            var latestFramePath = _cameraManager.GetLatestFile(ip);
+            if (!string.IsNullOrEmpty(latestFramePath))
+            {
+                frameRange = _cameraManager.GetFrameRangeForEvent(latestFramePath, _config.FramesAdyacentesTelnet); // Usar la configuración
+                if (frameRange != null)
+                {
+                    eventoParaGuardar.FramePath = latestFramePath; // El frame "central"
+                    eventoParaGuardar.FromFrame = frameRange.FromFrame;
+                    eventoParaGuardar.ToFrame = frameRange.ToFrame;
+                    eventoParaGuardar.RutaCarpeta = frameRange.FolderPath;
+                }
+                else
+                {
+                    _logger.LogWarning("No se pudo determinar el rango de frames para el evento Telnet en {Ip} con frame {FramePath}", ip, latestFramePath);
+                    eventoParaGuardar.FramePath = latestFramePath; // Fallback al frame individual
+                }
+            }
+            else
+            {
+                _logger.LogWarning("No se encontró el último frame para la cámara {Ip}. El evento Telnet se guardará sin FramePath.", ip);
+            }
+
+            // Asignar RutaCarpeta: primero desde frameRange si está disponible, sino desde CameraManagerService, sino cadena vacía.
+            // Nota: camaraRutaCarpeta puede ser nulo si la cámara fue eliminada de la BD.
+            eventoParaGuardar.RutaCarpeta = frameRange?.FolderPath ?? _cameraManager.ObtenerRutaCarpeta(ip) ?? string.Empty;
+
+            await eventStorageService.SaveEventAsync(eventoParaGuardar);
+
+            // También podemos mantener la publicación a RabbitMQ si es necesaria para otros servicios
             var queueName = ip.Replace('.', '_');
             var uri = new Uri($"queue:{queueName}");
             var endpoint = await _bus.GetSendEndpoint(uri);
             
-            await endpoint.Send(new EventoMovimientoDetectado 
+            await endpoint.Send(new Shared.Contracts.Models.EventoMovimientoDetectado // Especificar el namespace
             { 
                 IpCamara = ip, 
                 MensajeCrudoEvento = msg, 
@@ -185,7 +235,7 @@ public class TelnetWorkerService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError("Error publicando en RabbitMQ para {Ip}: {Msg}", ip, ex.Message);
+            _logger.LogError("Error procesando evento Telnet para {Ip}: {Msg}", ip, ex.Message);
         }
     }
 

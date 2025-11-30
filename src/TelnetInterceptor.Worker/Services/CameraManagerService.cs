@@ -355,6 +355,74 @@ public class CameraManagerService : BackgroundService
         catch { }
         return -1;
     }
+
+    /// <summary>
+    /// Determina el rango de frames (FromFrame y ToFrame) para un evento,
+    /// basándose en un frame central y una cantidad de frames adyacentes.
+    /// </summary>
+    /// <param name="centerFramePath">La ruta completa del frame central del evento.</param>
+    /// <param name="adjacentFramesCount">Número de frames a incluir antes y después del frame central.</param>
+    /// <returns>Un objeto EventFrameRange con FromFrame, ToFrame y FolderPath, o null si no se puede determinar.</returns>
+    public EventFrameRange? GetFrameRangeForEvent(string centerFramePath, int adjacentFramesCount)
+    {
+        // 1. Extraer el número del nombre del archivo del centerFramePath
+        var centerFrameFileName = Path.GetFileNameWithoutExtension(centerFramePath);
+        var centerFrameNumber = ExtractNumber(centerFrameFileName);
+
+        if (centerFrameNumber == -1)
+        {
+            _logger.LogWarning("No se pudo extraer el número del frame central: {Path}", centerFramePath);
+            return null;
+        }
+
+        // 2. Obtener la ruta de la carpeta del centerFramePath y el identificador de la cámara
+        var folderPath = Path.GetDirectoryName(centerFramePath);
+        if (string.IsNullOrEmpty(folderPath))
+        {
+            _logger.LogWarning("No se pudo obtener la ruta de la carpeta del frame central: {Path}", centerFramePath);
+            return null;
+        }
+
+        // Buscar el identificador de la cámara (IP o Nombre) a partir de la ruta de la carpeta
+        var cameraIpOrName = _rutasActivas.FirstOrDefault(x => x.Value == folderPath).Key;
+        if (string.IsNullOrEmpty(cameraIpOrName))
+        {
+            _logger.LogWarning("No se encontró cámara activa para la ruta: {FolderPath}", folderPath);
+            // Intentar buscar en la BD si la ruta pertenece a una cámara registrada
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var camara = db.Eventos.FirstOrDefault(c => c.RutaCarpeta == folderPath);
+            if (camara != null)
+            {
+                cameraIpOrName = camara.IpCamara; // Usamos la IP de la cámara encontrada en BD
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+
+        // 3. Obtener el rango disponible de frames (MinNumber, MaxNumber) para esa cámara
+        var rangeInfo = GetAvailableRange(cameraIpOrName);
+
+        if (rangeInfo == null)
+        {
+            _logger.LogWarning("No se pudo obtener el rango disponible para la cámara: {Id}", cameraIpOrName);
+            return null;
+        }
+
+        // 4. Calcular fromFrame y toFrame
+        var fromFrame = Math.Max(rangeInfo.MinNumber, centerFrameNumber - adjacentFramesCount);
+        var toFrame = Math.Min(rangeInfo.MaxNumber, centerFrameNumber + adjacentFramesCount);
+
+        return new EventFrameRange
+        {
+            FromFrame = fromFrame,
+            ToFrame = toFrame,
+            FolderPath = folderPath
+        };
+    }
 }
 
 
@@ -369,5 +437,15 @@ public class RangeInfo
     public int MinNumber { get; set; }
     public int MaxNumber { get; set; }
     public int TotalFiles { get; set; }
+    public string FolderPath { get; set; } = string.Empty;
+}
+
+// =========================================================
+// NUEVO MODELO: Rango de frames para eventos
+// =========================================================
+public class EventFrameRange
+{
+    public int FromFrame { get; set; }
+    public int ToFrame { get; set; }
     public string FolderPath { get; set; } = string.Empty;
 }
