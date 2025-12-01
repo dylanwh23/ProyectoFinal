@@ -168,14 +168,20 @@ public class CameraManagerService : BackgroundService
             .Where(x => x.Number != -1)
             .ToList();
 
+
         if (allFiles.Count == 0)
             return null;
+
+        // Recalcular MinNumber y MaxNumber en base a todos los archivos en el directorio
+        var actualMinNumber = allFiles.Min(x => x.Number);
+        var actualMaxNumber = allFiles.Max(x => x.Number);
+
 
         return new RangeInfo
         {
             CameraIp = identificador, // Devolvemos el identificador usado (Nombre o IP)
-            MinNumber = allFiles.Min(x => x.Number),
-            MaxNumber = allFiles.Max(x => x.Number),
+            MinNumber = actualMinNumber,
+            MaxNumber = actualMaxNumber,
             TotalFiles = allFiles.Count,
             FolderPath = ruta
         };
@@ -358,12 +364,13 @@ public class CameraManagerService : BackgroundService
 
     /// <summary>
     /// Determina el rango de frames (FromFrame y ToFrame) para un evento,
-    /// basándose en un frame central y una cantidad de frames adyacentes.
+    /// basándose en un frame central y una cantidad de frames adyacentes (antes y después).
     /// </summary>
     /// <param name="centerFramePath">La ruta completa del frame central del evento.</param>
-    /// <param name="adjacentFramesCount">Número de frames a incluir antes y después del frame central.</param>
+    /// <param name="framesBefore">Número de frames a incluir antes del frame central.</param>
+    /// <param name="framesAfter">Número de frames a incluir después del frame central.</param>
     /// <returns>Un objeto EventFrameRange con FromFrame, ToFrame y FolderPath, o null si no se puede determinar.</returns>
-    public EventFrameRange? GetFrameRangeForEvent(string centerFramePath, int adjacentFramesCount)
+    public EventFrameRange? GetFrameRangeForEvent(string centerFramePath, int framesBefore, int framesAfter)
     {
         // 1. Extraer el número del nombre del archivo del centerFramePath
         var centerFrameFileName = Path.GetFileNameWithoutExtension(centerFramePath);
@@ -374,6 +381,7 @@ public class CameraManagerService : BackgroundService
             _logger.LogWarning("No se pudo extraer el número del frame central: {Path}", centerFramePath);
             return null;
         }
+
 
         // 2. Obtener la ruta de la carpeta del centerFramePath y el identificador de la cámara
         var folderPath = Path.GetDirectoryName(centerFramePath);
@@ -412,9 +420,24 @@ public class CameraManagerService : BackgroundService
             return null;
         }
 
+
         // 4. Calcular fromFrame y toFrame
-        var fromFrame = Math.Max(rangeInfo.MinNumber, centerFrameNumber - adjacentFramesCount);
-        var toFrame = Math.Min(rangeInfo.MaxNumber, centerFrameNumber + adjacentFramesCount);
+        var fromFrame = Math.Max(rangeInfo.MinNumber, centerFrameNumber - framesBefore);
+        
+        int toFrame;
+        // Si el número máximo de frames disponibles en disco (rangeInfo.MaxNumber)
+        // es menor que el frame central más la cantidad de frames deseados después (framesAfter),
+        // asumimos que los frames "futuros" se generarán y establecemos toFrame directamente a centerFrameNumber + framesAfter.
+        if (rangeInfo.MaxNumber < (centerFrameNumber + framesAfter))
+        {
+            toFrame = centerFrameNumber + framesAfter;
+        }
+        else
+        {
+            // Si ya hay suficientes frames en disco (o más de los que necesitamos),
+            // entonces limitamos el toFrame al deseado, sin exceder el MaxNumber real.
+            toFrame = Math.Min(rangeInfo.MaxNumber, centerFrameNumber + framesAfter);
+        }
 
         return new EventFrameRange
         {

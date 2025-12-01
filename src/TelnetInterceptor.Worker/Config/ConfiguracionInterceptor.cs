@@ -22,5 +22,6 @@ public class ConfiguracionInterceptor
     // Nuevas propiedades para el control de reintentos y timeouts
     public int IntervaloReintentoSegundos { get; set; } = 5; // Valor por defecto de 5 segundos
     public int TimeoutConexionSegundos { get; set; } = 3;   // Valor por defecto de 3 segundos
-    public int FramesAdyacentesTelnet { get; set; } = 10; // Cantidad de frames a incluir antes y después del frame central para eventos Telnet
+    public int FramesAdyacentesTelnetAntes { get; set; }  // Cantidad de frames a incluir antes del frame central para eventos Telnet
+    public int FramesAdyacentesTelnetDespues { get; set; }  // Cantidad de frames a incluir después del frame central para eventos Telnet
 }

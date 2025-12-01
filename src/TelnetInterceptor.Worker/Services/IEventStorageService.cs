@@ -8,5 +8,6 @@ namespace TelnetInterceptor.Worker.Services
         Task SaveEventAsync(AltaEventoModel evento);
         Task<List<AltaEventoModel>> GetEventsAsync();
         Task<List<AltaEventoModel>> GetEventsByCameraIpAsync(string cameraIp);
+        Task ClearAllEventsAsync();
     }
 }

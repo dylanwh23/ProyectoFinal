@@ -58,6 +58,11 @@
 
     private string? _previousCameraIp; // Para detectar cambios en el parámetro
 
+    // ============================================================
+    // CONFIGURACIÓN (Debe coincidir con la API del worker)
+    // ============================================================
+    private const string API_BASE = "http://localhost:5000"; // Usar el mismo puerto que Video.razor.cs
+
     protected override async Task OnInitializedAsync()
     {
         await CargarEventos();
@@ -82,7 +87,7 @@
         try
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var eventos = await Http.GetFromJsonAsync<List<AltaEventoModel>>($"api/eventos/buscar/{CameraIp}", options);
+            var eventos = await Http.GetFromJsonAsync<List<AltaEventoModel>>($"{API_BASE}/api/eventos/buscar/{CameraIp}", options);
 
             if (eventos != null)
             {

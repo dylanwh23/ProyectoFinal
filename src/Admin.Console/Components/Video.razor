@@ -56,6 +56,18 @@
                     <span>@LabelCurrent</span>
                 </div>
             </div>
+            
+            @* Botón de depuración / forzar carga *@
+            <button class="btn btn-sm btn-info ms-2" onclick="@ForcePlaySelectedEvent" title="Forzar carga del evento/stream">
+                <i class="bi bi-arrow-clockwise"></i> Cargar
+            </button>
         </div>
+
+        @if (!string.IsNullOrEmpty(StatusMessage))
+        {
+            <div class="alert alert-info mt-2 mb-0 p-2 small text-center">
+                @StatusMessage
+            </div>
+        }
     }
 </div>

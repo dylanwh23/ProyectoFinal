@@ -36,5 +36,14 @@ namespace TelnetInterceptor.Worker.Services
                                  .Where(e => e.IpCamara == cameraIp)
                                  .ToListAsync();
         }
+
+        public async Task ClearAllEventsAsync()
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            // Borrar todos los eventos
+            dbContext.EventosGuardados.RemoveRange(dbContext.EventosGuardados);
+            await dbContext.SaveChangesAsync();
+        }
     }
 }

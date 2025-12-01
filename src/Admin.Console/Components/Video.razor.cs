@@ -28,6 +28,7 @@ namespace Admin.Console.Components
         private bool IsLive { get; set; } = true;
         private bool IsLoading { get; set; } = false;
         private bool ShowNoSignal { get; set; } = false;
+        public string StatusMessage { get; set; } = string.Empty; // Nuevo: mensaje de estado para la UI
 
         // --- Imágenes y Buffer ---
         private string ImageSource { get; set; } = string.Empty;
@@ -64,7 +65,7 @@ namespace Admin.Console.Components
             _watchdogTimer.AutoReset = true;
         }
 
-        protected override void OnParametersSet()
+        protected override async Task OnParametersSetAsync()
         {
             // Si el Evento cambia a null (deselección), reseteamos el estado
             if (Evento == null)
@@ -78,7 +79,8 @@ namespace Admin.Console.Components
                 FramesBuffer.Clear();
                 _watchdogTimer?.Stop();
                 _loopTimer?.Stop();
-                // No llamamos a GoLive aquí para evitar carga innecesaria si no hay evento
+                StatusMessage = "Seleccione una cámara o evento para visualizar.";
+                await InvokeAsync(StateHasChanged); // Forzar re-renderizado
                 return;
             }
 
@@ -94,24 +96,53 @@ namespace Admin.Console.Components
                 _previousEvento = Evento; // Actualizar la referencia del evento anterior
                 _currentIp = Evento.IpCamara;
                 _isEventoGuardado = esGuardado;
+                
+                StatusMessage = "Cargando..."; // Mensaje de carga inicial
+                // Forzar un re-renderizado rápido para mostrar el estado de carga/cambio
+                await InvokeAsync(StateHasChanged);
 
                 if (_isEventoGuardado)
                 {
-                    PlayEventoGuardado();
+                    await PlayEventoGuardado(); // Ahora es async Task
                 }
                 else
                 {
-                    GoLive();
+                    await GoLive(); // Ahora es async Task
                 }
+            }
+            await base.OnParametersSetAsync(); // Llama a la implementación base para otros parámetros
+        }
+
+        // Nuevo método para forzar la carga/reproducción
+        private async Task ForcePlaySelectedEvent()
+        {
+            if (Evento == null)
+            {
+                StatusMessage = "No hay ningún evento o cámara seleccionada para cargar.";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
+
+            StatusMessage = "Forzando carga...";
+            await InvokeAsync(StateHasChanged);
+
+            if (_isEventoGuardado)
+            {
+                await PlayEventoGuardado();
+            }
+            else
+            {
+                await GoLive();
             }
         }
 
-        private void GoLive()
+
+        private async Task GoLive()
         {
             IsLive = true;
             IsLoading = false;
             ShowNoSignal = false;
-            FramesBuffer.Clear();
+            FramesBuffer.Clear(); // Limpiar el buffer antes de ir a vivo
             _loopTimer?.Stop();
 
             SliderMax = 100;
@@ -121,6 +152,8 @@ namespace Admin.Console.Components
 
             UpdateStreamUrl();
             _watchdogTimer?.Start();
+            StatusMessage = "Stream en vivo iniciado.";
+            await InvokeAsync(StateHasChanged); // Forzar re-renderizado
         }
 
         private async Task GoPause()
@@ -132,22 +165,28 @@ namespace Admin.Console.Components
             IsLoading = true;
             ImageSource = "";
 
+            StatusMessage = "Cargando buffer de historial...";
+            await InvokeAsync(StateHasChanged);
+
             await LoadHistoryBuffer();
 
             IsLoading = false;
+            StatusMessage = "Reproduciendo historial.";
+            await InvokeAsync(StateHasChanged); // Forzar re-renderizado
         }
 
         private void TogglePlayPause()
         {
             if (_isEventoGuardado) return;
-            if (IsLive) _ = GoPause();
-            else GoLive();
+            if (IsLive) _ = GoPause(); // No await aquí para no bloquear la UI
+            else _ = GoLive(); // No await aquí
         }
 
         private async Task LoadHistoryBuffer()
         {
             try
             {
+                FramesBuffer.Clear(); // Limpiar el buffer antes de cargar
                 var url = $"{API_BASE}/api/buffer/{_currentIp}?count={HISTORY_BUFFER_SIZE}";
                 var snapshot = await Http.GetFromJsonAsync<HistorySnapshotDto>(url, _jsonOptions);
 
@@ -168,20 +207,30 @@ namespace Admin.Console.Components
             {
                 System.Console.WriteLine($"Error buffer: {ex.Message}");
                 LabelCurrent = "Error historial";
+                StatusMessage = $"Error al cargar el buffer de historial: {ex.Message}";
             }
+            await InvokeAsync(StateHasChanged); // Forzar re-renderizado
         }
 
         // ========== REPRODUCCIÓN DE EVENTO (CORREGIDO) ==========
-        private async void PlayEventoGuardado()
+        private async Task PlayEventoGuardado() // Cambiado a async Task
         {
             // CORRECCIÓN: Usamos FromFrame y ToFrame
-            if (Evento == null || !Evento.FromFrame.HasValue || !Evento.ToFrame.HasValue) return;
+            if (Evento == null || !Evento.FromFrame.HasValue || !Evento.ToFrame.HasValue)
+            {
+                StatusMessage = "Error: Datos de evento incompletos para la reproducción.";
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
 
             IsLive = false;
             _watchdogTimer?.Stop();
             _loopTimer?.Stop();
             ShowNoSignal = false;
             IsLoading = true;
+            FramesBuffer.Clear(); // Limpiar el buffer antes de cargar el evento
+            StatusMessage = $"Cargando evento '{Evento.Nombre}'...";
+            await InvokeAsync(StateHasChanged);
 
             try
             {
@@ -198,21 +247,24 @@ namespace Admin.Console.Components
                     LabelCurrent = $"{FramesBuffer.Count} frames";
 
                     StartLoopPlayback();
+                    StatusMessage = $"Evento '{Evento.Nombre}' cargado correctamente ({FramesBuffer.Count} frames).";
                 }
                 else
                 {
                     LabelCurrent = "Evento sin frames";
+                    StatusMessage = $"Error: El evento '{Evento.Nombre}' no tiene frames disponibles o la API no retornó datos.";
                 }
             }
             catch (Exception ex)
             {
                 System.Console.WriteLine($"Error evento: {ex.Message}");
                 LabelCurrent = "Error evento";
+                StatusMessage = $"Error al cargar el evento '{Evento.Nombre}': {ex.Message}";
             }
             finally
             {
                 IsLoading = false;
-                await InvokeAsync(StateHasChanged);
+                await InvokeAsync(StateHasChanged); // Forzar re-renderizado
             }
         }
 
@@ -279,12 +331,8 @@ namespace Admin.Console.Components
                         Nombre = _nombreEvento,
                         IpCamara = Evento.IpCamara,
                         Puerto = Evento.Puerto,
-                        // CORRECCIÓN: Nombres de propiedades correctos
                         FromFrame = frameInicio,
                         ToFrame = frameFin,
-                        // EsEventoGuardado se puede inferir si FromFrame tiene valor, 
-                        // pero si tienes la propiedad explícita, úsala:
-                        // EsEventoGuardado = true, 
                         FechaEvento = DateTime.Now,
                         Descripcion = _descripcionEvento
                     };
@@ -296,14 +344,30 @@ namespace Admin.Console.Components
                         var eventoCreado = await response.Content.ReadFromJsonAsync<AltaEventoModel>(_jsonOptions);
                         await OnGuardarEvento.InvokeAsync(eventoCreado);
                         _mostrandoDialogoGuardar = false;
+                        StatusMessage = $"Evento '{_nombreEvento}' guardado exitosamente.";
                     }
+                    else
+                    {
+                        var errorContent = await response.Content.ReadAsStringAsync();
+                        StatusMessage = $"Error al guardar evento: {errorContent}";
+                        System.Console.WriteLine($"Error al guardar evento: {errorContent}");
+                    }
+                }
+                else
+                {
+                    StatusMessage = "Error: No se pudo obtener información de rango para guardar el evento.";
+                    System.Console.WriteLine("Error: No se pudo obtener información de rango para guardar el evento.");
                 }
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"Error guardando: {ex.Message}");
+                StatusMessage = $"Error de conexión o inesperado al guardar evento: {ex.Message}";
+                System.Console.WriteLine($"Error de conexión o inesperado al guardar evento: {ex.Message}");
             }
-            StateHasChanged();
+            finally
+            {
+                await InvokeAsync(StateHasChanged);
+            }
         }
 
         private void OnSliderInput(ChangeEventArgs e)

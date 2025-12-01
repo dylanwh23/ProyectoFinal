@@ -86,5 +86,22 @@ namespace TelnetInterceptor.Worker.Controllers
                 return StatusCode(500, "Error obteniendo eventos por cámara");
             }
         }
+
+        // DELETE: api/eventos/borrar-todo
+        [HttpDelete("borrar-todo")]
+        public async Task<IActionResult> ClearAllEvents()
+        {
+            try
+            {
+                await _eventStorageService.ClearAllEventsAsync();
+                _logger.LogInformation("Todos los eventos han sido borrados.");
+                return Ok("Todos los eventos han sido borrados.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error borrando todos los eventos");
+                return StatusCode(500, "Error interno al borrar todos los eventos");
+            }
+        }
     }
 }

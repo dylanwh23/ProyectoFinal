@@ -196,7 +196,14 @@ public class TelnetWorkerService : BackgroundService
             var latestFramePath = _cameraManager.GetLatestFile(ip);
             if (!string.IsNullOrEmpty(latestFramePath))
             {
-                frameRange = _cameraManager.GetFrameRangeForEvent(latestFramePath, _config.FramesAdyacentesTelnet); // Usar la configuración
+                // Retraso para dar tiempo a que se generen más frames
+                await Task.Delay(0); // Aumentado a 500ms
+
+                frameRange = _cameraManager.GetFrameRangeForEvent(
+                    latestFramePath, 
+                    _config.FramesAdyacentesTelnetAntes, 
+                    _config.FramesAdyacentesTelnetDespues
+                ); // Usar la configuración asimétrica
                 if (frameRange != null)
                 {
                     eventoParaGuardar.FramePath = latestFramePath; // El frame "central"
