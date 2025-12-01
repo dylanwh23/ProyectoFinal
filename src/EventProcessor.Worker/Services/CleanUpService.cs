@@ -18,13 +18,13 @@ public class CleanupService : BackgroundService
         _retentionPeriod = TimeSpan.FromDays(7);
         _cleanupInterval = TimeSpan.FromHours(24);
 
-        _logger.LogInformation("🧹 Servicio de limpieza configurado - Retención: {Dias} días, Intervalo: {Horas} horas",
+        _logger.LogInformation("[] Servicio de limpieza configurado - Retención: {Dias} días, Intervalo: {Horas} horas",
             _retentionPeriod.Days, _cleanupInterval.TotalHours);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("🚀 Iniciando servicio de limpieza automática de JSONs...");
+        _logger.LogInformation("[] Iniciando servicio de limpieza automática de JSONs...");
 
         // Esperar un poco al inicio para que todo esté estable
         await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
@@ -34,32 +34,32 @@ public class CleanupService : BackgroundService
             try
             {
                 await RealizarLimpiezaAsync();
-                _logger.LogInformation("✅ Limpieza completada. Próxima en {Horas} horas", _cleanupInterval.TotalHours);
+                _logger.LogInformation(">> Limpieza completada. Próxima en {Horas} horas", _cleanupInterval.TotalHours);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error durante la limpieza automática");
+                _logger.LogError(ex, "!! Error durante la limpieza automática");
             }
 
             // Esperar hasta la próxima limpieza
             await Task.Delay(_cleanupInterval, stoppingToken);
         }
 
-        _logger.LogInformation("🔚 Servicio de limpieza finalizado");
+        _logger.LogInformation("[] Servicio de limpieza finalizado");
     }
 
     private async Task RealizarLimpiezaAsync()
     {
         if (!Directory.Exists(_jsonFolderPath))
         {
-            _logger.LogWarning("📁 Carpeta de JSONs no encontrada: {Ruta}", _jsonFolderPath);
+            _logger.LogWarning("[] Carpeta de JSONs no encontrada: {Ruta}", _jsonFolderPath);
             return;
         }
 
         var fechaLimite = DateTime.Now - _retentionPeriod;
         var archivos = Directory.GetFiles(_jsonFolderPath, "*.json");
 
-        _logger.LogInformation("🔍 Buscando archivos JSON anteriores a: {FechaLimite}", fechaLimite);
+        _logger.LogInformation("[] Buscando archivos JSON anteriores a: {FechaLimite}", fechaLimite);
 
         var archivosAEliminar = new List<string>();
         var espacioLiberar = 0L;
@@ -76,11 +76,11 @@ public class CleanupService : BackgroundService
 
         if (archivosAEliminar.Count == 0)
         {
-            _logger.LogInformation("📊 No hay archivos para eliminar. Total actual: {TotalArchivos}", archivos.Length);
+            _logger.LogInformation("[] No hay archivos para eliminar. Total actual: {TotalArchivos}", archivos.Length);
             return;
         }
 
-        _logger.LogInformation("🗑️  Eliminando {Cantidad} archivos JSON antiguos. Espacio a liberar: {Espacio} MB",
+        _logger.LogInformation("[] Eliminando {Cantidad} archivos JSON antiguos. Espacio a liberar: {Espacio} MB",
             archivosAEliminar.Count, (espacioLiberar / 1024.0 / 1024.0).ToString("F2"));
 
         // Eliminar archivos
@@ -91,15 +91,15 @@ public class CleanupService : BackgroundService
             {
                 File.Delete(archivo);
                 eliminadosExitosos++;
-                _logger.LogDebug("✅ Eliminado: {Archivo}", Path.GetFileName(archivo));
+                _logger.LogDebug(">> Eliminado: {Archivo}", Path.GetFileName(archivo));
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "⚠️  No se pudo eliminar: {Archivo}", archivo);
+                _logger.LogWarning(ex, "!! No se pudo eliminar: {Archivo}", archivo);
             }
         }
 
-        _logger.LogInformation("🎯 Limpieza finalizada: {Eliminados}/{Total} archivos eliminados. Espacio liberado: ~{Espacio} MB",
+        _logger.LogInformation("[] Limpieza finalizada: {Eliminados}/{Total} archivos eliminados. Espacio liberado: ~{Espacio} MB",
             eliminadosExitosos, archivosAEliminar.Count, (espacioLiberar / 1024.0 / 1024.0).ToString("F2"));
     }
 }

@@ -16,7 +16,7 @@ public class JsonExportService
 
         // Crear carpeta si no existe
         Directory.CreateDirectory(_jsonFolderPath);
-        _logger.LogInformation("📁 Carpeta de exportación JSON configurada en: {Ruta}", _jsonFolderPath);
+        _logger.LogInformation("[] Carpeta de exportación JSON configurada en: {Ruta}", _jsonFolderPath);
     }
 
     public async Task<bool> ExportarEventoAJsonAsync(EnrichedEvent evento)
@@ -54,12 +54,12 @@ public class JsonExportService
 
             await File.WriteAllTextAsync(rutaArchivo, json);
 
-            _logger.LogInformation("✅ JSON exportado exitosamente: {Archivo}", nombreArchivo);
+            _logger.LogInformation(">> JSON exportado exitosamente: {Archivo}", nombreArchivo);
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error exportando evento a JSON - EventId: {EventId}", evento.EventId);
+            _logger.LogError(ex, "!! Error exportando evento a JSON - EventId: {EventId}", evento.EventId);
             return false;
         }
     }
@@ -75,12 +75,12 @@ public class JsonExportService
                 .OrderByDescending(archivo => archivo)
                 .ToList();
 
-            _logger.LogDebug("📊 Se encontraron {Cantidad} archivos JSON", archivos.Count);
+            _logger.LogDebug("[] Se encontraron {Cantidad} archivos JSON", archivos.Count);
             return archivos;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error obteniendo lista de archivos JSON");
+            _logger.LogError(ex, "!! Error obteniendo lista de archivos JSON");
             return new List<string>();
         }
     }
@@ -94,7 +94,7 @@ public class JsonExportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error obteniendo ruta del archivo: {Archivo}", nombreArchivo);
+            _logger.LogError(ex, "!! Error obteniendo ruta del archivo: {Archivo}", nombreArchivo);
             return null;
         }
     }
@@ -106,17 +106,17 @@ public class JsonExportService
             var rutaArchivo = ObtenerRutaCompletaArchivo(nombreArchivo);
             if (rutaArchivo == null)
             {
-                _logger.LogWarning("⚠️ Archivo no encontrado: {Archivo}", nombreArchivo);
+                _logger.LogWarning("[] Archivo no encontrado: {Archivo}", nombreArchivo);
                 return null;
             }
 
             var contenido = await File.ReadAllTextAsync(rutaArchivo);
-            _logger.LogDebug("📖 Contenido leído del archivo: {Archivo}", nombreArchivo);
+            _logger.LogDebug("[] Contenido leído del archivo: {Archivo}", nombreArchivo);
             return contenido;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error leyendo archivo JSON: {Archivo}", nombreArchivo);
+            _logger.LogError(ex, "!! Error leyendo archivo JSON: {Archivo}", nombreArchivo);
             return null;
         }
     }

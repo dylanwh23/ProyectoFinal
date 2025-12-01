@@ -40,7 +40,7 @@ public class DynamicRabbitMQConsumerService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("🚀 Iniciando Consumidor Dinámico de RabbitMQ...");
+        _logger.LogInformation("[] Iniciando Consumidor Dinámico de RabbitMQ...");
 
         await InitializeRabbitMQConnection();
 
@@ -75,11 +75,11 @@ public class DynamicRabbitMQConsumerService : BackgroundService
             };
 
             _connection = factory.CreateConnection();
-            _logger.LogInformation("✅ Conexión establecida con RabbitMQ");
+            _logger.LogInformation(">> Conexión establecida con RabbitMQ");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error al inicializar la conexión con RabbitMQ");
+            _logger.LogError(ex, "!! Error al inicializar la conexión con RabbitMQ");
             throw;
         }
     }
@@ -90,12 +90,12 @@ public class DynamicRabbitMQConsumerService : BackgroundService
         {
             if (_connection == null || !_connection.IsOpen)
             {
-                _logger.LogWarning("🔄 La conexión con RabbitMQ está cerrada. Reinicializando...");
+                _logger.LogWarning("[] La conexión con RabbitMQ está cerrada. Reinicializando...");
                 await InitializeRabbitMQConnection();
             }
 
             var activeQueues = await _cameraDiscovery.GetActiveQueueNamesAsync();
-            _logger.LogInformation("🔄 Actualizando consumidores para {Count} colas: {Queues}",
+            _logger.LogInformation("[] Actualizando consumidores para {Count} colas: {Queues}",
                 activeQueues.Count, string.Join(", ", activeQueues));
 
             // Eliminar consumidores para colas que ya no están activas
@@ -112,7 +112,7 @@ public class DynamicRabbitMQConsumerService : BackgroundService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error actualizando consumidores");
+            _logger.LogError(ex, "!! Error actualizando consumidores");
         }
     }
 
@@ -124,7 +124,7 @@ public class DynamicRabbitMQConsumerService : BackgroundService
 
         foreach (var channelInfo in channelsToRemove)
         {
-            _logger.LogInformation("🗑️ Eliminando consumidor de la cola: {Queue}", channelInfo.QueueName);
+            _logger.LogInformation("[] Eliminando consumidor de la cola: {Queue}", channelInfo.QueueName);
             channelInfo.Channel.Close();
             channelInfo.Channel.Dispose();
             _channels.Remove(channelInfo);
@@ -154,11 +154,11 @@ public class DynamicRabbitMQConsumerService : BackgroundService
             channel.BasicConsume(queue: queueName, autoAck: false, consumer: consumer);
             _channels.Add(new ChannelInfo { Channel = channel, QueueName = queueName });
 
-            _logger.LogInformation("✅ Consumidor iniciado para la cola: {QueueName}", queueName);
+            _logger.LogInformation(">> Consumidor iniciado para la cola: {QueueName}", queueName);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error iniciando consumidor para la cola: {QueueName}", queueName);
+            _logger.LogError(ex, "!! Error iniciando consumidor para la cola: {QueueName}", queueName);
         }
     }
 
@@ -171,7 +171,7 @@ public class DynamicRabbitMQConsumerService : BackgroundService
             var body = ea.Body.ToArray();
             message = Encoding.UTF8.GetString(body);
 
-            _logger.LogInformation("📨 Procesando mensaje de la cola {Queue}: {Message}", queueName, message);
+            _logger.LogInformation("[] Procesando mensaje de la cola {Queue}: {Message}", queueName, message);
 
             var envelope = JsonSerializer.Deserialize<JsonElement>(message);
 
@@ -190,7 +190,7 @@ public class DynamicRabbitMQConsumerService : BackgroundService
 
             if (cameraEvent != null)
             {
-                _logger.LogInformation("🔍 Procesando evento de la IP: {Ip}, Cola: {Queue}",
+                _logger.LogInformation("[] Procesando evento de la IP: {Ip}, Cola: {Queue}",
                     cameraEvent.IpCamara, queueName);
 
                 var success = await _eventProcessor.ProcessAndStoreEventAsync(cameraEvent);
@@ -198,24 +198,23 @@ public class DynamicRabbitMQConsumerService : BackgroundService
                 if (success)
                 {
                     GetChannelByQueue(queueName)?.BasicAck(ea.DeliveryTag, false);
-                    _logger.LogInformation("✅ Evento procesado exitosamente - IP: {Ip}", cameraEvent.IpCamara);
+                    _logger.LogInformation(">> Evento procesado exitosamente - IP: {Ip}", cameraEvent.IpCamara);
                 }
                 else
                 {
-                    // CAMBIO CRUCIAL: No reencolar mensajes fallidos para evitar bucles
                     GetChannelByQueue(queueName)?.BasicNack(ea.DeliveryTag, false, false);
-                    _logger.LogWarning("❌ Falló el procesamiento - mensaje rechazado - IP: {Ip}", cameraEvent.IpCamara);
+                    _logger.LogWarning("!! Falló el procesamiento - mensaje rechazado - IP: {Ip}", cameraEvent.IpCamara);
                 }
             }
             else
             {
-                _logger.LogWarning("⚠️ No se pudo deserializar el mensaje: {Message}", message);
+                _logger.LogWarning("!! No se pudo deserializar el mensaje: {Message}", message);
                 GetChannelByQueue(queueName)?.BasicNack(ea.DeliveryTag, false, false);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error procesando mensaje de la cola {Queue}: {Message}", queueName, message);
+            _logger.LogError(ex, "!! Error procesando mensaje de la cola {Queue}: {Message}", queueName, message);
             GetChannelByQueue(queueName)?.BasicNack(ea.DeliveryTag, false, false);
         }
     }
@@ -234,7 +233,7 @@ public class DynamicRabbitMQConsumerService : BackgroundService
         }
         _connection?.Close();
 
-        _logger.LogInformation("🧹 Limpieza completada de consumidores RabbitMQ");
+        _logger.LogInformation(">> Limpieza completada de consumidores RabbitMQ");
     }
 
     public override void Dispose()
@@ -246,7 +245,7 @@ public class DynamicRabbitMQConsumerService : BackgroundService
 
         base.Dispose();
 
-        _logger.LogInformation("🔚 Consumidor Dinámico de RabbitMQ finalizado");
+        _logger.LogInformation("[] Consumidor Dinámico de RabbitMQ finalizado");
     }
 
     private class ChannelInfo

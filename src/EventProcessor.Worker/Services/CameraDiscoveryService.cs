@@ -16,25 +16,25 @@ public class CameraDiscoveryService(
     {
         try
         {
-            _logger.LogInformation("🔍 Descubriendo cámaras desde TelnetInterceptor...");
+            _logger.LogInformation("[] Descubriendo cámaras desde TelnetInterceptor...");
 
             var response = await _httpClient.GetAsync($"{_telnetInterceptorBaseUrl}/api/camaras");
 
             if (response.IsSuccessStatusCode)
             {
                 var cameras = await response.Content.ReadFromJsonAsync<List<CameraConfig>>();
-                _logger.LogInformation("✅ Se encontraron {Count} cámaras", cameras?.Count ?? 0);
+                _logger.LogInformation(">> Se encontraron {Count} cámaras", cameras?.Count ?? 0);
                 return cameras ?? [];
             }
             else
             {
-                _logger.LogWarning("⚠️ Falló al obtener cámaras desde TelnetInterceptor: {StatusCode}", response.StatusCode);
+                _logger.LogWarning("!! Falló al obtener cámaras desde TelnetInterceptor: {StatusCode}", response.StatusCode);
                 return [];
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error descubriendo cámaras");
+            _logger.LogError(ex, "!! Error descubriendo cámaras");
             return [];
         }
     }

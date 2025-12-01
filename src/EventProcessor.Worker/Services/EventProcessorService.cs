@@ -32,7 +32,7 @@ public class EventProcessorService
 
         try
         {
-            _logger.LogInformation("🔍 Procesando evento desde IP: {Ip}", rawEvent.IpCamara);
+            _logger.LogInformation("[] Procesando evento desde IP: {Ip}", rawEvent.IpCamara);
 
             // 1. Generar enlace de video
             var videoLink = _videoLinkService.GenerateVideoLink(rawEvent.IpCamara, rawEvent.Momento);
@@ -65,14 +65,14 @@ public class EventProcessorService
             // 6. Exportar a JSON para el WMS
             await _jsonExportService.ExportarEventoAJsonAsync(enrichedEvent);
 
-            _logger.LogInformation("✅ Evento almacenado exitosamente - ID: {Id}, IP: {Ip}",
+            _logger.LogInformation(">> Evento almacenado exitosamente - ID: {Id}, IP: {Ip}",
                 enrichedEvent.Id, rawEvent.IpCamara);
 
             return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ Error procesando evento desde IP: {Ip}", rawEvent.IpCamara);
+            _logger.LogError(ex, "!! Error procesando evento desde IP: {Ip}", rawEvent.IpCamara);
             return false;
         }
     }

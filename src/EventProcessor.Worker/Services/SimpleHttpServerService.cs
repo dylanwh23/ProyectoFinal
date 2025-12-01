@@ -26,7 +26,7 @@ public class SimpleHttpServerService : BackgroundService
         try
         {
             _listener.Start();
-            _logger.LogInformation("🌐 Servidor HTTP iniciado en: http://localhost:{Puerto}", _port);
+            _logger.LogInformation("[] Servidor HTTP iniciado en: http://localhost:{Puerto}", _port);
 
             while (!stoppingToken.IsCancellationRequested)
             {
@@ -41,7 +41,7 @@ public class SimpleHttpServerService : BackgroundService
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "❌ Error en el servidor HTTP");
+                    _logger.LogError(ex, "!! Error en el servidor HTTP");
                 }
             }
         }
@@ -49,7 +49,7 @@ public class SimpleHttpServerService : BackgroundService
         {
             _listener.Stop();
             _listener.Close();
-            _logger.LogInformation("🔚 Servidor HTTP detenido");
+            _logger.LogInformation("[] Servidor HTTP detenido");
         }
     }
 
@@ -60,7 +60,7 @@ public class SimpleHttpServerService : BackgroundService
 
         try
         {
-            _logger.LogInformation("📥 Request: {Method} {Url}", request.HttpMethod, request.Url?.AbsolutePath);
+            _logger.LogInformation(">> Request: {Method} {Url}", request.HttpMethod, request.Url?.AbsolutePath);
 
             if (request.HttpMethod == "GET")
             {
@@ -110,7 +110,7 @@ public class SimpleHttpServerService : BackgroundService
     {
         var archivos = _jsonExportService.ObtenerArchivosJsonDisponibles();
 
-        _logger.LogInformation("📋 Listando {Cantidad} archivos JSON", archivos.Count);
+        _logger.LogInformation("[] Listando {Cantidad} archivos JSON", archivos.Count);
 
         await WriteResponse(response, 200, new
         {
@@ -122,11 +122,11 @@ public class SimpleHttpServerService : BackgroundService
 
     private async Task HandleGetSpecificFile(string nombreArchivo, HttpListenerResponse response, CancellationToken stoppingToken)
     {
-        _logger.LogInformation("📥 Solicitado archivo JSON: {Archivo}", nombreArchivo);
+        _logger.LogInformation("[] Solicitado archivo JSON: {Archivo}", nombreArchivo);
 
         if (!nombreArchivo.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
         {
-            _logger.LogWarning("⚠️ Formato de archivo no válido: {Archivo}", nombreArchivo);
+            _logger.LogWarning("!! Formato de archivo no válido: {Archivo}", nombreArchivo);
             await WriteResponse(response, 400, new { Error = "El archivo debe ser un JSON" });
             return;
         }
@@ -135,12 +135,12 @@ public class SimpleHttpServerService : BackgroundService
 
         if (contenido == null)
         {
-            _logger.LogWarning("⚠️ Archivo no encontrado: {Archivo}", nombreArchivo);
+            _logger.LogWarning("!! Archivo no encontrado: {Archivo}", nombreArchivo);
             await WriteResponse(response, 404, new { Error = "Archivo no encontrado" });
             return;
         }
 
-        _logger.LogInformation("✅ Archivo entregado exitosamente: {Archivo}", nombreArchivo);
+        _logger.LogInformation(">> Archivo entregado exitosamente: {Archivo}", nombreArchivo);
 
         response.ContentType = "application/json";
         response.StatusCode = 200;
@@ -151,13 +151,13 @@ public class SimpleHttpServerService : BackgroundService
 
     private async Task HandleDownloadFile(string nombreArchivo, HttpListenerResponse response, CancellationToken stoppingToken)
     {
-        _logger.LogInformation("📥 Descarga solicitada para archivo: {Archivo}", nombreArchivo);
+        _logger.LogInformation(">> Descarga solicitada para archivo: {Archivo}", nombreArchivo);
 
         var rutaArchivo = _jsonExportService.ObtenerRutaCompletaArchivo(nombreArchivo);
 
         if (rutaArchivo == null || !File.Exists(rutaArchivo))
         {
-            _logger.LogWarning("⚠️ Archivo no encontrado para descarga: {Archivo}", nombreArchivo);
+            _logger.LogWarning("!! Archivo no encontrado para descarga: {Archivo}", nombreArchivo);
             await WriteResponse(response, 404, new { Error = "Archivo no encontrado" });
             return;
         }
@@ -170,7 +170,7 @@ public class SimpleHttpServerService : BackgroundService
         response.StatusCode = 200;
 
         await response.OutputStream.WriteAsync(fileBytes, 0, fileBytes.Length, stoppingToken);
-        _logger.LogInformation("✅ Archivo descargado exitosamente: {Archivo}", nombreArchivo);
+        _logger.LogInformation(">> Archivo descargado exitosamente: {Archivo}", nombreArchivo);
         response.Close();
     }
 
