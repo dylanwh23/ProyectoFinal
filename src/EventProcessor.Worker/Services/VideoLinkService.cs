@@ -2,16 +2,10 @@
 
 namespace EventProcessor.Worker.Services;
 
-public class VideoLinkService
+public class VideoLinkService(IConfiguration configuration, ILogger<VideoLinkService> logger)
 {
-    private readonly ILogger<VideoLinkService> _logger;
-    private readonly string _imageStreamerBaseUrl;
-
-    public VideoLinkService(IConfiguration configuration, ILogger<VideoLinkService> logger)
-    {
-        _logger = logger;
-        _imageStreamerBaseUrl = configuration["ImageStreamer:BaseUrl"] ?? "https://localhost:7000";
-    }
+    private readonly ILogger<VideoLinkService> _logger = logger;
+    private readonly string _imageStreamerBaseUrl = configuration["ImageStreamer:BaseUrl"] ?? "https://localhost:7000";
 
     public string GenerateVideoLink(string ipCamara, DateTime eventTime)
     {

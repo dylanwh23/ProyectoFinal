@@ -5,24 +5,16 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EventProcessor.Worker.Services;
 
-public class EventProcessorService
+public class EventProcessorService(
+    IServiceProvider serviceProvider,
+    VideoLinkService videoLinkService,
+    JsonExportService jsonExportService,
+    ILogger<EventProcessorService> logger)
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly VideoLinkService _videoLinkService;
-    private readonly JsonExportService _jsonExportService;
-    private readonly ILogger<EventProcessorService> _logger;
-
-    public EventProcessorService(
-        IServiceProvider serviceProvider,
-        VideoLinkService videoLinkService,
-        JsonExportService jsonExportService,
-        ILogger<EventProcessorService> logger)
-    {
-        _serviceProvider = serviceProvider;
-        _videoLinkService = videoLinkService;
-        _jsonExportService = jsonExportService;
-        _logger = logger;
-    }
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly VideoLinkService _videoLinkService = videoLinkService;
+    private readonly JsonExportService _jsonExportService = jsonExportService;
+    private readonly ILogger<EventProcessorService> _logger = logger;
 
     public async Task<bool> ProcessAndStoreEventAsync(EventoMovimientoDetectado rawEvent)
     {

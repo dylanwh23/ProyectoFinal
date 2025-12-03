@@ -5,16 +5,10 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EventProcessor.Worker.Services;
 
-public class EventStorageService
+public class EventStorageService(IServiceProvider serviceProvider, ILogger<EventStorageService> logger)
 {
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<EventStorageService> _logger;
-
-    public EventStorageService(IServiceProvider serviceProvider, ILogger<EventStorageService> logger)
-    {
-        _serviceProvider = serviceProvider;
-        _logger = logger;
-    }
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly ILogger<EventStorageService> _logger = logger;
 
     public async Task<IEnumerable<EnrichedEvent>> GetRecentEventsAsync(int count = 50)
     {

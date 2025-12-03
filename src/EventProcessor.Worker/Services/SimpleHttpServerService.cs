@@ -1,8 +1,27 @@
 ﻿using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 
 namespace EventProcessor.Worker.Services;
+
+// Contexto de serialización para las respuestas HTTP
+[JsonSerializable(typeof(FileListResponse))]
+[JsonSerializable(typeof(StatusResponse))]
+[JsonSerializable(typeof(ErrorResponse))]
+[JsonSourceGenerationOptions(
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+internal partial class HttpApiJsonContext : JsonSerializerContext
+{
+}
+
+// DTOs para las respuestas de la API
+public record FileListResponse(int TotalArchivos, List<string> Archivos, DateTime Timestamp);
+public record StatusResponse(string Estado, int TotalArchivosJson, IEnumerable<string> UltimosArchivos, DateTime Timestamp);
+public record ErrorResponse(string Error);
 
 public class SimpleHttpServerService : BackgroundService
 {
@@ -33,7 +52,7 @@ public class SimpleHttpServerService : BackgroundService
                 try
                 {
                     var context = await _listener.GetContextAsync();
-                    _ = Task.Run(() => ProcessRequest(context, stoppingToken));
+                    _ = Task.Run(() => ProcessRequest(context, stoppingToken), stoppingToken);
                 }
                 catch (HttpListenerException) when (stoppingToken.IsCancellationRequested)
                 {
@@ -68,13 +87,13 @@ public class SimpleHttpServerService : BackgroundService
             }
             else
             {
-                await WriteResponse(response, 405, new { Error = "Método no permitido" });
+                await WriteErrorResponse(response, 405, "Método no permitido");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "❌ Error procesando request");
-            await WriteResponse(response, 500, new { Error = "Error interno del servidor" });
+            await WriteErrorResponse(response, 500, "Error interno del servidor");
         }
     }
 
@@ -85,7 +104,7 @@ public class SimpleHttpServerService : BackgroundService
         switch (path)
         {
             case "/api/eventjson":
-                await HandleGetAllFiles(response, stoppingToken);
+                await HandleGetAllFiles(response);
                 break;
 
             case var p when p.StartsWith("/api/eventjson/") && !p.Contains("/descargar/"):
@@ -97,27 +116,23 @@ public class SimpleHttpServerService : BackgroundService
                 break;
 
             case "/api/eventjson/estado":
-                await HandleGetStatus(response, stoppingToken);
+                await HandleGetStatus(response);
                 break;
 
             default:
-                await WriteResponse(response, 404, new { Error = "Endpoint no encontrado" });
+                await WriteErrorResponse(response, 404, "Endpoint no encontrado");
                 break;
         }
     }
 
-    private async Task HandleGetAllFiles(HttpListenerResponse response, CancellationToken stoppingToken)
+    private async Task HandleGetAllFiles(HttpListenerResponse response)
     {
         var archivos = _jsonExportService.ObtenerArchivosJsonDisponibles();
 
         _logger.LogInformation("[] Listando {Cantidad} archivos JSON", archivos.Count);
 
-        await WriteResponse(response, 200, new
-        {
-            TotalArchivos = archivos.Count,
-            Archivos = archivos,
-            Timestamp = DateTime.UtcNow
-        });
+        var responseDto = new FileListResponse(archivos.Count, archivos, DateTime.UtcNow);
+        await WriteJsonResponse(response, 200, responseDto);
     }
 
     private async Task HandleGetSpecificFile(string nombreArchivo, HttpListenerResponse response, CancellationToken stoppingToken)
@@ -127,7 +142,7 @@ public class SimpleHttpServerService : BackgroundService
         if (!nombreArchivo.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
         {
             _logger.LogWarning("!! Formato de archivo no válido: {Archivo}", nombreArchivo);
-            await WriteResponse(response, 400, new { Error = "El archivo debe ser un JSON" });
+            await WriteErrorResponse(response, 400, "El archivo debe ser un JSON");
             return;
         }
 
@@ -136,7 +151,7 @@ public class SimpleHttpServerService : BackgroundService
         if (contenido == null)
         {
             _logger.LogWarning("!! Archivo no encontrado: {Archivo}", nombreArchivo);
-            await WriteResponse(response, 404, new { Error = "Archivo no encontrado" });
+            await WriteErrorResponse(response, 404, "Archivo no encontrado");
             return;
         }
 
@@ -145,7 +160,7 @@ public class SimpleHttpServerService : BackgroundService
         response.ContentType = "application/json";
         response.StatusCode = 200;
         var buffer = Encoding.UTF8.GetBytes(contenido);
-        await response.OutputStream.WriteAsync(buffer, 0, buffer.Length, stoppingToken);
+        await response.OutputStream.WriteAsync(buffer, stoppingToken);
         response.Close();
     }
 
@@ -158,7 +173,7 @@ public class SimpleHttpServerService : BackgroundService
         if (rutaArchivo == null || !File.Exists(rutaArchivo))
         {
             _logger.LogWarning("!! Archivo no encontrado para descarga: {Archivo}", nombreArchivo);
-            await WriteResponse(response, 404, new { Error = "Archivo no encontrado" });
+            await WriteErrorResponse(response, 404, "Archivo no encontrado");
             return;
         }
 
@@ -169,44 +184,59 @@ public class SimpleHttpServerService : BackgroundService
         response.ContentLength64 = fileBytes.Length;
         response.StatusCode = 200;
 
-        await response.OutputStream.WriteAsync(fileBytes, 0, fileBytes.Length, stoppingToken);
+        await response.OutputStream.WriteAsync(fileBytes, stoppingToken);
         _logger.LogInformation(">> Archivo descargado exitosamente: {Archivo}", nombreArchivo);
         response.Close();
     }
 
-    private async Task HandleGetStatus(HttpListenerResponse response, CancellationToken stoppingToken)
+    private async Task HandleGetStatus(HttpListenerResponse response)
     {
         var archivos = _jsonExportService.ObtenerArchivosJsonDisponibles();
 
-        await WriteResponse(response, 200, new
-        {
-            Estado = "Operativo",
-            TotalArchivosJson = archivos.Count,
-            UltimosArchivos = archivos.Take(5),
-            Timestamp = DateTime.UtcNow
-        });
+        var responseDto = new StatusResponse(
+            "Operativo",
+            archivos.Count,
+            archivos.Take(5),
+            DateTime.UtcNow
+        );
+
+        await WriteJsonResponse(response, 200, responseDto);
     }
 
-    private async Task WriteResponse(HttpListenerResponse response, int statusCode, object data)
+    private static async Task WriteJsonResponse<T>(HttpListenerResponse response, int statusCode, T data)
     {
         response.ContentType = "application/json";
         response.StatusCode = statusCode;
 
-        var json = JsonSerializer.Serialize(data, new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-        });
+        var jsonTypeInfo = HttpApiJsonContext.Default.GetTypeInfo(typeof(T));
 
-        var buffer = Encoding.UTF8.GetBytes(json);
-        await response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+        if (jsonTypeInfo is JsonTypeInfo<T> typedJsonTypeInfo)
+        {
+            var json = JsonSerializer.Serialize(data, typedJsonTypeInfo);
+            var buffer = Encoding.UTF8.GetBytes(json);
+            await response.OutputStream.WriteAsync(buffer);
+        }
+        else
+        {
+            var json = JsonSerializer.Serialize(data);
+            var buffer = Encoding.UTF8.GetBytes(json);
+            await response.OutputStream.WriteAsync(buffer);
+        }
+
         response.Close();
+    }
+
+    private static async Task WriteErrorResponse(HttpListenerResponse response, int statusCode, string errorMessage)
+    {
+        var errorResponse = new ErrorResponse(errorMessage);
+        await WriteJsonResponse(response, statusCode, errorResponse);
     }
 
     public override void Dispose()
     {
         _listener?.Stop();
         _listener?.Close();
+        GC.SuppressFinalize(this);
         base.Dispose();
     }
 }

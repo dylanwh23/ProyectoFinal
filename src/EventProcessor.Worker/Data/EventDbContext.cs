@@ -3,10 +3,8 @@ using Shared.Contracts.Models;
 
 namespace EventProcessor.Worker.Data;
 
-public class EventDbContext : DbContext
+public class EventDbContext(DbContextOptions<EventDbContext> options) : DbContext(options)
 {
-    public EventDbContext(DbContextOptions<EventDbContext> options) : base(options) { }
-
     public DbSet<EnrichedEvent> Events { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
