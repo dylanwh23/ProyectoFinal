@@ -1,0 +1,189 @@
+@page "/"
+@rendermode InteractiveServer
+@using Shared.Contracts.Models
+@inject WMSClient.Services.IWmsCameraService CameraService
+@inject NavigationManager Navigation
+
+<div class="wms-layout">
+    <!-- Top Navigation Bar -->
+    <nav class="wms-navbar">
+        <div class="navbar-brand">
+            <i class="bi bi-camera-video-fill"></i>
+            <span>WMS Cámaras</span>
+        </div>
+        <div class="navbar-info">
+            <span class="text-muted">@(SelectedBranch?.Name ?? "Sistema de Monitoreo")</span>
+        </div>
+    </nav>
+
+    @if (!string.IsNullOrEmpty(ErrorMessage))
+    {
+        <div class="alert alert-danger mx-3 mt-3 rounded-lg">@ErrorMessage</div>
+    }
+
+    @if (IsLoading)
+    {
+        <div class="loading-container">
+            <div class="spinner-border text-primary" role="status" style="width:3rem;height:3rem;"></div>
+            <p class="text-muted mt-3">Cargando cámaras...</p>
+        </div>
+    }
+    else
+    {
+        <div class="wms-container">
+            <!-- Sidebar de Sucursales -->
+            <aside class="wms-sidebar">
+                <div class="sidebar-header">
+                    <i class="bi bi-building"></i>
+                    <h5>Sucursales</h5>
+                </div>
+                <nav class="sidebar-nav">
+                    @if (Branches.Count == 0)
+                    {
+                        <div class="text-muted text-center py-4">No hay sucursales</div>
+                    }
+                    else
+                    {
+                        @foreach (var b in Branches)
+                        {
+                            <button 
+                                class="sidebar-nav-item @(SelectedBranch?.Name == b.Name ? "active" : "")" 
+                                @onclick="@((MouseEventArgs e) => SelectBranch(b.Name))"
+                                title="@b.Name">
+                                <span class="nav-label">@b.Name</span>
+                                <span class="nav-badge">@b.Cameras.Count</span>
+                            </button>
+                        }
+                    }
+                </nav>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="wms-main">
+                <!-- Cameras Grid Section -->
+                <section class="cameras-section">
+                    <div class="section-header">
+                        <h4><i class="bi bi-camera"></i> @(SelectedBranch?.Name ?? "Cámaras")</h4>
+                        <p class="text-muted">@(SelectedBranch?.Cameras.Count ?? 0) cámaras disponibles</p>
+                    </div>
+
+                    @if (SelectedBranch == null)
+                    {
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p>Selecciona una sucursal</p>
+                        </div>
+                    }
+                    else if (SelectedBranch.Cameras.Count == 0)
+                    {
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p>No hay cámaras en esta sucursal</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="cameras-grid">
+                            @foreach (var cam in SelectedBranch.Cameras)
+                            {
+                                <div class="@(ActiveCamera?.IpCamara == cam.IpCamara ? "camera-item camera-item-active" : "camera-item")">
+                                    <CameraCard Camera="cam" OnSelected="OpenCamera" />
+                                </div>
+                            }
+                        </div>
+                    }
+                </section>
+
+                <!-- Video Viewer Section -->
+                <section class="viewer-section">
+                    <div class="viewer-header">
+                        <h4>
+                            <i class="bi bi-play-circle"></i>
+                            @if (ActiveCamera == null)
+                            {
+                                <span>Selecciona una cámara para ver en tiempo real</span>
+                            }
+                            else
+                            {
+                                <span>@ActiveCamera.Nombre</span>
+                            }
+                        </h4>
+                        @if (ActiveCamera != null)
+                        {
+                            <small class="text-muted">@ActiveCamera.IpCamara</small>
+                        }
+                    </div>
+                    <div class="viewer-content">
+                        <WMSClient.Components.CameraView SelectedCamera="@ActiveCamera" />
+                    </div>
+                </section>
+            </main>
+        </div>
+    }
+</div>
+
+@code {
+    private class BranchModel { public string Name { get; set; } = ""; public List<AltaEventoModel> Cameras { get; set; } = new(); }
+
+    private List<BranchModel> Branches { get; set; } = new();
+    private BranchModel? SelectedBranch { get; set; }
+    private AltaEventoModel? ActiveCamera { get; set; }
+
+    private bool IsLoading = false;
+    private string ErrorMessage = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        IsLoading = true;
+        ErrorMessage = string.Empty;
+        try
+        {
+            var cameras = await CameraService.GetCamerasAsync();
+
+        // Group by Sucursal to represent branches/locations
+        var grouped = cameras.GroupBy(c => string.IsNullOrWhiteSpace(c.Sucursal) ? "General" : c.Sucursal.Trim())
+            .Select(g => new BranchModel { Name = g.Key, Cameras = g.ToList() }).ToList();
+
+            Branches = grouped;
+        if (Branches.Count > 0)
+        {
+            SelectedBranch = Branches[0];
+            // Do not pre-select an active camera — only open a camera when the user clicks a card
+            ActiveCamera = null;
+        }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "Error al cargar cámaras: " + ex.Message;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+        // Check for mismatched scheme between client page and API base
+        try
+        {
+            var apiBase = CameraService.GetApiBase();
+            if (!string.IsNullOrEmpty(apiBase))
+            {
+                var apiUri = new Uri(apiBase);
+                var pageUri = new Uri(Navigation.BaseUri);
+                if (!string.Equals(apiUri.Scheme, pageUri.Scheme, StringComparison.OrdinalIgnoreCase))
+                {
+                    ErrorMessage = "Atención: El esquema (http/https) del API no coincide con la página actual. Esto puede causar que el navegador bloquee solicitudes (mixed-content). Cambia `ApiBase` en appsettings.json a 'https' o ajusta la configuración del servidor API.";
+                }
+            }
+        }
+        catch { }
+    }
+
+    private void SelectBranch(string name)
+    {
+        SelectedBranch = Branches.FirstOrDefault(b => b.Name == name);
+    }
+
+    private void OpenCamera(AltaEventoModel cam)
+    {
+        ActiveCamera = cam;
+    }
+}

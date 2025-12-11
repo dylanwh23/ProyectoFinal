@@ -198,14 +198,14 @@ public class CameraManagerService : BackgroundService
         return await db.Eventos.ToListAsync();
     }
 
-    public async Task<bool> AgregarCamara(string ip, int puerto, string ruta, string nombre)
+    public async Task<bool> AgregarCamara(string ip, int puerto, string ruta, string nombre, string sucursal = "")
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         if (await db.Eventos.AnyAsync(c => c.IpCamara == ip)) return false;
 
-        db.Eventos.Add(new EstadisticasCamara(ip, puerto, ruta, nombre));
+        db.Eventos.Add(new EstadisticasCamara(ip, puerto, ruta, nombre, sucursal));
         await db.SaveChangesAsync();
         await SincronizarWatchers();
         return true;
@@ -422,21 +422,16 @@ public class CameraManagerService : BackgroundService
 
 
         // 4. Calcular fromFrame y toFrame
+        // CORRECCIÓN: No asumir frames futuros. Usar solo frames que existan en disco.
         var fromFrame = Math.Max(rangeInfo.MinNumber, centerFrameNumber - framesBefore);
+        var toFrame = Math.Min(rangeInfo.MaxNumber, centerFrameNumber + framesAfter);
         
-        int toFrame;
-        // Si el número máximo de frames disponibles en disco (rangeInfo.MaxNumber)
-        // es menor que el frame central más la cantidad de frames deseados después (framesAfter),
-        // asumimos que los frames "futuros" se generarán y establecemos toFrame directamente a centerFrameNumber + framesAfter.
-        if (rangeInfo.MaxNumber < (centerFrameNumber + framesAfter))
+        // Si el resultado no tiene suficientes frames, expandimos hacia atrás
+        int desiredFrameCount = framesBefore + 1 + framesAfter;
+        if ((toFrame - fromFrame + 1) < desiredFrameCount)
         {
-            toFrame = centerFrameNumber + framesAfter;
-        }
-        else
-        {
-            // Si ya hay suficientes frames en disco (o más de los que necesitamos),
-            // entonces limitamos el toFrame al deseado, sin exceder el MaxNumber real.
-            toFrame = Math.Min(rangeInfo.MaxNumber, centerFrameNumber + framesAfter);
+            // Intentar expandir hacia atrás
+            fromFrame = Math.Max(rangeInfo.MinNumber, toFrame - desiredFrameCount + 1);
         }
 
         return new EventFrameRange

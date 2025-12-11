@@ -36,7 +36,7 @@ public class CamaraController : ControllerBase
         var resultado = camarasEnBd.Select(cam => 
         {
             if (statsEnVivo.TryGetValue(cam.IpCamara, out var vivo)) return vivo; 
-            return new EstadisticasCamara(cam.IpCamara, cam.Puerto, cam.RutaCarpeta, cam.Nombre)
+            return new EstadisticasCamara(cam.IpCamara, cam.Puerto, cam.RutaCarpeta, cam.Nombre, cam.Sucursal)
             {
                 EstaConectada = false,
                 UltimoMensaje = "Desconectada / Sin Tráfico"
@@ -49,7 +49,7 @@ public class CamaraController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AgregarCamara([FromBody] CamaraRequest request)
     {
-        var exito = await _manager.AgregarCamara(request.IpCamara, request.Puerto, request.RutaCarpeta, request.Nombre);
+        var exito = await _manager.AgregarCamara(request.IpCamara, request.Puerto, request.RutaCarpeta, request.Nombre, request.Sucursal);
         
         if (exito)
         {
@@ -95,4 +95,4 @@ public class CamaraController : ControllerBase
 }
 
 // DTO para la petición de agregar cámara
-public record CamaraRequest(string IpCamara, int Puerto, string RutaCarpeta, string Nombre);
+public record CamaraRequest(string IpCamara, int Puerto, string RutaCarpeta, string Nombre, string Sucursal = "");

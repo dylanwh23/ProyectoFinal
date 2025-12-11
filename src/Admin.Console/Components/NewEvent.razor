@@ -20,7 +20,15 @@
                 <ValidationMessage For="@(() => FormModel.Nombre)" />
             </div>
 
-            @* --- IP y PUERTO --- *@
+            @* --- SUCURSAL --- *@
+            <div class="mb-2">
+                <label class="form-label fw-bold small text-secondary mb-1">SUCURSAL</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white"><i class="bi bi-shop"></i></span>
+                    <InputText @bind-Value="FormModel.Sucursal" class="form-control" placeholder="Ej: Sucursal Centro" />
+                </div>
+                <ValidationMessage For="@(() => FormModel.Sucursal)" />
+            </div>
             <div class="mb-2">
                 <label class="form-label fw-bold small text-secondary mb-1">CONEXIÓN (IP : PUERTO)</label>
                 <div class="input-group input-group-sm">
