@@ -94,6 +94,29 @@ namespace TelnetInterceptor.Worker.Controllers
         }
 
         // ============================================================
+        // 3.b NUEVO: Endpoint para obtener una miniatura (thumbnail)
+        // GET: api/thumbnail/{cameraName}?width=320&height=180&quality=60
+        // ============================================================
+        [HttpGet("thumbnail/{cameraName}")]
+        [HttpGet("camaras/thumbnail/{cameraName}")]
+        public async Task<IActionResult> GetThumbnail(string cameraName,
+            [FromQuery] int width = 320,
+            [FromQuery] int height = 180,
+            [FromQuery] int quality = 60)
+        {
+            var fileToProcess = _cameraManager.GetLatestFile(cameraName);
+            if (string.IsNullOrEmpty(fileToProcess) || !System.IO.File.Exists(fileToProcess))
+                return NotFound("Sin imagen en vivo para miniatura.");
+
+            byte[]? jpegData = await ProcessImageToJpegAsync(fileToProcess, width, height, quality);
+            if (jpegData == null) return StatusCode(500, "Error procesando miniatura.");
+            // Cache small thumbnails for a short time to reduce load when dashboard refreshes. Adjust as needed.
+            Response.Headers["Cache-Control"] = "public, max-age=2";
+            Response.Headers["X-Generated-By"] = "TelnetInterceptor-Thumbnail";
+            return File(jpegData, "image/jpeg");
+        }
+
+        // ============================================================
         // 4. NUEVO: Endpoint para obtener imágenes por RANGO de número
         // GET: api/range/{cameraName}?from=1100&to=1200
         // ============================================================
@@ -183,16 +206,16 @@ namespace TelnetInterceptor.Worker.Controllers
         }
 
         // --- Helper Privado ---
-        private async Task<byte[]?> ProcessImageToJpegAsync(string filePath)
+        private async Task<byte[]?> ProcessImageToJpegAsync(string filePath, int width = 1280, int height = 720, int quality = 75)
         {
             for (int i = 0; i < 3; i++)
             {
                 try
                 {
                     using var image = await Image.LoadAsync(filePath);
-                    image.Mutate(x => x.Resize(new ResizeOptions { Mode = ResizeMode.Max, Size = new Size(1280, 720) }));
+                    image.Mutate(x => x.Resize(new ResizeOptions { Mode = ResizeMode.Max, Size = new Size(width, height) }));
                     using var ms = new MemoryStream();
-                    await image.SaveAsJpegAsync(ms, new JpegEncoder { Quality = 75 });
+                    await image.SaveAsJpegAsync(ms, new JpegEncoder { Quality = quality });
                     return ms.ToArray();
                 }
                 catch (IOException) { await Task.Delay(50); }

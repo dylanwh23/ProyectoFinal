@@ -1,0 +1,167 @@
+@rendermode InteractiveServer
+@using Shared.Contracts.Models
+
+<div class="viewer-layout">
+    @if (SelectedCamera == null)
+    {
+        <div class="viewer-placeholder">
+            <i class="bi bi-camera-video"></i>
+            <h5>Selecciona una cámara</h5>
+            <p>Haz click en una tarjeta para ver en tiempo real</p>
+        </div>
+    }
+    else
+    {
+        <div class="viewer-wrapper">
+            <!-- Video Section (Left) -->
+            <div class="viewer-video-section">
+                <!-- Status Bar -->
+                <div class="video-status-bar">
+                    <div class="status-badge @(IsLive ? "status-live" : "status-buffer")">
+                        <span class="badge-dot"></span>
+                        @if (IsLive) { <span>EN VIVO</span> }
+                        else { <span>BUFFER</span> }
+                    </div>
+                    <div class="status-message">@StatusMessage</div>
+                    <div class="status-labels">
+                        <span class="label-start">@LabelStart</span>
+                        <span class="label-current">@LabelCurrent</span>
+                    </div>
+                </div>
+
+                <!-- Video Container -->
+                <div class="video-container">
+                    @if (IsLoading)
+                    {
+                        <div class="video-loading">
+                            <div class="spinner-border text-light" role="status"></div>
+                            <p>@StatusMessage</p>
+                        </div>
+                    }
+                    else if (ShowNoSignal)
+                    {
+                        <div class="video-no-signal">
+                            <div class="signal-icon">
+                                <i class="bi bi-wifi-off"></i>
+                            </div>
+                            <h4>Sin Señal</h4>
+                            <p>No hay imágenes hace más de 10 segundos</p>
+                            <button class="btn-retry" @onclick="RefreshStream">
+                                <i class="bi bi-arrow-clockwise"></i> Reintentar
+                            </button>
+                        </div>
+                    }
+                    else if (!string.IsNullOrEmpty(ImageSource))
+                    {
+                        <img 
+                            src="@ImageSource" 
+                            alt="Camera stream" 
+                            class="video-stream"
+                            @onerror="HandleImageError" />
+                    }
+                    else
+                    {
+                        <div class="video-no-signal">
+                            <div class="signal-icon">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                            <h4>Sin Señal</h4>
+                            <p>La cámara no está recibiendo imágenes</p>
+                            <button class="btn-retry" @onclick="RefreshStream">
+                                <i class="bi bi-arrow-clockwise"></i> Reintentar
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                <!-- Control Bar -->
+                <div class="video-controls">
+                    <div class="control-group">
+                        <button 
+                            class="btn-control btn-play-pause" 
+                            @onclick="TogglePlayPause"
+                            title="@(IsLive ? "Pausar (Ver Historial)" : "En Vivo")">
+                            @if (IsLive)
+                            {
+                                <i class="bi bi-pause-fill"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-play-fill"></i>
+                            }
+                        </button>
+                        <button class="btn-control" @onclick="RefreshStream" title="Refrescar">
+                            <i class="bi bi-arrow-clockwise"></i>
+                        </button>
+                        @if (!IsLive && FramesBuffer.Count > 0)
+                        {
+                            <button class="btn-control" @onclick="GoToBeginningHistory" title="Ir al inicio del historial">
+                                <i class="bi bi-skip-start-fill"></i>
+                            </button>
+                        }
+                    </div>
+
+                    <!-- Slider -->
+                    @if (!IsLive && FramesBuffer.Count > 0)
+                    {
+                        <div class="slider-container">
+                            <input 
+                                type="range" 
+                                min="0" 
+                                max="@SliderMax" 
+                                value="@SliderValue"
+                                class="video-slider"
+                                style="--percent: @(SliderMax > 0 ? (SliderValue * 100.0 / SliderMax) : 0);"
+                                @oninput="OnSliderChange"
+                                disabled="@IsLoading" />
+                            <div class="slider-info">
+                                <span class="slider-position">Frame @(SliderValue + 1) / @FramesBuffer.Count</span>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Events Sidebar (Right) -->
+            <aside class="viewer-events-sidebar">
+                <div class="sidebar-header">
+                    <h5><i class="bi bi-list-check"></i> Eventos (@Events.Count)</h5>
+                    <button class="btn-refresh" @onclick="RefreshEvents" title="Refrescar eventos">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+                <div class="events-scroll-container">
+                    @if (Events.Count == 0)
+                    {
+                        <div class="events-empty">
+                            <i class="bi bi-inbox"></i>
+                            <p>Sin eventos</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="events-list">
+                            @foreach (var ev in Events)
+                            {
+                                <div class="event-card" @onclick="@((MouseEventArgs e) => OnSelectEvent(ev))">
+                                    <div class="event-header">
+                                        <div class="event-name" title="@ev.Nombre">@ev.Nombre</div>
+                                        <span class="event-status">▶</span>
+                                    </div>
+                                    <div class="event-meta">
+                                        <span class="event-date"><i class="bi bi-calendar"></i> @ev.FechaEvento?.ToString("g")</span>
+                                    </div>
+                                    @if (ev.FromFrame.HasValue && ev.ToFrame.HasValue)
+                                    {
+                                        <div class="event-frames"><i class="bi bi-film"></i> @ev.FromFrame - @ev.ToFrame</div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </aside>
+        </div>
+    }
+</div>
+

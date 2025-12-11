@@ -1,0 +1,10 @@
+.camera-card {
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.12s ease-in-out, box-shadow 0.12s ease-in-out;
+}
+.camera-card:hover { transform: translateY(-4px); box-shadow: 0 6px 16px rgba(0,0,0,0.18); }
+.camera-preview { height: 120px; object-fit: cover; width: 100%; background-color: #f2f2f2; }
+.camera-name { font-size: 0.95rem; }
+.camera-ip { font-size: 0.82rem; }

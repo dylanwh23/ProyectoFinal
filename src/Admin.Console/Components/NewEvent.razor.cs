@@ -114,7 +114,8 @@ namespace Admin.Console.Components
                     IpCamara = FormModel.GetCameraIpString(),
                     Puerto = FormModel.CamPort,
                     RutaCarpeta = FormModel.RutaCarpeta,
-                    Nombre = FormModel.Nombre // Asegúrate que tu backend reciba este campo ahora
+                    Nombre = FormModel.Nombre,
+                    Sucursal = FormModel.Sucursal // Nuevo campo
                 };
 
                 Logger.LogInformation("Enviando POST...");
@@ -150,6 +151,7 @@ namespace Admin.Console.Components
         public class EventViewModel
         {
             public string Nombre { get; set; } = string.Empty;
+            public string Sucursal { get; set; } = string.Empty; // Nueva propiedad para sucursal
 
             public int CamIp1 { get; set; } = 192;
             public int CamIp2 { get; set; } = 168;

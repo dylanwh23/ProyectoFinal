@@ -111,7 +111,7 @@ public class TelnetWorkerService : BackgroundService
             _clients[ip] = client;
             
             // Inicializamos stats
-            _stats[ip] = new EstadisticasCamara(ip, cam.Puerto, cam.RutaCarpeta, cam.Nombre) 
+            _stats[ip] = new EstadisticasCamara(ip, cam.Puerto, cam.RutaCarpeta, cam.Nombre, cam.Sucursal) 
             { 
                 EstaConectada = true, 
                 UltimoMensaje = "Conectada",

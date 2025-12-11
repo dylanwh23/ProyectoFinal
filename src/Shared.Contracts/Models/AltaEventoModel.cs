@@ -4,6 +4,7 @@ namespace Shared.Contracts.Models
     {
         public int Id { get; set; } // Clave primaria
         public string Nombre { get; set; } = string.Empty;
+        public string Sucursal { get; set; } = string.Empty; // Nueva propiedad para categorizar cámaras
         public string IpCamara { get; set; } = string.Empty;
         public int Puerto { get; set; }
         public string RutaCarpeta { get; set; } = string.Empty;
