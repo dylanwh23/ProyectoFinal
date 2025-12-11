@@ -16,27 +16,48 @@ public class EventProcessorService(
     private readonly JsonExportService _jsonExportService = jsonExportService;
     private readonly ILogger<EventProcessorService> _logger = logger;
 
+    /// <summary>
+    /// Procesa un evento crudo, lo enriquece y lo persiste en la base de datos.
+    /// </summary>
     public async Task<bool> ProcessAndStoreEventAsync(EventoMovimientoDetectado rawEvent)
     {
-        // Crear un nuevo scope para cada procesamiento
+        if (rawEvent is null)
+        {
+            _logger.LogWarning("Evento recibido es NULL. Se ignora.");
+            return false;
+        }
+
         using var scope = _serviceProvider.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<EventDbContext>();
 
         try
         {
-            _logger.LogInformation("[] Procesando evento desde IP: {Ip}", rawEvent.IpCamara);
+            _logger.LogInformation(
+                ">> Procesando evento | IP: {IpCamara} | Momento: {Momento}",
+                rawEvent.IpCamara,
+                rawEvent.Momento);
 
-            // 1. Generar enlace de video
-            var videoLink = _videoLinkService.GenerateVideoLink(rawEvent.IpCamara, rawEvent.Momento);
+            // ------------------------------------------------------------
+            // 1. Validaciones mínimas de entrada
+            // ------------------------------------------------------------
+            if (string.IsNullOrWhiteSpace(rawEvent.IpCamara))
+            {
+                _logger.LogWarning("Evento recibido con IP inválida.");
+                return false;
+            }
 
-            // 2. Categorizar camara (logica simple basada en IP)
+            // ------------------------------------------------------------
+            // 2. Enriquecimiento del evento
+            // ------------------------------------------------------------
+            var videoLink = _videoLinkService.GenerateVideoLink(
+                rawEvent.IpCamara,
+                rawEvent.Momento
+            );
+
             var cameraCategory = CategorizeCamera(rawEvent.IpCamara);
             var warehouseZone = GetWarehouseZone(rawEvent.IpCamara);
-
-            // 3. Extraer QR code si esta en el mensaje (analisis basico)
             var qrCode = ExtractQrCodeFromMessage(rawEvent.MensajeCrudoEvento);
 
-            // 4. Crear evento enriquecido
             var enrichedEvent = new EnrichedEvent
             {
                 MomentoOriginal = rawEvent.Momento,
@@ -47,30 +68,54 @@ public class EventProcessorService(
                 WarehouseZone = warehouseZone,
                 QrCodeDetected = qrCode,
                 EventType = "movement_detected",
-                Confidence = 0.9
+                Confidence = 0.90
             };
 
-            // 5. Persistir en base de datos
-            context.Events.Add(enrichedEvent);
+            // ------------------------------------------------------------
+            // 3. Persistencia
+            // ------------------------------------------------------------
+            await context.Events.AddAsync(enrichedEvent);
             await context.SaveChangesAsync();
 
-            // 6. Exportar a JSON para el WMS
-            await _jsonExportService.ExportarEventoAJsonAsync(enrichedEvent);
+            _logger.LogInformation(
+                ">> Evento persistido correctamente | ID: {Id} | IP: {IpCamara}",
+                enrichedEvent.Id,
+                enrichedEvent.IpCamara
+            );
 
-            _logger.LogInformation(">> Evento almacenado exitosamente - ID: {Id}, IP: {Ip}",
-                enrichedEvent.Id, rawEvent.IpCamara);
+            // ------------------------------------------------------------
+            // 4. Exportación externa (JSON para WMS)
+            // ------------------------------------------------------------
+            await _jsonExportService.ExportarEventoAJsonAsync(enrichedEvent);
 
             return true;
         }
+        catch (DbUpdateException dbEx)
+        {
+            _logger.LogError(dbEx,
+                "!! Error de base de datos al guardar evento desde IP {Ip}",
+                rawEvent.IpCamara);
+
+            return false;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "!! Error procesando evento desde IP: {Ip}", rawEvent.IpCamara);
+            _logger.LogError(ex,
+                "!! Error procesando evento desde IP: {IpCamara}",
+                rawEvent.IpCamara);
+
             return false;
         }
     }
 
+    // =====================================================================
+    //  CATEGORIZACIÓN DE CÁMARAS
+    // =====================================================================
     private static string CategorizeCamera(string ipCamara)
     {
+        if (string.IsNullOrWhiteSpace(ipCamara))
+            return "Unknown";
+
         return ipCamara switch
         {
             var ip when ip.StartsWith("192.168.1.") => "Seguridad-Perimetral",
@@ -80,8 +125,14 @@ public class EventProcessorService(
         };
     }
 
+    // =====================================================================
+    //  ZONAS DEL DEPÓSITO
+    // =====================================================================
     private static string GetWarehouseZone(string ipCamara)
     {
+        if (string.IsNullOrWhiteSpace(ipCamara))
+            return "Zona-Desconocida";
+
         return ipCamara switch
         {
             var ip when ip.StartsWith("192.168.1.") => "Zona-Recepcion",
@@ -91,14 +142,29 @@ public class EventProcessorService(
         };
     }
 
+    // =====================================================================
+    //  EXTRACCIÓN DE QR CODE
+    // =====================================================================
     private static string? ExtractQrCodeFromMessage(string mensajeCrudo)
     {
-        if (mensajeCrudo.Contains("QR:") || mensajeCrudo.Contains("QR="))
+        if (string.IsNullOrWhiteSpace(mensajeCrudo))
+            return null;
+
+        var delimiters = new[] { ' ', ';', ',', '|' };
+        var parts = mensajeCrudo.Split(delimiters, StringSplitOptions.RemoveEmptyEntries);
+
+        foreach (var p in parts)
         {
-            var parts = mensajeCrudo.Split(' ');
-            var qrPart = parts.FirstOrDefault(p => p.StartsWith("QR:") || p.StartsWith("QR="));
-            return qrPart?.Split(':').LastOrDefault()?.Split('=').LastOrDefault();
+            if (p.StartsWith("QR:") || p.StartsWith("QR="))
+            {
+                var clean = p.Replace("QR:", "", StringComparison.OrdinalIgnoreCase)
+                            .Replace("QR=", "", StringComparison.OrdinalIgnoreCase)
+                            .Trim();
+
+                return string.IsNullOrWhiteSpace(clean) ? null : clean;
+            }
         }
+
         return null;
     }
 }
