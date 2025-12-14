@@ -23,30 +23,47 @@ public class CleanupService : BackgroundService
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+{
+    _logger.LogInformation("[] Iniciando servicio de limpieza automática de JSONs...");
+
+    // Esperar un poco al inicio para que todo esté estable
+    try
     {
-        _logger.LogInformation("[] Iniciando servicio de limpieza automática de JSONs...");
-
-        // Esperar un poco al inicio para que todo esté estable
         await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+    }
+    catch (TaskCanceledException)
+    {
+        _logger.LogDebug("Servicio de limpieza cancelado durante inicialización");
+        return;
+    }
 
-        while (!stoppingToken.IsCancellationRequested)
+    while (!stoppingToken.IsCancellationRequested)
+    {
+        try
         {
-            try
-            {
-                await RealizarLimpiezaAsync();
-                _logger.LogInformation(">> Limpieza completada. Próxima en {Horas} horas", _cleanupInterval.TotalHours);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "!! Error durante la limpieza automática");
-            }
-
-            // Esperar hasta la próxima limpieza
-            await Task.Delay(_cleanupInterval, stoppingToken);
+            await RealizarLimpiezaAsync();
+            _logger.LogInformation(">> Limpieza completada. Próxima en {Horas} horas", _cleanupInterval.TotalHours);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "!! Error durante la limpieza automática");
         }
 
-        _logger.LogInformation("[] Servicio de limpieza finalizado");
+        // Esperar hasta la próxima limpieza - CAPTURAR CANCELACIÓN
+        try
+        {
+            await Task.Delay(_cleanupInterval, stoppingToken);
+        }
+        catch (TaskCanceledException)
+        {
+            _logger.LogDebug("Servicio de limpieza cancelado durante espera");
+            break;  // Salir del loop limpiamente
+        }
     }
+
+    _logger.LogInformation("[] Servicio de limpieza finalizado");
+}
+
 
     private async Task RealizarLimpiezaAsync()
     {

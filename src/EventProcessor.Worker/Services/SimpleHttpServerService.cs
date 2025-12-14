@@ -57,8 +57,9 @@ public class SimpleHttpServerService : BackgroundService
         _listener = new HttpListener();
 
         // Configurar prefijos para diferentes escenarios
-        _listener.Prefixes.Add($"http://localhost:{_port}/");
-        _listener.Prefixes.Add($"http://127.0.0.1:{_port}/");
+        _listener.Prefixes.Add("http://+:5005/");
+        _listener.Prefixes.Add("http://*:5005/");
+
 
         // Solo agregar este si tienes los permisos necesarios
         // _listener.Prefixes.Add($"http://+:{_port}/");

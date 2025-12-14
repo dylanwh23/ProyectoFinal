@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Shared.Contracts.Models;
 using WMSClient.Services;
 using System.Text.Json;
+using Microsoft.JSInterop;
 
 namespace WMSClient.Components;
 
@@ -15,6 +16,9 @@ public partial class CameraView : IAsyncDisposable
 
     [Inject]
     public HttpClient Http { get; set; } = default!;
+
+    [Inject]
+    public IJSRuntime JS { get; set; } = default!;
 
     private const string API_BASE = "http://localhost:5000";
     private const int HISTORY_BUFFER_SIZE = 600;
@@ -143,6 +147,15 @@ public partial class CameraView : IAsyncDisposable
             _loopTimer?.Stop();
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task ToggleFullscreen()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("fullscreenHelper.toggleFullscreen", "viewer-layout");
+        }
+        catch { }
     }
 
     private async Task GoPause()

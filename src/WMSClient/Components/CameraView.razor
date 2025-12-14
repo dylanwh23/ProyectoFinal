@@ -1,7 +1,7 @@
 @rendermode InteractiveServer
 @using Shared.Contracts.Models
 
-<div class="viewer-layout">
+<div class="viewer-layout" id="viewer-layout">
     @if (SelectedCamera == null)
     {
         <div class="viewer-placeholder">
@@ -99,6 +99,9 @@
                                 <i class="bi bi-skip-start-fill"></i>
                             </button>
                         }
+                        <button class="btn-control" @onclick="ToggleFullscreen" title="Pantalla completa">
+                            <i class="bi bi-fullscreen"></i>
+                        </button>
                     </div>
 
                     <!-- Slider -->

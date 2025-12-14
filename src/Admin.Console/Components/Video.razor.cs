@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Shared.Contracts.Models;
 using System.Text.Json; // Necesario para opciones JSON
+using Microsoft.JSInterop;
 
 namespace Admin.Console.Components
 {
@@ -8,6 +9,9 @@ namespace Admin.Console.Components
     {
         [Inject]
         public HttpClient Http { get; set; } = default!;
+
+        [Inject]
+        public IJSRuntime JS { get; set; } = default!;
 
         [Parameter]
         public AltaEventoModel? Evento { get; set; }
@@ -136,6 +140,14 @@ namespace Admin.Console.Components
             }
         }
 
+        private async Task ToggleFullscreen()
+        {
+            try
+            {
+                await JS.InvokeVoidAsync("fullscreenHelper.toggleFullscreen", "player-container");
+            }
+            catch { }
+        }
 
         private async Task GoLive()
         {
