@@ -96,6 +96,11 @@
 .btn-play:active { transform: scale(0.95); }
 .btn-play i { color: #000; font-size: 1.2rem; }
 
+.btn-go-live {
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
 .range-container {
     flex-grow: 1;
     display: flex;

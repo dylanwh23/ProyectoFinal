@@ -2,6 +2,28 @@
 // Must be loaded after blazor.server.js so JS interop can find it.
 
 (function () {
+  const getWmsContainer = () => document.querySelector('.wms-container');
+
+  const smoothScrollContainerToElement = (container, el) => {
+    if (!container || !el) return false;
+    const style = window.getComputedStyle(container);
+    const oy = style.overflowY;
+    const canScrollY = (oy === 'auto' || oy === 'scroll') && container.scrollHeight > container.clientHeight;
+    if (!canScrollY) return false;
+
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const delta = elRect.top - containerRect.top;
+    const top = Math.max(0, container.scrollTop + delta - 12);
+
+    try {
+      container.scrollTo({ top, behavior: 'smooth' });
+    } catch {
+      container.scrollTop = top;
+    }
+    return true;
+  };
+
   const getScrollableParent = (el) => {
     let cur = el && el.parentElement;
     while (cur) {
@@ -63,7 +85,19 @@
     scrollToViewer: function () {
       waitForElementById('viewer-layout').then((el) => {
         if (!el) return;
-        smoothScrollToElement(el);
+        // WMS usa un contenedor con overflow (.wms-container). Scrollearlo explícitamente.
+        const wms = getWmsContainer();
+        const did = smoothScrollContainerToElement(wms, el);
+        if (!did) smoothScrollToElement(el);
+
+        // Segundo intento: al cerrar la lista de eventos cambia el layout/altura.
+        setTimeout(() => {
+          const el2 = document.getElementById('viewer-layout');
+          if (!el2) return;
+          const wms2 = getWmsContainer();
+          const did2 = smoothScrollContainerToElement(wms2, el2);
+          if (!did2) smoothScrollToElement(el2);
+        }, 120);
       });
     }
   };

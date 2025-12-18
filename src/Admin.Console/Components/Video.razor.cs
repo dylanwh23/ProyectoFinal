@@ -19,6 +19,9 @@ namespace Admin.Console.Components
         [Parameter]
         public EventCallback<AltaEventoModel> OnGuardarEvento { get; set; }
 
+        [Parameter]
+        public EventCallback<AltaEventoModel> OnRequestGoLive { get; set; }
+
         // ============================================================
         // CONFIGURACIÓN (Cambia el puerto aquí si es necesario)
         // ============================================================
@@ -84,37 +87,41 @@ namespace Admin.Console.Components
                 _watchdogTimer?.Stop();
                 _loopTimer?.Stop();
                 StatusMessage = "Seleccione una cámara o evento para visualizar.";
-                await InvokeAsync(StateHasChanged); // Forzar re-renderizado
+                await InvokeAsync(StateHasChanged);
                 return;
             }
 
-            // Detectar si el objeto Evento es una referencia diferente
-            bool eventoObjetoCambio = Evento != _previousEvento;
-
-            // Detectar si cambió la cámara o el tipo de evento (vivo vs guardado)
-            bool cambioCamara = Evento.IpCamara != _currentIp;
             bool esGuardado = Evento.FromFrame != null && Evento.ToFrame != null;
+            bool eventoDistinto = _previousEvento == null
+                || Evento.Id != _previousEvento.Id
+                || Evento.FromFrame != _previousEvento.FromFrame
+                || Evento.ToFrame != _previousEvento.ToFrame
+                || Evento.IpCamara != _currentIp;
 
-            if (eventoObjetoCambio || cambioCamara || esGuardado != _isEventoGuardado)
+            // Siempre detener timers antes de cargar un clip o stream nuevo
+            if (eventoDistinto || esGuardado != _isEventoGuardado)
             {
-                _previousEvento = Evento; // Actualizar la referencia del evento anterior
+                _loopTimer?.Stop();
+                _watchdogTimer?.Stop();
+
+                _previousEvento = Evento;
                 _currentIp = Evento.IpCamara;
                 _isEventoGuardado = esGuardado;
-                
-                StatusMessage = "Cargando..."; // Mensaje de carga inicial
-                // Forzar un re-renderizado rápido para mostrar el estado de carga/cambio
+                StatusMessage = "Cargando...";
                 await InvokeAsync(StateHasChanged);
-
-                if (_isEventoGuardado)
-                {
-                    await PlayEventoGuardado(); // Ahora es async Task
-                }
-                else
-                {
-                    await GoLive(); // Ahora es async Task
-                }
             }
-            await base.OnParametersSetAsync(); // Llama a la implementación base para otros parámetros
+
+            // Reproducimos siempre según el estado actual para evitar que un cambio rápido quede ignorado
+            if (_isEventoGuardado)
+            {
+                await PlayEventoGuardado();
+            }
+            else
+            {
+                await GoLive();
+            }
+
+            await base.OnParametersSetAsync();
         }
 
         // Nuevo método para forzar la carga/reproducción
@@ -189,9 +196,55 @@ namespace Admin.Console.Components
 
         private void TogglePlayPause()
         {
-            if (_isEventoGuardado) return;
+            if (_isEventoGuardado)
+            {
+                // En reproducción de clip guardado, el botón actúa como "volver a vivo".
+                _ = RequestGoLive();
+                return;
+            }
             if (IsLive) _ = GoPause(); // No await aquí para no bloquear la UI
             else _ = GoLive(); // No await aquí
+        }
+
+        private async Task RequestGoLive()
+        {
+            if (Evento == null) return;
+
+            // Pedimos al padre que seleccione la cámara en vivo (mismo ip/puerto, sin frames).
+            var live = new AltaEventoModel
+            {
+                IpCamara = Evento.IpCamara,
+                Puerto = Evento.Puerto,
+                RutaCarpeta = Evento.RutaCarpeta,
+                Nombre = Evento.Nombre,
+                Sucursal = Evento.Sucursal,
+                TipoEvento = NormalizeCameraTipo(Evento.TipoEvento),
+                EsEventoGuardado = false,
+                FramePath = null,
+                FromFrame = null,
+                ToFrame = null
+            };
+
+            if (OnRequestGoLive.HasDelegate)
+            {
+                await OnRequestGoLive.InvokeAsync(live);
+                return;
+            }
+
+            // Fallback: si no hay callback, sólo podemos volver a vivo si NO era clip guardado.
+            if (!_isEventoGuardado)
+            {
+                await GoLive();
+            }
+        }
+
+        private static string NormalizeCameraTipo(string? tipoEvento)
+        {
+            var t = (tipoEvento ?? string.Empty).Trim().ToLowerInvariant();
+            if (t.StartsWith("grid")) return "grid";
+            if (t.StartsWith("pallet")) return "pallet";
+            if (t.StartsWith("camion")) return "camion";
+            return "grid";
         }
 
         private async Task LoadHistoryBuffer()

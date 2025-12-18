@@ -11,6 +11,9 @@ public partial class CameraView : IAsyncDisposable
     [Parameter]
     public AltaEventoModel? SelectedCamera { get; set; }
 
+    [Parameter]
+    public EventCallback<AltaEventoModel> OnRequestGoLive { get; set; }
+
     [Inject]
     public IWmsCameraService CameraService { get; set; } = default!;
 
@@ -51,6 +54,9 @@ public partial class CameraView : IAsyncDisposable
     private System.Timers.Timer? _watchdogTimer;
     private System.Timers.Timer? _loopTimer;
 
+    private int _loadVersion;
+    private bool _disposed;
+
     private readonly JsonSerializerOptions _jsonOptions = new() { PropertyNameCaseInsensitive = true };
 
     protected override void OnInitialized()
@@ -79,14 +85,23 @@ public partial class CameraView : IAsyncDisposable
             return;
         }
 
-        bool cameraCambio = SelectedCamera != _previousCamera;
-        // Detectar si es evento guardado usando CUALQUIERA de los dos pares disponibles
-        bool esEvento = (SelectedCamera.FromFrame.HasValue && SelectedCamera.ToFrame.HasValue) ||
-                        (SelectedCamera.FrameInicio.HasValue && SelectedCamera.FrameFin.HasValue);
+        var (fromFrame, toFrame) = GetFrameRange(SelectedCamera);
+        bool esEvento = fromFrame.HasValue && toFrame.HasValue;
 
-        if (cameraCambio || esEvento != _isEventoGuardado)
+        bool eventoDistinto = _previousCamera == null
+            || !string.Equals(SelectedCamera.IpCamara, _previousCamera.IpCamara, StringComparison.OrdinalIgnoreCase)
+            || SelectedCamera.Id != _previousCamera.Id
+            || GetFrameRange(SelectedCamera) != GetFrameRange(_previousCamera);
+
+        if (eventoDistinto || esEvento != _isEventoGuardado)
         {
-            _previousCamera = SelectedCamera;
+            // SOLO cuando realmente vamos a cargar algo nuevo invalidamos lo anterior
+            var myLoad = Interlocked.Increment(ref _loadVersion);
+
+            _loopTimer?.Stop();
+            _watchdogTimer?.Stop();
+
+            _previousCamera = CloneCamera(SelectedCamera);
             _currentIp = SelectedCamera.IpCamara;
             _isEventoGuardado = esEvento;
 
@@ -95,12 +110,12 @@ public partial class CameraView : IAsyncDisposable
 
             if (esEvento)
             {
-                await PlayEventoGuardado();
+                await PlayEventoGuardado(myLoad);
             }
             else
             {
                 await LoadEvents();
-                await GoLive();
+                await GoLiveInternal(myLoad);
             }
         }
     }
@@ -118,13 +133,49 @@ public partial class CameraView : IAsyncDisposable
         }
     }
 
-    private async Task GoLive()
+    private async Task RequestGoLive()
     {
+        if (SelectedCamera == null) return;
+
+        var live = new AltaEventoModel
+        {
+            Id = SelectedCamera.Id,
+            Nombre = SelectedCamera.Nombre,
+            Sucursal = SelectedCamera.Sucursal,
+            TipoEvento = SelectedCamera.TipoEvento,
+            IpCamara = SelectedCamera.IpCamara,
+            Puerto = SelectedCamera.Puerto,
+            RutaCarpeta = SelectedCamera.RutaCarpeta,
+            EstaConectada = SelectedCamera.EstaConectada,
+            EsEventoGuardado = false,
+            FromFrame = null,
+            ToFrame = null,
+            FrameInicio = null,
+            FrameFin = null,
+            Descripcion = null,
+            FramePath = null
+        };
+
+        if (OnRequestGoLive.HasDelegate)
+        {
+            await OnRequestGoLive.InvokeAsync(live);
+            return;
+        }
+
+        // Fallback: si el padre no maneja el cambio, al menos volvemos a vivo localmente.
+        var myLoad = Interlocked.Increment(ref _loadVersion);
+        await GoLiveInternal(myLoad);
+    }
+
+    private async Task GoLiveInternal(int myLoad)
+    {
+        if (_disposed || myLoad != _loadVersion) return;
         IsLive = true;
         IsLoading = false;
         ShowNoSignal = false;
         FramesBuffer.Clear();
         _loopTimer?.Stop();
+        _isEventoGuardado = false;
 
         SliderMax = 100;
         SliderValue = 100;
@@ -183,7 +234,7 @@ public partial class CameraView : IAsyncDisposable
         if (IsLive)
             _ = GoPause();
         else
-            _ = GoLive();
+            _ = RequestGoLive();
     }
 
     private async Task LoadHistoryBuffer()
@@ -216,8 +267,9 @@ public partial class CameraView : IAsyncDisposable
         await InvokeAsync(StateHasChanged);
     }
 
-    private async Task PlayEventoGuardado()
+    private async Task PlayEventoGuardado(int myLoad)
     {
+        if (_disposed || myLoad != _loadVersion) return;
         if (SelectedCamera == null)
         {
             StatusMessage = "No hay evento seleccionado";
@@ -250,6 +302,8 @@ public partial class CameraView : IAsyncDisposable
             var url = $"{API_BASE}/api/range/{_currentIp}?from={fromFrame.Value}&to={toFrame.Value}";
             var snapshot = await Http.GetFromJsonAsync<HistorySnapshotDto>(url, _jsonOptions);
 
+            if (_disposed || myLoad != _loadVersion) return;
+
             if (snapshot != null && snapshot.Files.Count > 0)
             {
                 FramesBuffer = snapshot.Files;
@@ -258,7 +312,7 @@ public partial class CameraView : IAsyncDisposable
                 LabelStart = "Evento Guardado";
                 LabelCurrent = $"{FramesBuffer.Count} frames";
 
-                StartLoopPlayback();
+                StartLoopPlayback(myLoad);
                 StatusMessage = $"Evento '{SelectedCamera.Nombre}' cargado ({FramesBuffer.Count} frames)";
             }
             else
@@ -279,7 +333,7 @@ public partial class CameraView : IAsyncDisposable
         }
     }
 
-    private void StartLoopPlayback()
+    private void StartLoopPlayback(int myLoad)
     {
         if (FramesBuffer.Count == 0) return;
 
@@ -289,14 +343,23 @@ public partial class CameraView : IAsyncDisposable
 
         _loopTimer.Elapsed += async (sender, e) =>
         {
-            if (FramesBuffer.Count == 0) return;
-            ShowFrame(currentIndex);
-            await InvokeAsync(() =>
+            try
             {
-                SliderValue = currentIndex;
-                StateHasChanged();
-            });
-            currentIndex = (currentIndex + 1) % FramesBuffer.Count;
+                if (_disposed || myLoad != _loadVersion) return;
+                if (FramesBuffer.Count == 0) return;
+                ShowFrame(currentIndex);
+                await InvokeAsync(() =>
+                {
+                    SliderValue = currentIndex;
+                    StateHasChanged();
+                });
+                currentIndex = (currentIndex + 1) % FramesBuffer.Count;
+            }
+            catch
+            {
+                // Si algo se descontrola (dispose/race), frenamos el timer para no romper el circuito.
+                try { _loopTimer?.Stop(); } catch { }
+            }
         };
 
         _loopTimer.AutoReset = true;
@@ -336,6 +399,35 @@ public partial class CameraView : IAsyncDisposable
     private void UpdateStreamUrl()
     {
         ImageSource = $"{API_BASE}/api/stream/{_currentIp}?t={DateTime.Now.Ticks}";
+    }
+
+    private static (int? from, int? to) GetFrameRange(AltaEventoModel? cam)
+    {
+        if (cam == null) return (null, null);
+        return (cam.FromFrame ?? cam.FrameInicio, cam.ToFrame ?? cam.FrameFin);
+    }
+
+    private static AltaEventoModel CloneCamera(AltaEventoModel cam)
+    {
+        var (from, to) = GetFrameRange(cam);
+        return new AltaEventoModel
+        {
+            Id = cam.Id,
+            Nombre = cam.Nombre,
+            IpCamara = cam.IpCamara,
+            Puerto = cam.Puerto,
+            RutaCarpeta = cam.RutaCarpeta,
+            EsEventoGuardado = cam.EsEventoGuardado,
+            FrameInicio = cam.FrameInicio,
+            FrameFin = cam.FrameFin,
+            FromFrame = from,
+            ToFrame = to,
+            FechaEvento = cam.FechaEvento,
+            Descripcion = cam.Descripcion,
+            EstaConectada = cam.EstaConectada,
+            FramePath = cam.FramePath,
+            TipoEvento = cam.TipoEvento
+        };
     }
 
     private async Task RefreshStream()
@@ -385,7 +477,8 @@ public partial class CameraView : IAsyncDisposable
                 EstaConectada = ev.EstaConectada,
                 FramePath = ev.FramePath
             };
-            
+
+            _previousCamera = null; // forzar recarga en OnParametersSetAsync
             await OnParametersSetAsync();
         }
         else
@@ -439,6 +532,7 @@ public partial class CameraView : IAsyncDisposable
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
+        _disposed = true;
         _watchdogTimer?.Stop();
         _watchdogTimer?.Dispose();
         _loopTimer?.Stop();

@@ -39,8 +39,17 @@
         }
 
         <div class="controls-bar">
-            <button class="btn-play" onclick="@TogglePlayPause" title="@(IsLive ? "Pausar" : "Volver al Vivo")">
-                <i class="bi @(IsLive ? "bi-pause-fill" : "bi-play-fill")"></i>
+            <button class="btn-play" @onclick="TogglePlayPause" title="@(IsLive ? "Pausar" : "Volver a ver en vivo")">
+                <i class="bi @(IsLive ? "bi-pause-fill" : "bi-arrow-return-left")"></i>
+            </button>
+
+            @* BOTÓN SIEMPRE VISIBLE: Volver a ver en vivo *@
+            <button class="btn btn-sm @(IsLive ? "btn-outline-success" : "btn-success") btn-go-live ms-2" 
+                    @onclick="RequestGoLive" 
+                    title="Volver a ver en vivo"
+                    disabled="@IsLive">
+                <i class="bi bi-camera-video-fill"></i> 
+                @(IsLive ? "EN VIVO" : "Volver a ver en vivo")
             </button>
 
             <div class="range-container">
@@ -58,11 +67,11 @@
             </div>
             
             @* Botón de depuración / forzar carga *@
-            <button class="btn btn-sm btn-info ms-2" onclick="@ForcePlaySelectedEvent" title="Forzar carga del evento/stream">
+            <button class="btn btn-sm btn-info ms-2" @onclick="ForcePlaySelectedEvent" title="Forzar carga del evento/stream">
                 <i class="bi bi-arrow-clockwise"></i> Cargar
             </button>
 
-            <button class="btn btn-sm btn-secondary ms-2" onclick="@ToggleFullscreen" title="Pantalla completa">
+            <button class="btn btn-sm btn-secondary ms-2" @onclick="ToggleFullscreen" title="Pantalla completa">
                 <i class="bi bi-fullscreen"></i>
             </button>
         </div>

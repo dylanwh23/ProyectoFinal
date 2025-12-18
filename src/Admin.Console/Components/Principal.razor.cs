@@ -22,7 +22,24 @@ namespace Admin.Console.Components
             eventoSeleccionado = eventoDeLaLista;
             SelectedCameraIp = eventoDeLaLista.IpCamara; // Almacenar la IP de la cámara seleccionada
             SelectedCameraPuerto = eventoDeLaLista.Puerto;
-            SelectedCameraTipo = eventoDeLaLista.TipoEvento;
+            SelectedCameraTipo = NormalizeCameraTipo(eventoDeLaLista.TipoEvento);
+        }
+
+        private void VolverAVivo(AltaEventoModel camara)
+        {
+            eventoSeleccionado = camara;
+            SelectedCameraIp = camara.IpCamara;
+            SelectedCameraPuerto = camara.Puerto;
+            SelectedCameraTipo = NormalizeCameraTipo(camara.TipoEvento);
+        }
+
+        private static string NormalizeCameraTipo(string? tipoEvento)
+        {
+            var t = (tipoEvento ?? string.Empty).Trim().ToLowerInvariant();
+            if (t.StartsWith("grid")) return "grid";
+            if (t.StartsWith("pallet")) return "pallet";
+            if (t.StartsWith("camion")) return "camion";
+            return "grid";
         }
     }
 }

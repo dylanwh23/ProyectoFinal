@@ -2,10 +2,12 @@
 @using Shared.Contracts.Models
 @using System.Text.Json
 @using System.Linq
+@using Microsoft.JSInterop
 @implements IAsyncDisposable
 @inject HttpClient Http
 @inject ILogger<SavedEvents> Logger
 @inject Admin.Console.Services.RealtimeEventsService Realtime
+@inject IJSRuntime JS
 
 <div class="h-100 d-flex flex-column">
     <div class="d-flex justify-content-between align-items-center mb-2 px-2 pt-2 flex-shrink-0">
@@ -15,47 +17,47 @@
         </button>
     </div>
 
-    @if (IsLoading)
-    {
-        <div class="text-center py-4">
-            <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-            <p class="small text-muted mt-2">Cargando...</p>
-        </div>
-    }
-    else
-    {
-        <div class="list-group flex-grow-1 overflow-auto px-2" style="min-height: 0;">
-            @if (EventosGuardados.Count == 0)
+    <div class="list-group flex-grow-1 overflow-auto px-2 position-relative" style="min-height: 0;">
+        @if (IsLoading)
+        {
+            <div class="position-absolute top-0 start-0 end-0 text-center py-2" style="z-index: 2; background: rgba(255,255,255,0.85);">
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                <p class="small text-muted mt-1 mb-0">Actualizando eventos...</p>
+            </div>
+        }
+
+        @if (EventosGuardados.Count == 0 && !IsLoading)
+        {
+            <div class="alert alert-info small text-center">No hay eventos grabados.</div>
+        }
+        else
+        {
+            @foreach (var evt in EventosGuardados)
             {
-                <div class="alert alert-info small text-center">No hay eventos grabados.</div>
-            }
-            else
-            {
-                @foreach (var evt in EventosGuardados)
-                {
-                    <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded"
-                            onclick="@(() => SeleccionarItem(evt))">
-                        <div class="text-truncate">
-                            <div class="fw-bold text-primary">@evt.Nombre <span class="badge bg-secondary ms-2">ID: @evt.Id</span></div>
-                            @{
-                                var info = ExtraerInfo(evt);
-                            }
-                            <div class="small text-muted">
-                                <i class="bi bi-arrow-left-right me-1"></i>@info.TipoMovimiento
-                            </div>
-                            <div class="small text-muted">
-                                <i class="bi bi-box-seam me-1"></i>@info.Cajas
-                            </div>
-                            <div class="small text-muted">
-                                <i class="bi bi-film me-1"></i>Clip: @evt.FromFrame - @evt.ToFrame
-                            </div>
+                <div @key="evt.Id" class="list-group-item d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded"
+                     style="@((_selectedEventId == evt.Id && evt.Id != 0) ? "border: 2px solid var(--bs-primary) !important;" : "")">
+                    <div class="text-truncate flex-grow-1">
+                        <div class="fw-bold text-primary">@evt.Nombre <span class="badge bg-secondary ms-2">ID: @evt.Id</span></div>
+                        @{
+                            var info = ExtraerInfo(evt);
+                        }
+                        <div class="small text-muted">
+                            <i class="bi bi-arrow-left-right me-1"></i>@info.TipoMovimiento
                         </div>
-                        <i class="bi bi-chevron-right text-secondary"></i>
+                        <div class="small text-muted">
+                            <i class="bi bi-box-seam me-1"></i>@info.Cajas
+                        </div>
+                        <div class="small text-muted">
+                            <i class="bi bi-film me-1"></i>Clip: @evt.FromFrame - @evt.ToFrame
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-primary ms-2" @onclick="@(() => SeleccionarItem(evt))" @onclick:stopPropagation="true">
+                        <i class="bi bi-play-circle"></i> Ver clip
                     </button>
-                }
+                </div>
             }
-        </div>
-    }
+        }
+    </div>
 </div>
 
 @code {
@@ -71,12 +73,21 @@
     [Parameter]
     public string? CameraTipo { get; set; }
 
-    public List<AltaEventoModel> EventosGuardados { get; set; } = new();
+    // Lista de eventos - guardada como campo privado para evitar pérdida en re-renders
+    private List<AltaEventoModel> _eventosGuardados = new();
+    public List<AltaEventoModel> EventosGuardados 
+    { 
+        get => _eventosGuardados; 
+        set => _eventosGuardados = value ?? new(); 
+    }
+    
     public bool IsLoading { get; set; } = false;
 
     private bool _subscribed;
 
     private string? _previousCameraIp; // Para detectar cambios en el parámetro
+
+    private long? _selectedEventId;
 
     // ============================================================
     // CONFIGURACIÓN (Debe coincidir con la API del worker)
@@ -86,25 +97,31 @@
     protected override async Task OnInitializedAsync()
     {
         await EnsureRealtimeAsync();
-        // Cargar eventos iniciales de la BD
-        await CargarEventos();
+        // Si no hay cámara seleccionada aún, no disparemos la carga para evitar parpadeos en la lista
+        if (!string.IsNullOrWhiteSpace(CameraIp))
+        {
+            await CargarEventos();
+        }
     }
 
     protected override async Task OnParametersSetAsync()
     {
+        // Solo recargar si el IP realmente cambió (ignorar otros parámetros)
         var ipChanged = !string.Equals(CameraIp, _previousCameraIp, StringComparison.OrdinalIgnoreCase);
-
-        if (ipChanged)
+        
+        // IMPORTANTE: Si el IP no cambió, NO hacer nada (mantener la lista actual)
+        if (!ipChanged)
         {
-            _previousCameraIp = CameraIp;
-
-            // Suscripción realtime por cámara (evita cola global)
-            await Realtime.SetActiveCameraAsync(string.IsNullOrWhiteSpace(CameraIp) ? null : CameraIp);
-
-            // Cargar eventos solo cuando hay cámara seleccionada
-            await CargarEventos();
+            return;
         }
-        await base.OnParametersSetAsync(); // Llama a la implementación base para otros parámetros
+
+        _previousCameraIp = CameraIp;
+
+        // Suscripción realtime por cámara (evita cola global)
+        await Realtime.SetActiveCameraAsync(string.IsNullOrWhiteSpace(CameraIp) ? null : CameraIp);
+
+        // Cargar eventos solo cuando hay cámara seleccionada
+        await CargarEventos();
     }
 
     private async Task EnsureRealtimeAsync()
@@ -125,21 +142,24 @@
 
     public async Task CargarEventos()
     {
-        Logger.LogInformation("🔄 [SavedEvents] Botón refrescar clickeado. CameraIp={CameraIp}", CameraIp ?? "(vacío)");
+        Logger.LogInformation("🔄 [SavedEvents] CargarEventos llamado. CameraIp={CameraIp}, CameraTipo={CameraTipo}", CameraIp ?? "(vacío)", CameraTipo ?? "(vacío)");
+        
+        if (string.IsNullOrWhiteSpace(CameraIp))
+        {
+            Logger.LogInformation("ℹ️ [SavedEvents] Sin cámara seleccionada: limpiando lista");
+            EventosGuardados = new();
+            IsLoading = false;
+            StateHasChanged();
+            return;
+        }
+
+        // Mantener la lista visible mientras se carga para evitar el "salto" visual al presionar Ver clip
         IsLoading = true;
         StateHasChanged();
 
         try
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-
-            if (string.IsNullOrWhiteSpace(CameraIp))
-            {
-                Logger.LogInformation("ℹ️ [SavedEvents] Sin cámara seleccionada: no se cargan eventos");
-                EventosGuardados = new();
-                return;
-            }
-
             var tipo = (CameraTipo ?? "grid").Trim().ToLowerInvariant();
             if (tipo == "grid")
             {
@@ -188,9 +208,51 @@
         }
     }
 
-    private Task SeleccionarItem(AltaEventoModel item)
+    private async Task SeleccionarItem(AltaEventoModel item)
     {
-        return OnEventoSeleccionado.InvokeAsync(item);
+        Logger.LogInformation("▶️ [SavedEvents] SeleccionarItem ID={Id}, Nombre={Nombre}", item.Id, item.Nombre);
+        _selectedEventId = item.Id;
+        
+        // Hacer una copia del item para evitar problemas de referencia
+        var copia = new AltaEventoModel
+        {
+            Id = item.Id,
+            IpCamara = item.IpCamara,
+            Puerto = item.Puerto,
+            RutaCarpeta = item.RutaCarpeta,
+            Nombre = item.Nombre,
+            Sucursal = item.Sucursal,
+            TipoEvento = item.TipoEvento,
+            Descripcion = item.Descripcion,
+            FechaEvento = item.FechaEvento,
+            FramePath = item.FramePath,
+            FromFrame = item.FromFrame,
+            ToFrame = item.ToFrame,
+            EsEventoGuardado = true
+        };
+        
+        await OnEventoSeleccionado.InvokeAsync(copia);
+        await ScrollToPlayerAsync();
+    }
+
+    private async Task ScrollToPlayerAsync()
+    {
+        try
+        {
+            // Usamos scroll global para evitar que el contenedor de la lista capture el scroll
+            var script = @"(function(){
+                const el = document.getElementById('player-container');
+                if(!el) return;
+                const rect = el.getBoundingClientRect();
+                const target = rect.top + window.pageYOffset - (window.innerHeight * 0.2);
+                window.scrollTo({ top: target, behavior: 'smooth' });
+            })();";
+            await JS.InvokeVoidAsync("eval", script);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "⚠️ [SavedEvents] No se pudo hacer scroll al reproductor");
+        }
     }
 
     private async void HandleSavedEventAdded(AltaEventoModel ev)

@@ -209,7 +209,7 @@
                         }
                     </div>
                     <div class="viewer-content">
-                        <WMSClient.Components.CameraView SelectedCamera="@ActiveCamera" />
+                        <WMSClient.Components.CameraView SelectedCamera="@ActiveCamera" OnRequestGoLive="RequestGoLiveFromViewer" />
                     </div>
                 </section>
 
@@ -649,15 +649,47 @@
         }
     }
 
-    private AltaEventoModel? BuildPlaybackCamera(string ip, string? nombre, int? from, int? to, string? descripcion, string? framePath, string? tipo)
+    private Task RequestGoLiveFromViewer(AltaEventoModel live)
     {
-        var cam = FindCameraByIp(ip) ?? new AltaEventoModel { IpCamara = ip, Nombre = nombre ?? ip, TipoEvento = tipo ?? "grid" };
-        cam.FromFrame = from;
-        cam.ToFrame = to;
-        cam.Descripcion = descripcion;
-        cam.FramePath = framePath;
-        cam.EsEventoGuardado = from.HasValue && to.HasValue;
-        return cam;
+        // Volver a la cámara en vivo desde el viewer (sin frames).
+        ActiveCamera = FindCameraByIp(live.IpCamara) ?? live;
+        if (ActiveCamera != null)
+        {
+            ActiveCamera.FromFrame = null;
+            ActiveCamera.ToFrame = null;
+            ActiveCamera.FrameInicio = null;
+            ActiveCamera.FrameFin = null;
+            ActiveCamera.EsEventoGuardado = false;
+        }
+        ShowEventsList = false;
+        CurrentEventType = null;
+        return Task.CompletedTask;
+    }
+
+    private AltaEventoModel BuildPlaybackCamera(string ip, string? nombre, int? from, int? to, string? descripcion, string? framePath, string? tipo)
+    {
+        // IMPORTANTE: NO mutar la cámara “base” que vive en Branches/ActiveCamera.
+        // Siempre devolvemos una NUEVA instancia para que el viewer detecte el cambio y no quede "pegado".
+        var baseCam = FindCameraByIp(ip);
+        return new AltaEventoModel
+        {
+            Id = baseCam?.Id ?? 0,
+            Nombre = nombre ?? baseCam?.Nombre ?? ip,
+            Sucursal = baseCam?.Sucursal ?? SelectedBranch?.Name ?? string.Empty,
+            TipoEvento = tipo ?? baseCam?.TipoEvento ?? "grid",
+            IpCamara = ip,
+            Puerto = baseCam?.Puerto ?? 0,
+            RutaCarpeta = baseCam?.RutaCarpeta ?? string.Empty,
+            EstaConectada = baseCam?.EstaConectada ?? true,
+
+            FromFrame = from,
+            ToFrame = to,
+            FrameInicio = from,
+            FrameFin = to,
+            EsEventoGuardado = from.HasValue && to.HasValue,
+            Descripcion = descripcion,
+            FramePath = framePath
+        };
     }
 
     private string GetEventTypeLabel()

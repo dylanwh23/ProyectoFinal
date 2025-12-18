@@ -47,6 +47,27 @@ public class TelnetWorkerService : BackgroundService
     // Overrides de modo de cámara (grid, pallet, camion)
     private readonly ConcurrentDictionary<string, string> _cameraModeOverrides = new(StringComparer.OrdinalIgnoreCase);
 
+    // Anti-falsos: confirmar cambios solo tras N lecturas consecutivas.
+    private const int StabilityThreshold = 3;
+
+    // key: "ip:puerto" -> key: "ESTANTE|CAJA" -> pending
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, GridPendingChange>> _gridPendingChanges = new();
+
+    private sealed class GridPendingChange
+    {
+        public bool IntendedPresent { get; set; }
+        public int Count { get; set; }
+    }
+
+    // Anti-falsos (CAMION): pending por sección hasta que sea estable N lecturas
+    private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, CamionPendingChange>> _camionPendingChanges = new();
+
+    private sealed class CamionPendingChange
+    {
+        public string? IntendedCamionId { get; set; }
+        public int Count { get; set; }
+    }
+
     // Estado para modo pallet: contador de pallets y último estado por cámara
     private readonly ConcurrentDictionary<string, int> _palletCounters = new();
     private readonly ConcurrentDictionary<string, bool> _palletActivo = new();
@@ -276,19 +297,7 @@ public class TelnetWorkerService : BackgroundService
             s.HoraUltimoMensaje = DateTime.UtcNow;
         }
 
-        // --- LÓGICA DE FILTRADO (COOLDOWN) ---
-        var ahora = DateTime.UtcNow;
-        var cooldown = TimeSpan.FromSeconds(2);
-        if (_ultimoMsg.TryGetValue(ip, out var lastMsg) && lastMsg == msg)
-        {
-            if (_ultimoTime.TryGetValue(ip, out var lastTime) && (ahora - lastTime) < cooldown)
-                return;
-        }
-        _ultimoMsg[ip] = msg;
-        _ultimoTime[ip] = ahora;
-
-        _logger.LogInformation("📨 [{Ip}] Evento: {Msg}", ip, msg);
-
+        // Modo: lo calculamos ANTES del cooldown para poder ajustar el filtro.
         var mode = _cameraModeOverrides.TryGetValue(ip, out var overrideMode) ? overrideMode : null;
         if (string.IsNullOrWhiteSpace(mode))
         {
@@ -301,6 +310,24 @@ public class TelnetWorkerService : BackgroundService
             _logger.LogWarning("🚫 [{Ip}] Modo inválido='{Mode}'. Ignorando mensaje.", ip, mode);
             return;
         }
+
+        // --- LÓGICA DE FILTRADO (COOLDOWN) ---
+        var ahora = DateTime.UtcNow;
+        // En GRID necesitamos procesar duplicados para poder contar lecturas consecutivas.
+        // En CAMION también necesitamos contar lecturas consecutivas por sección.
+        if (mode != "grid" && mode != "camion")
+        {
+            var cooldown = TimeSpan.FromSeconds(2);
+            if (_ultimoMsg.TryGetValue(ip, out var lastMsg) && lastMsg == msg)
+            {
+                if (_ultimoTime.TryGetValue(ip, out var lastTime) && (ahora - lastTime) < cooldown)
+                    return;
+            }
+        }
+        _ultimoMsg[ip] = msg;
+        _ultimoTime[ip] = ahora;
+
+        _logger.LogInformation("📨 [{Ip}] Evento: {Msg}", ip, msg);
 
         // --- GRID (ESTANTE:... [+ ESTANTE:...]) ---
         string? estanteria = null;
@@ -343,6 +370,7 @@ public class TelnetWorkerService : BackgroundService
             _gridEstantesDefinidosPorCamara[cameraKey] = newLayout;
 
             var mapasPorEstanteria = _estadoEstantesPorCamara.GetOrAdd(cameraKey, _ => new ConcurrentDictionary<string, HashSet<string>>());
+            var pendingByCamera = _gridPendingChanges.GetOrAdd(cameraKey, _ => new ConcurrentDictionary<string, GridPendingChange>(StringComparer.OrdinalIgnoreCase));
 
             // Prune de estado previo para estantes que ya no existen en el layout actual
             var toRemoveState = mapasPorEstanteria.Keys
@@ -351,30 +379,38 @@ public class TelnetWorkerService : BackgroundService
             foreach (var k in toRemoveState)
             {
                 mapasPorEstanteria.TryRemove(k, out _);
-            }
 
-            var anyAgregadas = false;
-            var anyRemovidas = false;
+                // Limpiar pendings asociados a estantes que ya no existen
+                foreach (var pk in pendingByCamera.Keys.Where(x => x.StartsWith(k + "|", StringComparison.OrdinalIgnoreCase)).ToList())
+                    pendingByCamera.TryRemove(pk, out _);
+            }
 
             foreach (var kvp in estantes)
             {
                 var nombreEstante = kvp.Key;
                 var nuevasCajas = kvp.Value;
 
-                mapasPorEstanteria.TryGetValue(nombreEstante, out var prev);
-                prev ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var hadPrev = mapasPorEstanteria.TryGetValue(nombreEstante, out var prevCommitted);
 
-                var removidas = prev.Except(nuevasCajas).ToList();
-                var agregadas = nuevasCajas.Except(prev).ToList();
+                // Primer snapshot por estante: baseline sin generar altas/bajas (evita spam y falsos al arrancar).
+                if (!hadPrev || prevCommitted == null)
+                {
+                    mapasPorEstanteria[nombreEstante] = new HashSet<string>(nuevasCajas, StringComparer.OrdinalIgnoreCase);
 
-                foreach (var r in removidas) cambios.Add(("grid.baja", nombreEstante, r));
-                foreach (var a in agregadas) cambios.Add(("grid.alta", nombreEstante, a));
+                    // Limpiar pendings de ese estante si existían.
+                    foreach (var pk in pendingByCamera.Keys.Where(x => x.StartsWith(nombreEstante + "|", StringComparison.OrdinalIgnoreCase)).ToList())
+                        pendingByCamera.TryRemove(pk, out _);
 
-                anyRemovidas |= removidas.Count > 0;
-                anyAgregadas |= agregadas.Count > 0;
+                    continue;
+                }
 
-                mapasPorEstanteria[nombreEstante] = new HashSet<string>(nuevasCajas, StringComparer.OrdinalIgnoreCase);
+                var updatedCommitted = new HashSet<string>(prevCommitted, StringComparer.OrdinalIgnoreCase);
+                ApplyGridStabilityFilter(nombreEstante, updatedCommitted, nuevasCajas, pendingByCamera, cambios);
+                mapasPorEstanteria[nombreEstante] = updatedCommitted;
             }
+
+            var anyRemovidas = cambios.Any(c => string.Equals(c.tipo, "grid.baja", StringComparison.OrdinalIgnoreCase));
+            var anyAgregadas = cambios.Any(c => string.Equals(c.tipo, "grid.alta", StringComparison.OrdinalIgnoreCase));
 
             // NO generamos eventos de movimiento/cambio. Sólo alta y baja.
             // Si en un RAW hay altas y bajas, se persisten como eventos separados.
@@ -437,6 +473,67 @@ public class TelnetWorkerService : BackgroundService
         {
             await ProcesarCamionAsync(ip, seccionesCamion, msg);
             return;
+        }
+    }
+
+    private static void ApplyGridStabilityFilter(
+        string estante,
+        HashSet<string> committed,
+        HashSet<string> observed,
+        ConcurrentDictionary<string, GridPendingChange> pending,
+        List<(string tipo, string estanteria, string caja)> cambios)
+    {
+        // Consideramos todas las cajas que importan en este frame.
+        var universe = new HashSet<string>(committed, StringComparer.OrdinalIgnoreCase);
+        universe.UnionWith(observed);
+
+        foreach (var caja in universe)
+        {
+            var isPresentCommitted = committed.Contains(caja);
+            var isPresentObserved = observed.Contains(caja);
+            var key = $"{estante}|{caja}";
+
+            // Si el observado coincide con el estado comprometido, cancelamos cualquier pending.
+            if (isPresentObserved == isPresentCommitted)
+            {
+                pending.TryRemove(key, out _);
+                continue;
+            }
+
+            var intendedPresent = isPresentObserved;
+            var p = pending.AddOrUpdate(
+                key,
+                _ => new GridPendingChange { IntendedPresent = intendedPresent, Count = 1 },
+                (_, existing) =>
+                {
+                    if (existing.IntendedPresent != intendedPresent)
+                    {
+                        existing.IntendedPresent = intendedPresent;
+                        existing.Count = 1;
+                    }
+                    else
+                    {
+                        existing.Count++;
+                    }
+                    return existing;
+                });
+
+            if (p.Count < StabilityThreshold)
+                continue;
+
+            // Confirmación alcanzada: aplicamos el cambio y emitimos evento.
+            if (intendedPresent)
+            {
+                committed.Add(caja);
+                cambios.Add(("grid.alta", estante, caja));
+            }
+            else
+            {
+                committed.Remove(caja);
+                cambios.Add(("grid.baja", estante, caja));
+            }
+
+            pending.TryRemove(key, out _);
         }
     }
 
@@ -878,6 +975,7 @@ public class TelnetWorkerService : BackgroundService
     private async Task ProcesarCamionAsync(string ip, Dictionary<string, string?> secciones, string raw)
     {
         var mapa = _camionEstado.GetOrAdd(ip, _ => new ConcurrentDictionary<string, string?>(StringComparer.OrdinalIgnoreCase));
+        var pendingByCamera = _camionPendingChanges.GetOrAdd(ip, _ => new ConcurrentDictionary<string, CamionPendingChange>(StringComparer.OrdinalIgnoreCase));
         var puertoCamara = _stats.TryGetValue(ip, out var statsCamara) ? statsCamara.Puerto : 23;
 
         var eventos = new List<Shared.Contracts.Models.CamionEventModel>();
@@ -886,7 +984,7 @@ public class TelnetWorkerService : BackgroundService
             ip, string.Join(", ", secciones.Select(s => $"{s.Key}={s.Value ?? "null"}")), 
             string.Join(", ", mapa.Select(s => $"{s.Key}={s.Value ?? "null"}")));
 
-        // Si es la primera vez que recibimos un raw de camion (mapa vacío), tratar como cambio desde VACIO a estado actual
+        // Si es la primera vez que recibimos un raw de camion (mapa vacío), tomamos baseline sin generar eventos.
         var primeraMensaje = mapa.Count == 0;
 
         foreach (var kvp in secciones)
@@ -904,94 +1002,107 @@ public class TelnetWorkerService : BackgroundService
 
             _logger.LogInformation("  [{Ip}] Seccion={Sec} anterior={Ant} nuevo={Nuev} primera={Primera}", ip, seccion, anteriorCamion ?? "null", nuevoCamion ?? "null", primeraMensaje);
 
-            // Sin cambios (ignorar si ya existe estado anterior igual)
-            if (!primeraMensaje && string.Equals(anteriorCamion, nuevoCamion, StringComparison.OrdinalIgnoreCase))
+            // Primer mensaje: baseline (no genera eventos, ni pendings)
+            if (primeraMensaje)
             {
-                _logger.LogInformation("    -> Sin cambios en esta sección");
+                mapa[seccion] = nuevoCamion;
+                pendingByCamera.TryRemove(seccion, out _);
                 continue;
             }
 
-            // En primer mensaje, si hay valor, es un "llegó"
-            if (primeraMensaje && !string.IsNullOrEmpty(nuevoCamion))
+            // Si el observado coincide con el estado confirmado: cancelamos pending.
+            if (string.Equals(anteriorCamion, nuevoCamion, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogInformation("    -> [PRIMER MSG] Llegó camión {Camion}", nuevoCamion);
+                pendingByCamera.TryRemove(seccion, out _);
+                _logger.LogInformation("    -> Sin cambios (estable), pending limpiado");
+                continue;
+            }
+
+            // Hay diferencia vs estado confirmado: acumulamos lecturas consecutivas.
+            var intended = string.IsNullOrEmpty(nuevoCamion) ? null : nuevoCamion;
+            var p = pendingByCamera.AddOrUpdate(
+                seccion,
+                _ => new CamionPendingChange { IntendedCamionId = intended, Count = 1 },
+                (_, existing) =>
+                {
+                    if (!string.Equals(existing.IntendedCamionId, intended, StringComparison.OrdinalIgnoreCase))
+                    {
+                        existing.IntendedCamionId = intended;
+                        existing.Count = 1;
+                    }
+                    else
+                    {
+                        existing.Count++;
+                    }
+                    return existing;
+                });
+
+            _logger.LogInformation("    -> Pending cambio: intended={Intended} count={Count}/{Threshold}", p.IntendedCamionId ?? "null", p.Count, StabilityThreshold);
+
+            if (p.Count < StabilityThreshold)
+                continue;
+
+            // Confirmado: generamos evento(s) equivalente a la transición anterior -> intended
+            if (!string.IsNullOrEmpty(anteriorCamion) && string.IsNullOrEmpty(p.IntendedCamionId))
+            {
                 eventos.Add(new Shared.Contracts.Models.CamionEventModel
                 {
                     IpCamara = ip,
                     Puerto = puertoCamara,
                     Seccion = seccion,
-                    CamionId = nuevoCamion ?? string.Empty,
+                    CamionId = anteriorCamion ?? string.Empty,
+                    TipoEvento = "camion.sefue",
+                    Ocupado = false,
+                    FechaEvento = DateTime.UtcNow,
+                    Raw = raw
+                });
+                _logger.LogInformation("    -> [CONFIRMADO] Se fue camión {Camion}", anteriorCamion);
+            }
+            else if (string.IsNullOrEmpty(anteriorCamion) && !string.IsNullOrEmpty(p.IntendedCamionId))
+            {
+                eventos.Add(new Shared.Contracts.Models.CamionEventModel
+                {
+                    IpCamara = ip,
+                    Puerto = puertoCamara,
+                    Seccion = seccion,
+                    CamionId = p.IntendedCamionId ?? string.Empty,
                     TipoEvento = "camion.llego",
                     Ocupado = true,
                     FechaEvento = DateTime.UtcNow,
                     Raw = raw
                 });
+                _logger.LogInformation("    -> [CONFIRMADO] Llegó camión {Camion}", p.IntendedCamionId);
             }
-            else if (!primeraMensaje)
+            else if (!string.IsNullOrEmpty(anteriorCamion) && !string.IsNullOrEmpty(p.IntendedCamionId) && !string.Equals(anteriorCamion, p.IntendedCamionId, StringComparison.OrdinalIgnoreCase))
             {
-                // Cambios de estado
-                if (!string.IsNullOrEmpty(anteriorCamion) && string.IsNullOrEmpty(nuevoCamion))
+                eventos.Add(new Shared.Contracts.Models.CamionEventModel
                 {
-                    // Se fue el camión anterior
-                    _logger.LogInformation("    -> Se fue camión {Camion}", anteriorCamion);
-                    eventos.Add(new Shared.Contracts.Models.CamionEventModel
-                    {
-                        IpCamara = ip,
-                        Puerto = puertoCamara,
-                        Seccion = seccion,
-                        CamionId = anteriorCamion ?? string.Empty,
-                        TipoEvento = "camion.sefue",
-                        Ocupado = false,
-                        FechaEvento = DateTime.UtcNow,
-                        Raw = raw
-                    });
-                }
-                else if (string.IsNullOrEmpty(anteriorCamion) && !string.IsNullOrEmpty(nuevoCamion))
+                    IpCamara = ip,
+                    Puerto = puertoCamara,
+                    Seccion = seccion,
+                    CamionId = anteriorCamion ?? string.Empty,
+                    TipoEvento = "camion.sefue",
+                    Ocupado = false,
+                    FechaEvento = DateTime.UtcNow,
+                    Raw = raw
+                });
+                eventos.Add(new Shared.Contracts.Models.CamionEventModel
                 {
-                    // Llegó un camión
-                    _logger.LogInformation("    -> Llegó camión {Camion}", nuevoCamion);
-                    eventos.Add(new Shared.Contracts.Models.CamionEventModel
-                    {
-                        IpCamara = ip,
-                        Puerto = puertoCamara,
-                        Seccion = seccion,
-                        CamionId = nuevoCamion ?? string.Empty,
-                        TipoEvento = "camion.llego",
-                        Ocupado = true,
-                        FechaEvento = DateTime.UtcNow,
-                        Raw = raw
-                    });
-                }
-                else if (!string.IsNullOrEmpty(anteriorCamion) && !string.IsNullOrEmpty(nuevoCamion) && !string.Equals(anteriorCamion, nuevoCamion, StringComparison.OrdinalIgnoreCase))
-                {
-                    // Reemplazo directo: se fue anterior y llegó nuevo
-                    _logger.LogInformation("    -> Reemplazo: {AntCamion} -> {NuevCamion}", anteriorCamion, nuevoCamion);
-                    eventos.Add(new Shared.Contracts.Models.CamionEventModel
-                    {
-                        IpCamara = ip,
-                        Puerto = puertoCamara,
-                        Seccion = seccion,
-                        CamionId = anteriorCamion ?? string.Empty,
-                        TipoEvento = "camion.sefue",
-                        Ocupado = false,
-                        FechaEvento = DateTime.UtcNow,
-                        Raw = raw
-                    });
-                    eventos.Add(new Shared.Contracts.Models.CamionEventModel
-                    {
-                        IpCamara = ip,
-                        Puerto = puertoCamara,
-                        Seccion = seccion,
-                        CamionId = nuevoCamion ?? string.Empty,
-                        TipoEvento = "camion.llego",
-                        Ocupado = true,
-                        FechaEvento = DateTime.UtcNow,
-                        Raw = raw
-                    });
-                }
+                    IpCamara = ip,
+                    Puerto = puertoCamara,
+                    Seccion = seccion,
+                    CamionId = p.IntendedCamionId ?? string.Empty,
+                    TipoEvento = "camion.llego",
+                    Ocupado = true,
+                    FechaEvento = DateTime.UtcNow,
+                    Raw = raw
+                });
+                _logger.LogInformation("    -> [CONFIRMADO] Reemplazo: {AntCamion} -> {NuevoCamion}", anteriorCamion, p.IntendedCamionId);
             }
 
-            mapa[seccion] = nuevoCamion; // actualizar estado
+            // Actualizamos estado confirmado y limpiamos pending
+            mapa[seccion] = p.IntendedCamionId;
+            pendingByCamera.TryRemove(seccion, out _);
         }
 
         if (eventos.Count == 0)

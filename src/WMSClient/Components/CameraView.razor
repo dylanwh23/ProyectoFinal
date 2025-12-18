@@ -80,16 +80,24 @@
                         <button 
                             class="btn-control btn-play-pause" 
                             @onclick="TogglePlayPause"
-                            title="@(IsLive ? "Pausar (Ver Historial)" : "En Vivo")">
+                            title="@(IsLive ? "Pausar (Ver Historial)" : "Volver a ver en vivo")">
                             @if (IsLive)
                             {
                                 <i class="bi bi-pause-fill"></i>
                             }
                             else
                             {
-                                <i class="bi bi-play-fill"></i>
+                                <i class="bi bi-arrow-return-left"></i>
                             }
                         </button>
+
+                        @if (!IsLive)
+                        {
+                            <button class="btn btn-success btn-sm ms-2" @onclick="RequestGoLive" title="Volver a ver en vivo" style="white-space: nowrap;">
+                                <i class="bi bi-camera-video-fill"></i> Volver a ver en vivo
+                            </button>
+                        }
+
                         <button class="btn-control" @onclick="RefreshStream" title="Refrescar">
                             <i class="bi bi-arrow-clockwise"></i>
                         </button>

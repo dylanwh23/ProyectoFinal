@@ -16,7 +16,7 @@
             <SavedEvents OnEventoSeleccionado="AlSeleccionarEvento" CameraIp="@SelectedCameraIp" CameraPuerto="@SelectedCameraPuerto" CameraTipo="@SelectedCameraTipo" />
         </div>
         <div class="col p-2 h-100" style="overflow: hidden;">
-            <Video Evento="eventoSeleccionado" />
+            <Video Evento="eventoSeleccionado" OnRequestGoLive="VolverAVivo" />
         </div>
     </div>
 </div>
