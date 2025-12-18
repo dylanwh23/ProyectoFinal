@@ -67,6 +67,102 @@ public class WmsCameraService : IWmsCameraService
         }
     }
 
+        public async Task<List<AltaEventoModel>> GetGridEventsAsync()
+        {
+            try
+            {
+                var eventos = await _http.GetFromJsonAsync<List<AltaEventoModel>>("api/eventos/grid", _jsonOptions);
+                return eventos ?? new List<AltaEventoModel>();
+            }
+            catch
+            {
+                return new List<AltaEventoModel>();
+            }
+        }
+
+        public async Task<List<AltaEventoModel>> GetGridEventsByCameraAsync(string cameraIp, int puerto)
+        {
+            try
+            {
+                var eventos = await _http.GetFromJsonAsync<List<AltaEventoModel>>($"api/eventos/grid/{cameraIp}/{puerto}", _jsonOptions);
+                return eventos ?? new List<AltaEventoModel>();
+            }
+            catch
+            {
+                return new List<AltaEventoModel>();
+            }
+        }
+
+        public async Task<List<PalletEventModel>> GetPalletEventsAsync()
+        {
+            try
+            {
+                var eventos = await _http.GetFromJsonAsync<List<PalletEventModel>>("api/eventos/pallet", _jsonOptions);
+                return eventos ?? new List<PalletEventModel>();
+            }
+            catch
+            {
+                return new List<PalletEventModel>();
+            }
+        }
+
+        public async Task<List<PalletEventModel>> GetPalletEventsByCameraAsync(string cameraIp, int puerto)
+        {
+            try
+            {
+                var eventos = await _http.GetFromJsonAsync<List<PalletEventModel>>($"api/eventos/pallet/{cameraIp}/{puerto}", _jsonOptions);
+                return eventos ?? new List<PalletEventModel>();
+            }
+            catch
+            {
+                return new List<PalletEventModel>();
+            }
+        }
+
+        public async Task<List<CamionEventModel>> GetCamionEventsAsync()
+        {
+            try
+            {
+                var eventos = await _http.GetFromJsonAsync<List<CamionEventModel>>("api/eventos/camion", _jsonOptions);
+                return eventos ?? new List<CamionEventModel>();
+            }
+            catch
+            {
+                return new List<CamionEventModel>();
+            }
+        }
+
+        public async Task<List<CamionEventModel>> GetCamionEventsByCameraAsync(string cameraIp, int puerto)
+        {
+            try
+            {
+                var eventos = await _http.GetFromJsonAsync<List<CamionEventModel>>($"api/eventos/camion/{cameraIp}/{puerto}", _jsonOptions);
+                return eventos ?? new List<CamionEventModel>();
+            }
+            catch
+            {
+                return new List<CamionEventModel>();
+            }
+        }
+
+        public async Task<List<CamionSeccionEstadoDto>> GetCamionEstadoAsync(string? cameraIp = null, int? puerto = null)
+        {
+            try
+            {
+                var endpoint = "api/eventos/camion/estado";
+                if (!string.IsNullOrWhiteSpace(cameraIp) && puerto.HasValue)
+                {
+                    endpoint += $"/{cameraIp}/{puerto.Value}";
+                }
+                var estados = await _http.GetFromJsonAsync<List<CamionSeccionEstadoDto>>(endpoint, _jsonOptions);
+                return estados ?? new List<CamionSeccionEstadoDto>();
+            }
+            catch
+            {
+                return new List<CamionSeccionEstadoDto>();
+            }
+        }
+
     public async Task<List<string>> GetHistoryBufferAsync(string cameraIp, int count = 300)
     {
         await _thumbnailSemaphore.WaitAsync();
@@ -115,5 +211,16 @@ public class WmsCameraService : IWmsCameraService
     {
         public string HistoryId { get; set; } = string.Empty;
         public List<string> Files { get; set; } = new List<string>();
+    }
+
+    public class CamionSeccionEstadoDto
+    {
+        public string IpCamara { get; set; } = string.Empty;
+        public int Puerto { get; set; }
+        public string Seccion { get; set; } = string.Empty;
+        public string CamionId { get; set; } = string.Empty;
+        public bool Ocupado { get; set; }
+        public DateTime FechaEvento { get; set; }
+        public string TipoEvento { get; set; } = string.Empty;
     }
 }

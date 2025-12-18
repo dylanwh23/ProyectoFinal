@@ -12,9 +12,9 @@
     <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.css">
 
 </head>
-<body class="d-flex flex-column vh-100" style="max-height: 100vh !important">
-    <div class="container-fluid p-4 flex-fill h-50">
-        <main role="main" class="h-100">
+<body class="d-flex flex-column" style="height: 100dvh; margin: 0; overflow: hidden;">
+    <div class="container-fluid p-0 flex-fill" style="min-height: 0; overflow: hidden;">
+        <main role="main" class="h-100" style="min-height: 0; overflow: hidden;">
             @RenderBody()
         </main>
     </div>

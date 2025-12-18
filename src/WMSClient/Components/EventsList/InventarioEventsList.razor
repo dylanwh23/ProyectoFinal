@@ -1,0 +1,657 @@
+@using Shared.Contracts.Models
+@using System.Linq
+@implements IAsyncDisposable
+@inject WMSClient.Services.RealtimeEventsService Realtime
+@inject ILogger<InventarioEventsList> Logger
+
+
+
+<div class="events-list-container inventory-container" style="max-height: 90dvh; padding: 0; background: transparent; border: none;">
+    
+    <div class="inventory-layout">
+        
+        <div class="inventory-sidebar">
+            <div class="sidebar-header">
+                <h6 style="margin:0; font-weight:800; color:#111827;">ACTIVIDAD RECIENTE</h6>
+                <small class="text-muted" style="display:block; margin-top:4px;">
+                    @(SelectedRackForLogs != null ? $"Filtro: {SelectedRackForLogs.CameraName}" : "Monitoreo General")
+                </small>
+                
+                <div class="log-filters">
+                    <button class="filter-btn @(LogFilter == "All" ? "active" : "")" @onclick="@(() => SetFilter("All"))">Todos</button>
+                    <button class="filter-btn @(LogFilter == "In" ? "active" : "")" @onclick="@(() => SetFilter("In"))">Entradas</button>
+                    <button class="filter-btn @(LogFilter == "Out" ? "active" : "")" @onclick="@(() => SetFilter("Out"))">Salidas</button>
+                </div>
+            </div>
+
+            <div class="sidebar-content">
+                @{
+                    var displayEvents = EventEntries;
+                    if (SelectedRackForLogs != null)
+                        displayEvents = displayEvents.Where(e => e.Source.IpCamara == SelectedRackForLogs.CameraIp).ToList();
+                    if (LogFilter != "All")
+                        displayEvents = displayEvents.Where(e => e.Type == LogFilter).ToList();
+                }
+
+                @if (!displayEvents.Any())
+                {
+                    <div style="text-align:center; padding: 3rem 1rem; color:#9ca3af;">
+                        <i class="bi bi-calendar-x" style="font-size: 2rem; display:block; margin-bottom:1rem;"></i>
+                        Sin eventos registrados
+                    </div>
+                }
+
+                @foreach (var ev in displayEvents)
+                {
+                    <div class="event-card type-@ev.Type.ToLower()" @onclick="() => OnEventCardClick(ev.Source)">
+                        <div class="header">
+                            <span class="title">@ev.TypeLabel</span>
+                            <span class="time">@ev.Time.ToShortTimeString()</span>
+                        </div>
+                        @{
+                            var eventInfo = GetEventInfo(ev);
+                        }
+                        <div class="boxes">
+                            @if (ev.Type == "Move")
+                            {
+                                <div style="display:flex; align-items:center; gap:8px; font-size:0.85rem; color:#374151; font-weight:600;">
+                                    <span style="background:#fee2e2; padding:6px 10px; border-radius:8px; border:1px solid #fecaca;">
+                                        <i class="bi bi-box-seam"></i> @eventInfo.From
+                                    </span>
+                                    <i class="bi bi-arrow-right" style="color:#f97316; font-size:1.1rem;"></i>
+                                    <span style="background:#dcfce7; padding:6px 10px; border-radius:8px; border:1px solid #bbf7d0;">
+                                        <i class="bi bi-box-seam"></i> @eventInfo.To
+                                    </span>
+                                </div>
+                                @if (eventInfo.BoxIds.Any())
+                                {
+                                    <div style="margin-top:6px; font-size:0.75rem; color:#6b7280;">
+                                        Cajas: @string.Join(", ", eventInfo.BoxIds)
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                @if (eventInfo.BoxIds.Count == 0)
+                                {
+                                    <span style="color:#9ca3af; font-size:0.85rem;">Sin QRs detectados</span>
+                                }
+                                else
+                                {
+                                    <div style="font-size:0.75rem; color:#6b7280; margin-bottom:4px;">
+                                        Cajas @(ev.Type == "In" ? "ingresadas" : "retiradas"):
+                                    </div>
+                                    @foreach (var boxId in eventInfo.BoxIds)
+                                    {
+                                        <span class="box-chip">ID @boxId</span>
+                                    }
+                                }
+                            }
+                        </div>
+                        <div style="font-size:0.75rem; color:#6b7280; margin-top:8px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                            <i class="bi bi-hdd-rack"></i> @ev.Source.Nombre ?? ev.Source.IpCamara
+                        </div>
+
+                        <div class="mt-2 d-flex gap-2" style="flex-wrap:wrap;">
+                            <button class="btn btn-sm btn-outline-primary wms-action-btn"
+                                    @onclick:stopPropagation="true"
+                                    @onclick="() => OnViewClipClick(ev.Source)">
+                                Ver clip
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="inventory-main">
+            <div class="main-header">
+                <div>
+                    <h4 style="margin:0; font-weight:800; color:#1f2937;">VISTA DE PLANTA</h4>
+                    <small style="color:#6b7280;">Visualización en tiempo real del stock</small>
+                </div>
+                <button class="btn-close" @onclick="HandleClose" style="font-size:1.5rem;">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+
+            <div class="racks-scroll-area">
+                @if (Shelves == null || Shelves.Count == 0)
+                {
+                    <div style="text-align:center; margin-top:5rem;">
+                        <i class="bi bi-inbox" style="font-size:3rem; color:#e5e7eb;"></i>
+                        <h5 style="color:#9ca3af; margin-top:1rem;">No hay racks configurados</h5>
+                    </div>
+                }
+                else
+                {
+                    <div class="racks-wrapper">
+                        @foreach (var shelf in Shelves)
+                        {
+                            <div class="shelf-card @(SelectedRackForLogs == shelf ? "selected-rack" : "")" 
+                                 @onclick="() => SelectRackFilter(shelf)">
+                                
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                    <div>
+                                        <h5 style="margin:0; font-weight:800; font-size:1.1rem; color:#111827;">@shelf.CameraName</h5>
+                                        <div style="display:flex; align-items:center; gap:6px; margin-top:4px;">
+                                            <span style="width:8px; height:8px; background:#10b981; border-radius:50%;"></span>
+                                            <span style="font-size:0.85rem; color:#6b7280; font-family:monospace;">@shelf.CameraIp</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div style="text-align:right; background:#eff6ff; padding: 6px 12px; border-radius:8px;">
+                                        <span style="font-size:1.4rem; font-weight:800; color:#2563eb; line-height:1;">@shelf.OccupiedCount</span>
+                                        <div style="font-size:0.7rem; font-weight:600; text-transform:uppercase; color:#60a5fa;">Cajas</div>
+                                    </div>
+                                </div>
+
+                                <div class="rack-visual-container">
+                                    @for (int row = 0; row < shelf.Rows; row++)
+                                    {
+                                        <div class="rack-level">
+                                            <div class="rack-slots-row">
+                                                <span class="level-tag">@((shelf.RowLabels != null && row < shelf.RowLabels.Count && !string.IsNullOrWhiteSpace(shelf.RowLabels[row])) ? shelf.RowLabels[row] : $"N{row + 1}")</span>
+                                                
+                                                @for (int col = 0; col < shelf.Columns; col++)
+                                                {
+                                                    var spaceIndex = row * shelf.Columns + col;
+                                                    var space = shelf.Spaces[spaceIndex];
+                                                    
+                                                    <div class="rack-cell @(space.IsOccupied ? "occupied" : "empty")"
+                                                         @onclick="() => OnSpaceClick(space)"
+                                                         @onclick:stopPropagation="true"
+                                                         title="@(space.IsOccupied ? "Ver detalle" : "Espacio vacío")">
+                                                        
+                                                        @if (space.IsOccupied)
+                                                        {
+                                                            <div class="cell-content">
+                                                                <i class="bi bi-box-seam-fill" style="font-size:1.5rem;"></i>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="rack-beam"></div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (SelectedSpace != null)
+    {
+        <div class="clean-modal" @onclick="ClearSelection">
+            <div class="clean-modal-content" @onclick:stopPropagation="true">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2rem;">
+                    <div>
+                        <h4 style="margin:0; font-weight:800; color:#111827;">Detalle de Producto</h4>
+                        <span style="font-size:0.9rem; color:#6b7280;">Información capturada por visión</span>
+                    </div>
+                    <button @onclick="ClearSelection" style="border:none; background:#f3f4f6; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; color:#4b5563;">
+                        <i class="bi bi-x-lg" style="font-size:1rem;"></i>
+                    </button>
+                </div>
+
+                <div style="display:flex; gap:1.5rem; align-items:center; margin-bottom:2rem;">
+                    <div style="width:80px; height:80px; background:#eff6ff; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#3b82f6;">
+                         <i class="bi bi-box-seam" style="font-size:2.5rem;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size:0.8rem; text-transform:uppercase; color:#6b7280; font-weight:700; margin-bottom:4px;">Código QR Identificado</div>
+                        <div style="font-family:'Courier New', monospace; font-size:1.25rem; font-weight:bold; color:#111827; background:#f9fafb; padding:4px 8px; border-radius:4px; border:1px solid #e5e7eb;">
+                            @SelectedSpace.QrCode
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background:#f9fafb; padding:1rem; border-radius:8px; border:1px solid #e5e7eb;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:0.5rem;">
+                        <span style="color:#6b7280; font-size:0.9rem;">Última detección:</span>
+                        <span style="font-weight:600; color:#374151;">@SelectedSpace.LastUpdated?.ToString("HH:mm:ss")</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between;">
+                        <span style="color:#6b7280; font-size:0.9rem;">Fecha:</span>
+                        <span style="font-weight:600; color:#374151;">@SelectedSpace.LastUpdated?.ToString("dd/MM/yyyy")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public List<AltaEventoModel>? Events { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<object> OnViewClip { get; set; }
+
+    private List<ShelfData> Shelves { get; set; } = new();
+    private ShelfSpace? SelectedSpace { get; set; }
+    private ShelfData? SelectedRackForLogs { get; set; }
+    private string LogFilter { get; set; } = "All";
+    private List<EventEntry> EventEntries { get; set; } = new();
+    private bool _subscribed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("🔌 [InventarioEventsList] Inicializando realtime...");
+        await Realtime.StartAsync();
+        if (!_subscribed)
+        {
+            Realtime.InventoryEventAdded += HandleInventoryEventAdded;
+            Realtime.SavedEventAdded += HandleSavedEventAdded;
+            _subscribed = true;
+            Logger.LogInformation("✅ [InventarioEventsList] Suscrito a eventos realtime");
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        BuildShelvesFromEvents();
+        BuildEventEntries();
+    }
+
+    private async void HandleInventoryEventAdded(AltaEventoModel ev)
+    {
+        Logger.LogInformation("🔔 [InventarioEventsList] InventoryEventAdded recibido: ID={Id}, Nombre={Nombre}", ev.Id, ev.Nombre);
+        if (Events == null) Events = new();
+        Events.Insert(0, ev);
+        BuildShelvesFromEvents();
+        BuildEventEntries();
+        await InvokeAsync(StateHasChanged);
+        Logger.LogInformation("✅ [InventarioEventsList] Lista actualizada en tiempo real. Total: {Count}", Events.Count);
+    }
+
+    private async void HandleSavedEventAdded(AltaEventoModel ev)
+    {
+        Logger.LogInformation("🔔 [InventarioEventsList] SavedEventAdded recibido: ID={Id}, Nombre={Nombre}", ev.Id, ev.Nombre);
+        if (Events == null) Events = new();
+        Events.RemoveAll(e => e.Id == ev.Id);
+        Events.Insert(0, ev);
+        BuildShelvesFromEvents();
+        BuildEventEntries();
+        await InvokeAsync(StateHasChanged);
+        Logger.LogInformation("✅ [InventarioEventsList] Lista actualizada en tiempo real. Total: {Count}", Events.Count);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_subscribed)
+        {
+            Realtime.InventoryEventAdded -= HandleInventoryEventAdded;
+            Realtime.SavedEventAdded -= HandleSavedEventAdded;
+            _subscribed = false;
+        }
+        await Task.CompletedTask;
+    }
+
+    private void BuildShelvesFromEvents()
+    {
+        Shelves = new();
+
+        if (Events != null && Events.Count > 0)
+        {
+            var grouped = Events
+                .GroupBy(e => e.IpCamara)
+                .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+            foreach (var camGroup in grouped)
+            {
+                var last = camGroup.OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue).First();
+                var estantesMap = ParseEstantesMap(last.Descripcion);
+                var racks = ParseRacks(last.Descripcion);
+                var boxes = ParseCajas(last.Descripcion);
+
+                var rows = Math.Max(1, estantesMap.Count > 0 ? estantesMap.Count : racks.Count);
+                var cols = Math.Max(1, estantesMap.Count > 0 ? estantesMap.Max(x => x.Boxes.Count) : boxes.Count);
+
+                var shelf = new ShelfData
+                {
+                    CameraName = string.IsNullOrWhiteSpace(last.Nombre) ? last.IpCamara : last.Nombre,
+                    CameraIp = last.IpCamara,
+                    Rows = rows,
+                    Columns = cols,
+                    Spaces = new(),
+                    RowLabels = estantesMap.Count > 0 ? estantesMap.Select(x => x.Rack).ToList() : new()
+                };
+
+                // Si viene el mapping por estante, renderizamos ocupación por fila (estante)
+                if (estantesMap.Count > 0)
+                {
+                    for (int row = 0; row < shelf.Rows; row++)
+                    {
+                        var rowBoxes = row < estantesMap.Count ? estantesMap[row].Boxes : new List<string>();
+                        for (int col = 0; col < shelf.Columns; col++)
+                        {
+                            var hasBox = col < rowBoxes.Count;
+                            shelf.Spaces.Add(new ShelfSpace
+                            {
+                                Row = row,
+                                Column = col,
+                                IsOccupied = hasBox,
+                                QrCode = hasBox ? rowBoxes[col] : null,
+                                LastUpdated = last.FechaEvento
+                            });
+                        }
+                    }
+                }
+                else
+                {
+                    // Legacy: ocupación lineal
+                    int spaceCount = shelf.Rows * shelf.Columns;
+                    for (int idx = 0; idx < spaceCount; idx++)
+                    {
+                        var row = idx / shelf.Columns;
+                        var col = idx % shelf.Columns;
+                        var hasBox = idx < boxes.Count;
+                        shelf.Spaces.Add(new ShelfSpace
+                        {
+                            Row = row,
+                            Column = col,
+                            IsOccupied = hasBox,
+                            QrCode = hasBox ? boxes[idx] : null,
+                            LastUpdated = last.FechaEvento
+                        });
+                    }
+                }
+                shelf.UpdateStats();
+                Shelves.Add(shelf);
+            }
+        }
+    }
+
+    private void BuildEventEntries()
+    {
+        EventEntries.Clear();
+        if (Events == null || Events.Count == 0)
+        {
+            return;
+        }
+
+        EventEntries = Events
+            .OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue)
+            .Select(e => new { Source = e, Type = MapLogType(e.Descripcion) })
+            .Where(x => x.Type != "Ignore")
+            .Take(80)
+            .Select(x => new EventEntry
+            {
+                Source = x.Source,
+                Type = x.Type,
+                TypeLabel = GetLogLabel(x.Type),
+                Time = x.Source.FechaEvento ?? DateTime.UtcNow,
+                Boxes = ParseCajas(x.Source.Descripcion),
+                From = x.Source.FromFrame ?? x.Source.FrameInicio,
+                To = x.Source.ToFrame ?? x.Source.FrameFin,
+                FramePath = x.Source.FramePath
+            })
+            .ToList();
+    }
+
+    private void SelectRackFilter(ShelfData shelf)
+    {
+        if (SelectedRackForLogs == shelf)
+            SelectedRackForLogs = null;
+        else
+            SelectedRackForLogs = shelf;
+    }
+
+    private void SetFilter(string filter)
+    {
+        // Movimientos (grid.movimiento / grid.cambio) se ocultan en el WMS
+        if (string.Equals(filter, "Move", StringComparison.OrdinalIgnoreCase))
+        {
+            LogFilter = "All";
+            return;
+        }
+
+        LogFilter = filter;
+    }
+
+    private async Task OnViewClipClick(AltaEventoModel ev)
+    {
+        if (OnViewClip.HasDelegate)
+        {
+            await OnViewClip.InvokeAsync(ev);
+        }
+    }
+
+    private void OnEventCardClick(AltaEventoModel ev)
+    {
+        // "Detalles" en grilla: enfocar/filtrar por la cámara del evento (sin abrir clip)
+        if (string.IsNullOrWhiteSpace(ev.IpCamara) || Shelves == null || Shelves.Count == 0)
+        {
+            return;
+        }
+
+        var shelf = Shelves.FirstOrDefault(s => s.CameraIp == ev.IpCamara);
+        if (shelf != null)
+        {
+            SelectedRackForLogs = shelf;
+        }
+    }
+
+    private string GetLogLabel(string type)
+    {
+        return type switch {
+            "In" => "ENTRADA",
+            "Out" => "SALIDA",
+            "Move" => "MOVIMIENTO",
+            _ => type
+        };
+    }
+
+    private void OnSpaceClick(ShelfSpace space)
+    {
+        if (space.IsOccupied)
+            SelectedSpace = space;
+    }
+
+    private void ClearSelection()
+    {
+        SelectedSpace = null;
+    }
+
+    private async Task HandleClose()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+    private class ShelfData
+    {
+        public string CameraName { get; set; } = string.Empty;
+        public string CameraIp { get; set; } = string.Empty;
+        public int Rows { get; set; }
+        public int Columns { get; set; }
+        public List<ShelfSpace> Spaces { get; set; } = new();
+        public int OccupiedCount { get; set; } // Solo conteo, sin porcentaje
+        public List<string> RowLabels { get; set; } = new();
+
+        public void UpdateStats()
+        {
+            OccupiedCount = Spaces.Count(s => s.IsOccupied);
+        }
+    }
+
+    private class ShelfSpace
+    {
+        public int Row { get; set; }
+        public int Column { get; set; }
+        public bool IsOccupied { get; set; }
+        public string? QrCode { get; set; }
+        public DateTime? LastUpdated { get; set; }
+    }
+
+    private class EventEntry
+    {
+        public AltaEventoModel Source { get; set; } = new();
+        public string Type { get; set; } = "";
+        public string TypeLabel { get; set; } = "";
+        public DateTime Time { get; set; }
+        public List<string> Boxes { get; set; } = new();
+        public int? From { get; set; }
+        public int? To { get; set; }
+        public string? FramePath { get; set; }
+    }
+
+    private List<string> ParseCajas(string? descripcion)
+    {
+        if (string.IsNullOrWhiteSpace(descripcion)) return new();
+        var cajasPart = descripcion.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(p => p.StartsWith("cajas=", StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(cajasPart)) return new();
+        var split = cajasPart.Split('=', 2, StringSplitOptions.TrimEntries);
+        if (split.Length != 2) return new();
+        var tokens = split[1].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        var cleaned = new List<string>();
+
+        foreach (var raw in tokens)
+        {
+            var head = raw.Split(':', 2, StringSplitOptions.TrimEntries)[0];
+            var digits = new string(head.TakeWhile(char.IsDigit).ToArray());
+            var candidate = !string.IsNullOrWhiteSpace(digits) ? digits : head;
+            if (!string.IsNullOrWhiteSpace(candidate))
+                cleaned.Add(candidate);
+        }
+
+        return cleaned;
+    }
+
+    private List<string> ParseRacks(string? descripcion)
+    {
+        if (string.IsNullOrWhiteSpace(descripcion)) return new();
+        var rackPart = descripcion.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(p => p.StartsWith("estanteria=", StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(rackPart)) return new();
+        var split = rackPart.Split('=', 2, StringSplitOptions.TrimEntries);
+        if (split.Length != 2) return new();
+        return split[1].Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).ToList();
+    }
+
+    // Formato esperado (sin '|', porque '|' separa campos en Descripcion):
+    // estantes=ESTANTE-GPU:CAJA1,CAJA2;ESTANTE-CPU:CAJA3,CAJA4
+    private List<(string Rack, List<string> Boxes)> ParseEstantesMap(string? descripcion)
+    {
+        if (string.IsNullOrWhiteSpace(descripcion)) return new();
+        var part = descripcion.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(p => p.StartsWith("estantes=", StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrWhiteSpace(part)) return new();
+
+        var split = part.Split('=', 2, StringSplitOptions.TrimEntries);
+        if (split.Length != 2) return new();
+
+        var value = split[1];
+        if (string.IsNullOrWhiteSpace(value) || value.Equals("null", StringComparison.OrdinalIgnoreCase)) return new();
+
+        var shelves = new List<(string Rack, List<string> Boxes)>();
+        var shelfSegments = value.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        foreach (var seg in shelfSegments)
+        {
+            var kv = seg.Split(':', 2, StringSplitOptions.TrimEntries);
+            if (kv.Length == 0) continue;
+
+            var rack = kv[0].Trim();
+            if (string.IsNullOrWhiteSpace(rack)) continue;
+
+            var boxes = new List<string>();
+            if (kv.Length == 2 && !string.IsNullOrWhiteSpace(kv[1]) && !kv[1].Equals("VACIO", StringComparison.OrdinalIgnoreCase))
+            {
+                boxes = kv[1]
+                    .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+                    .Where(b => !b.Equals("VACIO", StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            shelves.Add((rack, boxes));
+        }
+
+        return shelves;
+    }
+
+    private string MapLogType(string? descripcion)
+    {
+        if (string.IsNullOrWhiteSpace(descripcion)) return "Ignore";
+        var lower = descripcion.ToLowerInvariant();
+        // Snapshot es sólo para bootstrap del layout; no debe aparecer en el log.
+        if (lower.Contains("grid.snapshot")) return "Ignore";
+        if (lower.Contains("grid.alta")) return "In";
+        if (lower.Contains("grid.baja")) return "Out";
+        // Movimiento: no mostrar en WMS
+        if (lower.Contains("grid.cambio") || lower.Contains("grid.movimiento") || lower.Contains("movimiento")) return "Ignore";
+        if (lower.Contains("alta")) return "In";
+        if (lower.Contains("baja")) return "Out";
+        return "Ignore";
+    }
+
+    private (List<string> BoxIds, string From, string To) GetEventInfo(EventEntry ev)
+    {
+        var desc = ev.Source.Descripcion ?? "";
+        var boxIds = new List<string>();
+        var from = "";
+        var to = "";
+
+        // Parse tipo de evento y extraer info específica
+        if (ev.Type == "In" || ev.Type == "Out")
+        {
+            // Para entrada/salida: extraer solo las cajas que cambiaron
+            var parts = desc.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                if (part.StartsWith("caja=", StringComparison.OrdinalIgnoreCase) || 
+                    part.StartsWith("cajas=", StringComparison.OrdinalIgnoreCase))
+                {
+                    var value = part.Split('=', 2)[1];
+                    var tokens = value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var token in tokens)
+                    {
+                        var digits = new string(token.TakeWhile(char.IsDigit).ToArray());
+                        if (!string.IsNullOrWhiteSpace(digits))
+                            boxIds.Add(digits);
+                    }
+                    break;
+                }
+            }
+        }
+        else if (ev.Type == "Move")
+        {
+            // Para movimiento: extraer origen y destino de estantes
+            var parts = desc.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            foreach (var part in parts)
+            {
+                if (part.StartsWith("estanteria=", StringComparison.OrdinalIgnoreCase))
+                {
+                    var value = part.Split('=', 2)[1];
+                    var racks = value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    if (racks.Length >= 2)
+                    {
+                        from = "Estante " + racks[0];
+                        to = "Estante " + racks[^1];
+                    }
+                }
+                else if (part.StartsWith("caja=", StringComparison.OrdinalIgnoreCase) || 
+                         part.StartsWith("cajas=", StringComparison.OrdinalIgnoreCase))
+                {
+                    var value = part.Split('=', 2)[1];
+                    var tokens = value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+                    foreach (var token in tokens)
+                    {
+                        var digits = new string(token.TakeWhile(char.IsDigit).ToArray());
+                        if (!string.IsNullOrWhiteSpace(digits))
+                            boxIds.Add(digits);
+                    }
+                }
+            }
+        }
+
+        return (boxIds, from, to);
+    }
+
+}

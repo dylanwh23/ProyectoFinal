@@ -1,19 +1,19 @@
 ﻿@using Admin.Console.Models.Components
 @using Microsoft.AspNetCore.Components.Web
 
-<div class="h-100 d-flex flex-column">
-    <div class="row flex-grow-1 bg-light m-0" style="min-height: 0; height: 50%;">
-        <div class="col p-2 border-end" style="overflow-y: auto;">
+<div class="d-flex flex-column" style="height: 100%; min-height: 0; overflow: hidden;">
+    <div class="row bg-light m-0" style="height: 50dvh; min-height: 0; overflow: hidden;">
+        <div class="col-5 p-2 border-end d-flex flex-column" style="height: 100%; min-height: 0; overflow: auto;">
             <NewEvent />
         </div>
-        <div class="col p-2" style="overflow-y: auto;">
+        <div class="col-7 p-2 d-flex flex-column" style="height: 100%; min-height: 0; overflow: hidden;">
             <Events OnEventoSeleccionado="AlSeleccionarEvento" />
         </div>
     </div>
 
-    <div class="row flex-grow-1 bg-dark text-white m-0" style="min-height: 0; height: 50%;">
+    <div class="row bg-dark text-white m-0" style="height: 50dvh; min-height: 0; overflow: hidden;">
         <div class="col p-2 border-end h-100 d-flex flex-column" style="overflow: hidden;">
-            <SavedEvents OnEventoSeleccionado="AlSeleccionarEvento" CameraIp="@SelectedCameraIp" />
+            <SavedEvents OnEventoSeleccionado="AlSeleccionarEvento" CameraIp="@SelectedCameraIp" CameraPuerto="@SelectedCameraPuerto" CameraTipo="@SelectedCameraTipo" />
         </div>
         <div class="col p-2 h-100" style="overflow: hidden;">
             <Video Evento="eventoSeleccionado" />

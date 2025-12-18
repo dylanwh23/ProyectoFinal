@@ -3,21 +3,35 @@ using System.Net.Http.Json;
 using Admin.Console.Models.Components;
 using Shared.Contracts.Models;
 using System.Text.Json;
+using Admin.Console.Services;
 
 namespace Admin.Console.Components
 {
-    public partial class Events : ComponentBase
+    public partial class Events : ComponentBase, IAsyncDisposable
     {
         [Inject] public HttpClient Http { get; set; } = default!;
         [Inject] public ILogger<Events> Logger { get; set; } = default!;
+        [Inject] public RealtimeEventsService Realtime { get; set; } = default!;
         [Parameter] public EventCallback<AltaEventoModel> OnEventoSeleccionado { get; set; }
 
         public List<AltaEventoModel> Camaras { get; set; } = new();
         public bool IsLoading { get; set; } = false;
 
+        private bool _subscribed;
+
         protected override async Task OnInitializedAsync()
         {
+            await EnsureRealtimeAsync();
             await CargarCamaras();
+        }
+
+        private async Task EnsureRealtimeAsync()
+        {
+            await Realtime.StartAsync();
+            if (_subscribed) return;
+            Realtime.CameraUpserted += HandleCameraUpserted;
+            Realtime.CameraDeleted += HandleCameraDeleted;
+            _subscribed = true;
         }
 
         public async Task CargarCamaras()
@@ -68,6 +82,40 @@ namespace Admin.Console.Components
         private Task SeleccionarItem(AltaEventoModel item)
         {
             return OnEventoSeleccionado.InvokeAsync(item);
+        }
+
+        private async void HandleCameraUpserted(AltaEventoModel cam)
+        {
+            var existing = Camaras.FirstOrDefault(c => c.IpCamara == cam.IpCamara);
+            if (existing != null)
+            {
+                Camaras.Remove(existing);
+            }
+            Camaras.Add(cam);
+            await InvokeAsync(StateHasChanged);
+        }
+
+        private async void HandleCameraDeleted(string ip)
+        {
+            Camaras.RemoveAll(c => c.IpCamara == ip);
+            await InvokeAsync(StateHasChanged);
+        }
+
+        public override async Task SetParametersAsync(ParameterView parameters)
+        {
+            await base.SetParametersAsync(parameters);
+            await EnsureRealtimeAsync();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            if (_subscribed)
+            {
+                Realtime.CameraUpserted -= HandleCameraUpserted;
+                Realtime.CameraDeleted -= HandleCameraDeleted;
+                _subscribed = false;
+            }
+            await Task.CompletedTask;
         }
     }
 }

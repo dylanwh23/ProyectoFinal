@@ -4,18 +4,29 @@
 <div class="form-compact h-100 d-flex flex-column">
     <div class="bg-light rounded shadow-sm border flex-shrink-0 mb-2 p-2">
         <div class="d-flex align-items-center border-bottom pb-2 mb-2">
-            <h5 class="m-0 text-primary"><i class="bi bi-camera-video me-2"></i>Registrar Nueva Camara</h5>
+            <h5 class="m-0 text-primary"><i class="bi bi-camera-video me-2"></i>Registrar Estantería / Cámara</h5>
         </div>
 
         <EditForm Model="@FormModel" OnValidSubmit="@Submit" FormName="NewEventForm">
             <DataAnnotationsValidator />
 
-            @* --- NOMBRE --- *@
+            @* --- TIPO DE EVENTO --- *@
             <div class="mb-2">
-                <label class="form-label fw-bold small text-secondary mb-1">NOMBRE DE LA CAMARA</label>
+                <label class="form-label fw-bold small text-secondary mb-1">TIPO DE EVENTO</label>
+                <InputSelect class="form-select form-select-sm" @bind-Value="FormModel.TipoEvento">
+                    <option value="grid">Grilla / Estantería</option>
+                    <option value="pallet">Pallet en movimiento</option>
+                    <option value="camion">Camión en reservado</option>
+                </InputSelect>
+                <div class="form-text small text-muted">"pallet": VACIO → CAJA-..|.. | "camion": seccion:VACIO|seccion:CAMIONXX</div>
+            </div>
+
+            @* --- NOMBRE (COMÚN A TODOS LOS TIPOS) --- *@
+            <div class="mb-2">
+                <label class="form-label fw-bold small text-secondary mb-1">NOMBRE</label>
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-tag"></i></span>
-                    <InputText @bind-Value="FormModel.Nombre" class="form-control" placeholder="Ej: Cámara Acceso Norte" />
+                    <InputText @bind-Value="FormModel.Nombre" class="form-control" placeholder="Ej: ESTANTERIA-GPU o CAMION-PLAYA" />
                 </div>
                 <ValidationMessage For="@(() => FormModel.Nombre)" />
             </div>
@@ -30,18 +41,18 @@
                 <ValidationMessage For="@(() => FormModel.Sucursal)" />
             </div>
             <div class="mb-2">
-                <label class="form-label fw-bold small text-secondary mb-1">CONEXIÓN (IP : PUERTO)</label>
+                 <label class="form-label fw-bold small text-secondary mb-1">CONEXIÓN CÁMARA (IP : PUERTO)</label>
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white border-end"><i class="bi bi-hdd-network"></i></span>
                  
                     @* IP OCTETOS *@
-                    <InputNumber @bind-Value="FormModel.CamIp1" class="form-control text-center px-0 border-end-0" style="max-width: 45px;" placeholder="192" />
+                    <InputNumber @bind-Value="FormModel.CamIp1" class="form-control text-center px-0 border-end-0" style="max-width: 55px;" placeholder="127" />
                     <span class="input-group-text px-1 bg-white border-end-0 fw-bold">.</span>
-                    <InputNumber @bind-Value="FormModel.CamIp2" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 45px;" placeholder="168" />
+                    <InputNumber @bind-Value="FormModel.CamIp2" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 55px;" placeholder="0" />
                     <span class="input-group-text px-1 bg-white border-start-0 border-end-0 fw-bold">.</span>
-                    <InputNumber @bind-Value="FormModel.CamIp3" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 45px;" placeholder="0" />
+                    <InputNumber @bind-Value="FormModel.CamIp3" class="form-control text-center px-0 border-start-0 border-end-0" style="max-width: 55px;" placeholder="0" />
                     <span class="input-group-text px-1 bg-white border-start-0 border-end-0 fw-bold">.</span>
-                    <InputNumber @bind-Value="FormModel.CamIp4" class="form-control text-center px-0 border-start-0" style="max-width: 50px;" placeholder="10" />
+                    <InputNumber @bind-Value="FormModel.CamIp4" class="form-control text-center px-0 border-start-0" style="max-width: 55px;" placeholder="1" />
 
                     @* PUERTO *@
                     <span class="input-group-text bg-light fw-bold border-start-0">:</span>
@@ -71,7 +82,7 @@
 
             @* --- RUTA DE ALMACENAMIENTO --- *@
             <div class="mb-2">
-                <label class="form-label fw-bold small text-secondary mb-1">RUTA DE CARPETA (WATCH FOLDER)</label>
+                 <label class="form-label fw-bold small text-secondary mb-1">RUTA DE CARPETA DE IMÁGENES</label>
                 <div class="input-group input-group-sm">
                     <span class="input-group-text bg-white"><i class="bi bi-folder2-open"></i></span>
                     <InputText @bind-Value="FormModel.RutaCarpeta" class="form-control" placeholder="C:\Ruta\Local o \\Servidor\RutaRed" />
@@ -101,7 +112,7 @@
             @* --- BOTÓN GUARDAR --- *@
             <div class="d-grid mt-2">
                 <button type="submit" class="btn btn-primary btn-sm shadow-sm">
-                    <i class="bi bi-save2 me-2"></i>REGISTRAR CAMARA
+                    <i class="bi bi-save2 me-2"></i>REGISTRAR
                 </button>
             </div>
 

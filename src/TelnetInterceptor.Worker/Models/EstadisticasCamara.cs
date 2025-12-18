@@ -8,6 +8,7 @@ public class EstadisticasCamara
 {
     public string Nombre { get; set; } = string.Empty;
     public string Sucursal { get; set; } = string.Empty; // Nueva propiedad para categorizar cámaras
+    public string TipoEvento { get; set; } = "grid"; // grid | pallet | camion
     public string IpCamara { get; set; } = string.Empty;
     public int Puerto { get; set; }
     
@@ -22,7 +23,7 @@ public class EstadisticasCamara
     
     public EstadisticasCamara() { }
 
-    public EstadisticasCamara(string ipCamara, int puerto, string rutaCarpeta, string nombre, string sucursal = "")
+    public EstadisticasCamara(string ipCamara, int puerto, string rutaCarpeta, string nombre, string sucursal = "", string tipoEvento = "grid")
     {
         IpCamara = ipCamara;
         Puerto = puerto;
@@ -31,5 +32,6 @@ public class EstadisticasCamara
         MensajesRecibidos = 0;
         Nombre = nombre;
         Sucursal = sucursal;
+        TipoEvento = string.IsNullOrWhiteSpace(tipoEvento) ? "grid" : tipoEvento.ToLowerInvariant();
     }
 }

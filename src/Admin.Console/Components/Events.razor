@@ -1,48 +1,59 @@
 @using Admin.Console.Models.Components
 @using Shared.Contracts.Models
-<div class="h-100 d-flex flex-column">
-    <div class="d-flex justify-content-between align-items-center mb-2 px-2 pt-2 gap-2">
-        <h6 class="m-0 text-success"><i class="bi bi-camera-video me-1"></i>C�maras en Vivo</h6>
+<div class="d-flex flex-column" style="height: 100%; min-height: 0; overflow: hidden;">
+    <div class="d-flex justify-content-between align-items-center mb-2 px-2 pt-2 gap-2 flex-shrink-0">
+        <h6 class="m-0 text-success"><i class="bi bi-camera-video me-1"></i>Cámaras en Vivo</h6>
         <button class="btn btn-sm btn-outline-secondary" onclick="@CargarCamaras" title="Refrescar">
             <i class="bi bi-arrow-clockwise"></i>
         </button>
     </div>
+    
     @if (IsLoading)
     {
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status"></div>
-            <p class="small text-muted mt-2">Buscando c�maras...</p>
+            <p class="small text-muted mt-2">Buscando cámaras...</p>
         </div>
     }
     else
     {
-        <div class="list-group h-100 overflow-auto px-2">
+        <div class="flex-grow-1 overflow-auto px-2" style="min-height: 0;">
             @if (Camaras.Count == 0)
             {
-                <div class="alert alert-warning small text-center">No hay c�maras conectadas.</div>
+                <div class="alert alert-warning small text-center">No hay cámaras conectadas.</div>
             }
             else
             {
-                @foreach (var cam in Camaras)
+                @foreach (var grupo in Camaras.GroupBy(c => string.IsNullOrWhiteSpace(c.TipoEvento) ? "grid" : c.TipoEvento.Trim().ToLowerInvariant()))
                 {
-                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded">
-                        <div class="text-truncate flex-grow-1" style="cursor: pointer;" onclick="@(() => SeleccionarItem(cam))">
-                            <div class="fw-bold text-dark">
-                                <i class="bi bi-camera-video-fill @(cam.EstaConectada ? "text-success" : "text-danger") me-2"></i>
-                                @cam.Nombre
+                    <div class="mt-2 mb-1">
+                        <div class="small text-uppercase text-secondary fw-bold mb-1">
+                            <i class="bi bi-bookmark me-1"></i>
+                            @(grupo.Key == "grid" ? "Grilla / Estantería" : grupo.Key == "pallet" ? "Pallet" : grupo.Key == "camion" ? "Camión" : "Sin categoría")
+                        </div>
+
+                        @foreach (var cam in grupo)
+                        {
+                            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded">
+                                <div class="text-truncate flex-grow-1" style="cursor: pointer;" onclick="@(() => SeleccionarItem(cam))">
+                                    <div class="fw-bold text-dark">
+                                        <i class="bi bi-camera-video-fill @(cam.EstaConectada ? "text-success" : "text-danger") me-2"></i>
+                                        @cam.Nombre
+                                    </div>
+                                    <div class="fw-bold text-dark">@cam.IpCamara</div>
+                                    <div class="small text-muted">Puerto: @cam.Puerto</div>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <button class="btn btn-sm btn-outline-danger"
+                                            onclick="@(() => EliminarCamara(cam.IpCamara))"
+                                            onclick:stopPropagation="true"
+                                            title="Eliminar cámara">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                    <i class="bi bi-play-circle text-primary fs-4" style="cursor: pointer;" onclick="@(() => SeleccionarItem(cam))"></i>
+                                </div>
                             </div>
-                            <div class="fw-bold text-dark">@cam.IpCamara</div>
-                            <div class="small text-muted">Puerto: @cam.Puerto</div>
-                        </div>
-                        <div class="d-flex align-items-center gap-2">
-                            <button class="btn btn-sm btn-outline-danger"
-                                    onclick="@(() => EliminarCamara(cam.IpCamara))"
-                                    onclick:stopPropagation="true"
-                                    title="Eliminar c�mara">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                            <i class="bi bi-play-circle text-primary fs-4" style="cursor: pointer;" onclick="@(() => SeleccionarItem(cam))"></i>
-                        </div>
+                        }
                     </div>
                 }
             }

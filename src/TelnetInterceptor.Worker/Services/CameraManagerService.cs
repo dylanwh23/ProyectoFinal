@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,6 +24,22 @@ public class CameraManagerService : BackgroundService
 
     // Hora UTC de la última foto recibida (Para la alerta de "Sin Señal")
     private readonly ConcurrentDictionary<string, DateTime> _lastImageTime = new();
+
+    public enum AddCameraResult
+    {
+        Added = 0,
+        IpAlreadyExists = 1,
+        InvalidType = 2
+    }
+
+    private static readonly HashSet<string> AllowedCameraTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "grid",
+        "pallet",
+        "camion"
+    };
+
+    private int _didNormalizeCameraTypes;
 
     public CameraManagerService(
         ILogger<CameraManagerService> logger,
@@ -195,20 +212,55 @@ public class CameraManagerService : BackgroundService
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        if (Interlocked.Exchange(ref _didNormalizeCameraTypes, 1) == 0)
+        {
+            await NormalizeCameraTypesAsync(db);
+        }
+
         return await db.Eventos.ToListAsync();
     }
 
-    public async Task<bool> AgregarCamara(string ip, int puerto, string ruta, string nombre, string sucursal = "")
+    public async Task<AddCameraResult> AgregarCamara(string ip, int puerto, string ruta, string nombre, string tipoEvento, string sucursal = "")
     {
         using var scope = _scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        if (await db.Eventos.AnyAsync(c => c.IpCamara == ip)) return false;
+        var normalizedIp = (ip ?? string.Empty).Trim();
+        var normalizedType = (tipoEvento ?? string.Empty).Trim().ToLowerInvariant();
 
-        db.Eventos.Add(new EstadisticasCamara(ip, puerto, ruta, nombre, sucursal));
+        if (!AllowedCameraTypes.Contains(normalizedType)) return AddCameraResult.InvalidType;
+
+        if (await db.Eventos.AnyAsync(c => c.IpCamara == normalizedIp)) return AddCameraResult.IpAlreadyExists;
+
+        db.Eventos.Add(new EstadisticasCamara(normalizedIp, puerto, ruta, nombre, sucursal, normalizedType));
         await db.SaveChangesAsync();
         await SincronizarWatchers();
-        return true;
+        return AddCameraResult.Added;
+    }
+
+    private async Task NormalizeCameraTypesAsync(AppDbContext db)
+    {
+        try
+        {
+            var toFix = await db.Eventos
+                .Where(c => c.TipoEvento == null || c.TipoEvento == "" || c.TipoEvento.ToLower() == "auto")
+                .ToListAsync();
+
+            if (toFix.Count == 0) return;
+
+            foreach (var cam in toFix)
+            {
+                cam.TipoEvento = "grid";
+            }
+
+            await db.SaveChangesAsync();
+            _logger.LogWarning("🧹 Normalizadas {Count} cámaras con TipoEvento inválido/auto -> 'grid'.", toFix.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "No se pudo normalizar TipoEvento de cámaras.");
+        }
     }
 
     public async Task<bool> EliminarCamara(string ip)

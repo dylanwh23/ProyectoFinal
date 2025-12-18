@@ -114,8 +114,10 @@ namespace Admin.Console.Components
                     IpCamara = FormModel.GetCameraIpString(),
                     Puerto = FormModel.CamPort,
                     RutaCarpeta = FormModel.RutaCarpeta,
+                    // Nombre es común para todos los tipos
                     Nombre = FormModel.Nombre,
-                    Sucursal = FormModel.Sucursal // Nuevo campo
+                    Sucursal = FormModel.Sucursal,
+                    TipoEvento = FormModel.TipoEvento
                 };
 
                 Logger.LogInformation("Enviando POST...");
@@ -150,13 +152,14 @@ namespace Admin.Console.Components
 
         public class EventViewModel
         {
+            public string TipoEvento { get; set; } = "grid";
             public string Nombre { get; set; } = string.Empty;
             public string Sucursal { get; set; } = string.Empty; // Nueva propiedad para sucursal
 
-            public int CamIp1 { get; set; } = 192;
-            public int CamIp2 { get; set; } = 168;
-            public int CamIp3 { get; set; } = 1;
-            public int CamIp4 { get; set; } = 10;
+            public int CamIp1 { get; set; } = 127;
+            public int CamIp2 { get; set; } = 0;
+            public int CamIp3 { get; set; } = 0;
+            public int CamIp4 { get; set; } = 1;
             public int CamPort { get; set; } = 23;
 
             public string RutaCarpeta { get; set; } = string.Empty;

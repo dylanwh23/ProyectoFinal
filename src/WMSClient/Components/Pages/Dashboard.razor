@@ -1,8 +1,12 @@
 @page "/"
 @rendermode InteractiveServer
 @using Shared.Contracts.Models
+@using WMSClient.Components.EventsList
+@using System.Linq
 @inject WMSClient.Services.IWmsCameraService CameraService
+@inject WMSClient.Services.RealtimeEventsService Realtime
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <div class="wms-layout">
     <!-- Top Navigation Bar -->
@@ -31,40 +35,41 @@
     else
     {
         <div class="wms-container">
-            <!-- Sidebar de Sucursales -->
-            <aside class="wms-sidebar">
-                <div class="sidebar-header">
+            <!-- Sucursales (horizontal) -->
+            <nav class="branches-bar" aria-label="Sucursales">
+                <div class="branches-bar-left">
                     <i class="bi bi-building"></i>
-                    <h5>Sucursales</h5>
+                    <span class="branches-bar-title">Sucursales</span>
                 </div>
-                <nav class="sidebar-nav">
+                <div class="branches-nav" role="tablist">
                     @if (Branches.Count == 0)
                     {
-                        <div class="text-muted text-center py-4">No hay sucursales</div>
+                        <div class="text-muted">No hay sucursales</div>
                     }
                     else
                     {
                         @foreach (var b in Branches)
                         {
-                            <button 
-                                class="sidebar-nav-item @(SelectedBranch?.Name == b.Name ? "active" : "")" 
-                                @onclick="@((MouseEventArgs e) => SelectBranch(b.Name))"
+                            <button
+                                type="button"
+                                class="branches-nav-item @(SelectedBranch?.Name == b.Name ? "active" : "")"
+                                @onclick="@(() => SelectBranch(b.Name))"
                                 title="@b.Name">
                                 <span class="nav-label">@b.Name</span>
                                 <span class="nav-badge">@b.Cameras.Count</span>
                             </button>
                         }
                     }
-                </nav>
-            </aside>
+                </div>
+            </nav>
 
             <!-- Main Content Area -->
             <main class="wms-main">
-                <!-- Cameras Grid Section -->
+                <!-- Cameras Section by Event Type -->
                 <section class="cameras-section">
                     <div class="section-header">
                         <h4><i class="bi bi-camera"></i> @(SelectedBranch?.Name ?? "Cámaras")</h4>
-                        <p class="text-muted">@(SelectedBranch?.Cameras.Count ?? 0) cámaras disponibles</p>
+                        <p class="text-muted">Cámaras por tipo de evento</p>
                     </div>
 
                     @if (SelectedBranch == null)
@@ -83,16 +88,106 @@
                     }
                     else
                     {
-                        <div class="cameras-grid">
-                            @foreach (var cam in SelectedBranch.Cameras)
-                            {
-                                <div class="@(ActiveCamera?.IpCamara == cam.IpCamara ? "camera-item camera-item-active" : "camera-item")">
-                                    <CameraCard Camera="cam" OnSelected="OpenCamera" />
+                        <!-- Event Type 1: Grilla de Inventario -->
+                        @if (GetInventoryCams().Count > 0)
+                        {
+                            <div class="event-type-section">
+                                <div class="event-type-header-wrapper">
+                                    <div class="event-type-header">
+                                        <i class="bi bi-grid-1x2"></i>
+                                        <h5>Grilla de Inventario</h5>
+                                    </div>
+                                    <button class="btn-toggle-section" @onclick="@(() => ToggleSection(EventType.GrillaInventario))" title="@(ShowInventorySection ? "Ocultar" : "Mostrar")">
+                                        <i class="bi @(ShowInventorySection ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                    </button>
                                 </div>
-                            }
-                        </div>
+                                @if (ShowInventorySection)
+                                {
+                                    <div class="cameras-grid">
+                                        @foreach (var cam in GetInventoryCams())
+                                        {
+                                            <div class="@(ActiveCamera?.IpCamara == cam.IpCamara ? "camera-item camera-item-active" : "camera-item")" @onclick="@(() => OpenCameraAndScroll(cam))">
+                                                <CameraCard Camera="cam" OnSelected="OpenCameraAndScroll" />
+                                            </div>
+                                        }
+
+                                        <button class="show-all-btn" @onclick="@(() => DisplayEventsList(EventType.GrillaInventario))" title="Mostrar todos los eventos de grillas">
+                                            <i class="bi bi-collection"></i>
+                                            <span>Mostrar todos</span>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Event Type 2: Pallet en Movimiento -->
+                        @if (GetPalletCams().Count > 0)
+                        {
+                            <div class="event-type-section">
+                                <div class="event-type-header-wrapper">
+                                    <div class="event-type-header">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                        <h5>Pallet en Movimiento</h5>
+                                    </div>
+                                    <button class="btn-toggle-section" @onclick="@(() => ToggleSection(EventType.PalletMovimiento))" title="@(ShowPalletSection ? "Ocultar" : "Mostrar")">
+                                        <i class="bi @(ShowPalletSection ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                    </button>
+                                </div>
+                                @if (ShowPalletSection)
+                                {
+                                    <div class="cameras-grid">
+                                        @foreach (var cam in GetPalletCams())
+                                        {
+                                            <div class="@(ActiveCamera?.IpCamara == cam.IpCamara ? "camera-item camera-item-active" : "camera-item")" @onclick="@(() => OpenCameraAndScroll(cam))">
+                                                <CameraCard Camera="cam" OnSelected="OpenCameraAndScroll" />
+                                            </div>
+                                        }
+
+                                        <button class="show-all-btn" @onclick="@(() => DisplayEventsList(EventType.PalletMovimiento))" title="Mostrar todos los eventos de pallets">
+                                            <i class="bi bi-collection"></i>
+                                            <span>Mostrar todos</span>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <!-- Event Type 3: Arribo de Camiones -->
+                        @if (GetTruckCams().Count > 0)
+                        {
+                            <div class="event-type-section">
+                                <div class="event-type-header-wrapper">
+                                    <div class="event-type-header">
+                                        <i class="bi bi-truck"></i>
+                                        <h5>Arribo de Camiones</h5>
+                                    </div>
+                                    <button class="btn-toggle-section" @onclick="@(() => ToggleSection(EventType.ArriboCamiones))" title="@(ShowTruckSection ? "Ocultar" : "Mostrar")">
+                                        <i class="bi @(ShowTruckSection ? "bi-chevron-up" : "bi-chevron-down")"></i>
+                                    </button>
+                                </div>
+                                @if (ShowTruckSection)
+                                {
+                                    <div class="cameras-grid">
+                                        @foreach (var cam in GetTruckCams())
+                                        {
+                                            <div class="@(ActiveCamera?.IpCamara == cam.IpCamara ? "camera-item camera-item-active" : "camera-item")" @onclick="@(() => OpenCameraAndScroll(cam))">
+                                                <CameraCard Camera="cam" OnSelected="OpenCameraAndScroll" />
+                                            </div>
+                                        }
+
+                                        <button class="show-all-btn" @onclick="@(() => DisplayEventsList(EventType.ArriboCamiones))" title="Mostrar todos los eventos de camiones">
+                                            <i class="bi bi-collection"></i>
+                                            <span>Mostrar todos</span>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        }
                     }
                 </section>
+
+
+              
 
                 <!-- Video Viewer Section -->
                 <section class="viewer-section">
@@ -117,20 +212,119 @@
                         <WMSClient.Components.CameraView SelectedCamera="@ActiveCamera" />
                     </div>
                 </section>
+
+                <!-- Event Lists Section (below viewer, full width of main column) -->
+                @if ((ActiveCamera != null && GetEventTypeForCamera() != null) || (ShowEventsList && SelectedBranch != null))
+                {
+                    <section class="events-section" id="categorized-events-section">
+                        <div class="events-section-header">
+                            <h6><i class="bi bi-bookmark"></i>
+                                @if (CurrentEventType.HasValue && ShowEventsList)
+                                {
+                                    <span>
+                                        Eventos @GetEventTypeLabel()
+                                        <span class="badge bg-secondary ms-2">Mostrando todos</span>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span>@ActiveCamera?.IpCamara - @ActiveCamera?.Nombre</span>
+                                }
+                            </h6>
+                        </div>
+                        <div class="events-section-content">
+                            @{
+                                var eventType = GetEventTypeForCamera();
+                            }
+                            @if (ShowEventsList && CurrentEventType == EventType.GrillaInventario)
+                            {
+                                var eventsList = GetGridEventsForBranch();
+                                <InventarioEventsList 
+                                    Events="eventsList" 
+                                    OnClose="HideEventsList" 
+                                    OnViewClip="ViewClipForEvent" />
+                            }
+                            else if (ShowEventsList && CurrentEventType == EventType.PalletMovimiento)
+                            {
+                                var eventsList = GetPalletEventsForBranch();
+                                <PalletEventsList 
+                                    Events="eventsList" 
+                                    OnClose="HideEventsList" 
+                                    OnViewClip="ViewClipForEvent" />
+                            }
+                            else if (ShowEventsList && CurrentEventType == EventType.ArriboCamiones)
+                            {
+                                var eventsList = GetCamionEventsForBranch();
+                                var cameraNames = GetTruckCams().ToDictionary(c => c.IpCamara, c => c.Nombre);
+                                <CamionesEventsList 
+                                    Events="eventsList" 
+                                    CameraNames="cameraNames"
+                                    OnClose="HideEventsList" 
+                                    OnViewClip="ViewClipForEvent" />
+                            }
+                            else if (!ShowEventsList && eventType == "GrillaInventario")
+                            {
+                                var eventsList = GetGridEventsForActiveCamera();
+                                <InventarioEventsList 
+                                    Events="eventsList" 
+                                    OnClose="HideEventsList" 
+                                    OnViewClip="ViewClipForEvent" />
+                            }
+                            else if (!ShowEventsList && eventType == "PalletMovimiento")
+                            {
+                                var eventsList = GetPalletEventsForActiveCamera();
+                                <PalletEventsList 
+                                    Events="eventsList" 
+                                    OnClose="HideEventsList" 
+                                    OnViewClip="ViewClipForEvent" />
+                            }
+                            else if (!ShowEventsList && eventType == "ArriboCamiones")
+                            {
+                                var eventsList = GetCamionEventsForActiveCamera();
+                                var cameraNames = GetTruckCams().ToDictionary(c => c.IpCamara, c => c.Nombre);
+                                <CamionesEventsList 
+                                    Events="eventsList" 
+                                    CameraNames="cameraNames"
+                                    OnClose="HideEventsList" 
+                                    OnViewClip="ViewClipForEvent" />
+                            }
+                        </div>
+                    </section>
+                }
             </main>
         </div>
     }
 </div>
 
 @code {
+    private enum EventType
+    {
+        GrillaInventario,
+        PalletMovimiento,
+        ArriboCamiones
+    }
+
     private class BranchModel { public string Name { get; set; } = ""; public List<AltaEventoModel> Cameras { get; set; } = new(); }
 
     private List<BranchModel> Branches { get; set; } = new();
     private BranchModel? SelectedBranch { get; set; }
     private AltaEventoModel? ActiveCamera { get; set; }
 
+    private List<AltaEventoModel> GridEvents { get; set; } = new();
+    private List<PalletEventModel> PalletEvents { get; set; } = new();
+    private List<CamionEventModel> CamionEvents { get; set; } = new();
+
     private bool IsLoading = false;
     private string ErrorMessage = string.Empty;
+
+    // Estados para mostrar/ocultar secciones
+    private bool ShowInventorySection = true;
+    private bool ShowPalletSection = true;
+    private bool ShowTruckSection = true;
+
+    // Estado para mostrar lista de eventos
+    private bool ShowEventsList = false;
+    private EventType? CurrentEventType = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -139,18 +333,17 @@
         try
         {
             var cameras = await CameraService.GetCamerasAsync();
-
-        // Group by Sucursal to represent branches/locations
-        var grouped = cameras.GroupBy(c => string.IsNullOrWhiteSpace(c.Sucursal) ? "General" : c.Sucursal.Trim())
-            .Select(g => new BranchModel { Name = g.Key, Cameras = g.ToList() }).ToList();
+            var grouped = cameras
+                .GroupBy(c => string.IsNullOrWhiteSpace(c.Sucursal) ? "General" : c.Sucursal.Trim())
+                .Select(g => new BranchModel { Name = g.Key, Cameras = g.ToList() })
+                .ToList();
 
             Branches = grouped;
-        if (Branches.Count > 0)
-        {
-            SelectedBranch = Branches[0];
-            // Do not pre-select an active camera — only open a camera when the user clicks a card
+            SelectedBranch = Branches.FirstOrDefault();
             ActiveCamera = null;
-        }
+
+            // No precargar eventos globales: se cargan on-demand (por cámara o por tipo)
+            await Realtime.SetActiveCameraAsync(null);
         }
         catch (Exception ex)
         {
@@ -177,13 +370,401 @@
         catch { }
     }
 
-    private void SelectBranch(string name)
+    private async Task LoadEventsForBranchByTypeAsync(EventType eventType)
+    {
+        if (SelectedBranch == null)
+        {
+            GridEvents = new();
+            PalletEvents = new();
+            CamionEvents = new();
+            return;
+        }
+
+        // Importante: en "mostrar todos" NO pedimos eventos globales.
+        // Traemos por cámara (sólo de la sucursal y del tipo correspondiente) y mergeamos.
+        switch (eventType)
+        {
+            case EventType.GrillaInventario:
+            {
+                var cams = GetInventoryCams();
+                var tasks = cams.Select(c => CameraService.GetGridEventsByCameraAsync(c.IpCamara, c.Puerto)).ToArray();
+                var results = await Task.WhenAll(tasks);
+                GridEvents = results
+                    .SelectMany(x => x)
+                    .OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue)
+                    .ToList();
+                PalletEvents = new();
+                CamionEvents = new();
+                break;
+            }
+            case EventType.PalletMovimiento:
+            {
+                var cams = GetPalletCams();
+                var tasks = cams.Select(c => CameraService.GetPalletEventsByCameraAsync(c.IpCamara, c.Puerto)).ToArray();
+                var results = await Task.WhenAll(tasks);
+                PalletEvents = results
+                    .SelectMany(x => x)
+                    .OrderByDescending(e => e.FechaEvento)
+                    .ToList();
+                GridEvents = new();
+                CamionEvents = new();
+                break;
+            }
+            case EventType.ArriboCamiones:
+            {
+                var cams = GetTruckCams();
+                var tasks = cams.Select(c => CameraService.GetCamionEventsByCameraAsync(c.IpCamara, c.Puerto)).ToArray();
+                var results = await Task.WhenAll(tasks);
+                CamionEvents = results
+                    .SelectMany(x => x)
+                    .OrderByDescending(e => e.FechaEvento)
+                    .ToList();
+                GridEvents = new();
+                PalletEvents = new();
+                break;
+            }
+        }
+    }
+
+    private async Task LoadEventsForTypeCamerasAsync(string tipoEvento, List<AltaEventoModel> cameras)
+    {
+        var tipo = (tipoEvento ?? string.Empty).Trim().ToLowerInvariant();
+        switch (tipo)
+        {
+            case "grid":
+                {
+                    var tasks = cameras
+                        .Select(c => CameraService.GetGridEventsByCameraAsync(c.IpCamara, c.Puerto))
+                        .ToArray();
+                    var results = await Task.WhenAll(tasks);
+                    GridEvents = results
+                        .SelectMany(x => x)
+                        .OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue)
+                        .ToList();
+                }
+                PalletEvents = new();
+                CamionEvents = new();
+                break;
+            case "pallet":
+                {
+                    var tasks = cameras
+                        .Select(c => CameraService.GetPalletEventsByCameraAsync(c.IpCamara, c.Puerto))
+                        .ToArray();
+                    var results = await Task.WhenAll(tasks);
+                    PalletEvents = results
+                        .SelectMany(x => x)
+                        .OrderByDescending(e => e.FechaEvento)
+                        .ToList();
+                }
+                GridEvents = new();
+                CamionEvents = new();
+                break;
+            case "camion":
+                {
+                    var tasks = cameras
+                        .Select(c => CameraService.GetCamionEventsByCameraAsync(c.IpCamara, c.Puerto))
+                        .ToArray();
+                    var results = await Task.WhenAll(tasks);
+                    CamionEvents = results
+                        .SelectMany(x => x)
+                        .OrderByDescending(e => e.FechaEvento)
+                        .ToList();
+                }
+                GridEvents = new();
+                PalletEvents = new();
+                break;
+            default:
+                GridEvents = new();
+                PalletEvents = new();
+                CamionEvents = new();
+                break;
+        }
+    }
+
+    private async Task LoadEventsForSingleCameraAsync(AltaEventoModel cam)
+    {
+        var tipo = (cam.TipoEvento ?? string.Empty).Trim().ToLowerInvariant();
+        switch (tipo)
+        {
+            case "grid":
+                GridEvents = (await CameraService.GetGridEventsByCameraAsync(cam.IpCamara, cam.Puerto))
+                    .OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue)
+                    .ToList();
+                PalletEvents = new();
+                CamionEvents = new();
+                break;
+            case "pallet":
+                PalletEvents = (await CameraService.GetPalletEventsByCameraAsync(cam.IpCamara, cam.Puerto))
+                    .OrderByDescending(e => e.FechaEvento)
+                    .ToList();
+                GridEvents = new();
+                CamionEvents = new();
+                break;
+            case "camion":
+                CamionEvents = (await CameraService.GetCamionEventsByCameraAsync(cam.IpCamara, cam.Puerto))
+                    .OrderByDescending(e => e.FechaEvento)
+                    .ToList();
+                GridEvents = new();
+                PalletEvents = new();
+                break;
+            default:
+                GridEvents = new();
+                PalletEvents = new();
+                CamionEvents = new();
+                break;
+        }
+    }
+
+    private async Task SelectBranch(string name)
     {
         SelectedBranch = Branches.FirstOrDefault(b => b.Name == name);
+        ActiveCamera = null;
+        ShowEventsList = false;
+        CurrentEventType = null;
+        await Realtime.SetActiveCameraAsync(null);
     }
 
     private void OpenCamera(AltaEventoModel cam)
     {
         ActiveCamera = cam;
     }
+
+    private async Task OpenCameraAndScroll(AltaEventoModel cam)
+    {
+        ActiveCamera = cam;
+        ShowEventsList = false;
+        CurrentEventType = null;
+
+        // Click en cámara: mostrar SOLO sus eventos (1 estantería / 1 pasillo / 1 estacionamiento)
+        try
+        {
+            await Realtime.SetActiveCameraAsync(cam.IpCamara);
+            await LoadEventsForSingleCameraAsync(cam);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "Error al cargar eventos de la cámara: " + ex.Message;
+        }
+
+        // Scroll al reproductor
+        try{
+        await Task.Delay(100);
+        await JS.InvokeVoidAsync("scrollHelper.scrollToViewer");
+        }
+        catch(Exception ex)
+        {
+            Console.WriteLine($"Error al hacer scroll: {ex.Message}");
+
+        }
+    }
+
+    private void ToggleSection(EventType eventType)
+    {
+        switch (eventType)
+        {
+            case EventType.GrillaInventario:
+                ShowInventorySection = !ShowInventorySection;
+                break;
+            case EventType.PalletMovimiento:
+                ShowPalletSection = !ShowPalletSection;
+                break;
+            case EventType.ArriboCamiones:
+                ShowTruckSection = !ShowTruckSection;
+                break;
+        }
+    }
+
+    private async Task DisplayEventsList(EventType eventType)
+    {
+        // Vista "mostrar todos": traemos eventos de todas las cámaras de ese tipo (sólo de la sucursal).
+        // Para GRID y CAMION, mantenemos realtime prendido pero suscrito sólo a las cámaras de la sucursal
+        // (sin broadcast global / sin cola general).
+        try
+        {
+            if (eventType == EventType.GrillaInventario)
+            {
+                var cams = GetInventoryCams();
+                await Realtime.SetActiveCamerasAsync(cams.Select(c => c.IpCamara));
+            }
+            else if (eventType == EventType.ArriboCamiones)
+            {
+                var cams = GetTruckCams();
+                await Realtime.SetActiveCamerasAsync(cams.Select(c => c.IpCamara));
+            }
+            else
+            {
+                await Realtime.SetActiveCameraAsync(null);
+            }
+        }
+        catch
+        {
+            /* best-effort */
+        }
+
+        try { await LoadEventsForBranchByTypeAsync(eventType); }
+        catch (Exception ex) { ErrorMessage = "Error al cargar eventos: " + ex.Message; }
+
+        CurrentEventType = eventType;
+        ShowEventsList = true;
+        await Task.Delay(100);
+        try
+        {
+            await JS.InvokeVoidAsync("scrollHelper.scrollToElement", "categorized-events-section");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al hacer scroll: {ex.Message}");
+        }
+    }
+
+    private async Task HideEventsList()
+    {
+        ShowEventsList = false;
+        CurrentEventType = null;
+
+        // Volver a realtime de cámara activa (si existe)
+        try { await Realtime.SetActiveCameraAsync(ActiveCamera?.IpCamara); } catch { /* best-effort */ }
+    }
+
+    private async Task ViewClipForEvent(object ev)
+    {
+        ActiveCamera = ev switch
+        {
+            AltaEventoModel grid => BuildPlaybackCamera(grid.IpCamara, grid.Nombre, grid.FromFrame ?? grid.FrameInicio, grid.ToFrame ?? grid.FrameFin, grid.Descripcion, grid.FramePath, grid.TipoEvento),
+            PalletEventModel pallet => BuildPlaybackCamera(pallet.IpCamara, string.IsNullOrWhiteSpace(pallet.Nombre) ? $"Pallet {pallet.PalletId}" : pallet.Nombre, pallet.FromFrame, pallet.ToFrame, pallet.Cajas, pallet.FramePath, "pallet"),
+            CamionEventModel camion => FindCameraByIp(camion.IpCamara),
+            _ => ActiveCamera
+        };
+
+        ShowEventsList = false;
+        CurrentEventType = null;
+        await Task.Delay(100);
+        try
+        {
+            await JS.InvokeVoidAsync("scrollHelper.scrollToViewer");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al hacer scroll: {ex.Message}");
+        }
+    }
+
+    private AltaEventoModel? BuildPlaybackCamera(string ip, string? nombre, int? from, int? to, string? descripcion, string? framePath, string? tipo)
+    {
+        var cam = FindCameraByIp(ip) ?? new AltaEventoModel { IpCamara = ip, Nombre = nombre ?? ip, TipoEvento = tipo ?? "grid" };
+        cam.FromFrame = from;
+        cam.ToFrame = to;
+        cam.Descripcion = descripcion;
+        cam.FramePath = framePath;
+        cam.EsEventoGuardado = from.HasValue && to.HasValue;
+        return cam;
+    }
+
+    private string GetEventTypeLabel()
+    {
+        return CurrentEventType switch
+        {
+            EventType.GrillaInventario => "Grilla de Inventario",
+            EventType.PalletMovimiento => "Pallet en Movimiento",
+            EventType.ArriboCamiones => "Arribo de Camiones",
+            _ => ""
+        };
+    }
+
+    private List<AltaEventoModel> GetGridEventsForBranch()
+    {
+        if (SelectedBranch == null) return new();
+        var ips = SelectedBranch.Cameras
+            .Where(c => string.Equals(c.TipoEvento, "grid", StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.IpCamara)
+            .ToHashSet();
+
+        return GridEvents
+            .Where(e => ips.Contains(e.IpCamara))
+            .OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue)
+            .ToList();
+    }
+
+    private List<PalletEventModel> GetPalletEventsForBranch()
+    {
+        if (SelectedBranch == null) return new();
+        var ips = SelectedBranch.Cameras
+            .Where(c => string.Equals(c.TipoEvento, "pallet", StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.IpCamara)
+            .ToHashSet();
+
+        return PalletEvents
+            .Where(e => ips.Contains(e.IpCamara))
+            .OrderByDescending(e => e.FechaEvento)
+            .ToList();
+    }
+
+    private List<CamionEventModel> GetCamionEventsForBranch()
+    {
+        if (SelectedBranch == null) return new();
+        var ips = SelectedBranch.Cameras
+            .Where(c => string.Equals(c.TipoEvento, "camion", StringComparison.OrdinalIgnoreCase))
+            .Select(c => c.IpCamara)
+            .ToHashSet();
+
+        return CamionEvents
+            .Where(e => ips.Contains(e.IpCamara))
+            .OrderByDescending(e => e.FechaEvento)
+            .ToList();
+    }
+
+    private string? GetEventTypeForCamera()
+    {
+        return ActiveCamera?.TipoEvento?.ToLowerInvariant() switch
+        {
+            "grid" => "GrillaInventario",
+            "pallet" => "PalletMovimiento",
+            "camion" => "ArriboCamiones",
+            _ => null
+        };
+    }
+
+    private List<AltaEventoModel> GetGridEventsForActiveCamera()
+    {
+        if (ActiveCamera == null) return new();
+        return GridEvents
+            .Where(e => e.IpCamara == ActiveCamera.IpCamara)
+            .OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue)
+            .ToList();
+    }
+
+    private List<PalletEventModel> GetPalletEventsForActiveCamera()
+    {
+        if (ActiveCamera == null) return new();
+        return PalletEvents
+            .Where(e => e.IpCamara == ActiveCamera.IpCamara)
+            .OrderByDescending(e => e.FechaEvento)
+            .ToList();
+    }
+
+    private List<CamionEventModel> GetCamionEventsForActiveCamera()
+    {
+        if (ActiveCamera == null) return new();
+        return CamionEvents
+            .Where(e => e.IpCamara == ActiveCamera.IpCamara)
+            .OrderByDescending(e => e.FechaEvento)
+            .ToList();
+    }
+
+    private AltaEventoModel? FindCameraByIp(string ip)
+    {
+        return Branches.SelectMany(b => b.Cameras).FirstOrDefault(c => c.IpCamara == ip);
+    }
+
+    private List<AltaEventoModel> GetInventoryCams() => SelectedBranch?.Cameras
+        .Where(c => string.Equals(c.TipoEvento, "grid", StringComparison.OrdinalIgnoreCase))
+        .ToList() ?? new();
+
+    private List<AltaEventoModel> GetPalletCams() => SelectedBranch?.Cameras
+        .Where(c => string.Equals(c.TipoEvento, "pallet", StringComparison.OrdinalIgnoreCase))
+        .ToList() ?? new();
+
+    private List<AltaEventoModel> GetTruckCams() => SelectedBranch?.Cameras
+        .Where(c => string.Equals(c.TipoEvento, "camion", StringComparison.OrdinalIgnoreCase))
+        .ToList() ?? new();
 }

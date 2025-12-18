@@ -8,6 +8,7 @@ builder.Services.AddScoped(sp => new HttpClient
 { 
     BaseAddress = new Uri("http://localhost:5000/") 
 });
+builder.Services.AddSingleton<Admin.Console.Services.RealtimeEventsService>();
 
 var app = builder.Build();
 

@@ -1,0 +1,229 @@
+@using Shared.Contracts.Models
+@using System.Linq
+@implements IAsyncDisposable
+@inject WMSClient.Services.RealtimeEventsService Realtime
+@inject ILogger<PalletEventsList> Logger
+
+<div class="pallet-events-container">
+    
+    <div class="pallet-header">
+        <h5>
+            <i class="bi bi-camera-video-fill" style="color:#3b82f6;"></i>
+            Cámara 01: Pasillo Central
+            <span class="pallet-live-badge">
+                <span style="display:inline-block; width:6px; height:6px; background:#22c55e; border-radius:50%;"></span>
+                En Vivo
+            </span>
+        </h5>
+        <button class="pallet-close-btn" @onclick="HandleClose" title="Cerrar vista">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    <div class="pallet-main-layout">
+        
+        <!-- SIDEBAR: Timeline de Pallets -->
+        <div class="pallet-sidebar">
+            <div class="pallet-sidebar-header">
+                Últimos Pallets Detectados
+            </div>
+            
+            <div class="pallet-timeline-scroll">
+                @if (DisplayEvents == null || !DisplayEvents.Any())
+                {
+                    <div class="pallet-empty-state" style="padding:3rem 1rem;">
+                        <i class="bi bi-hourglass-split"></i>
+                        <p>Esperando paso de carga...</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var ev in DisplayEvents)
+                    {
+                        var isSelected = SelectedPallet?.Id == ev.Id;
+                        <div class="pallet-timeline-item @(isSelected ? "active" : "")" 
+                             @onclick="() => SelectPallet(ev)">
+                            
+                            <div class="pallet-time">
+                                <i class="bi bi-clock"></i>
+                                @ev.FechaEvento.ToString("HH:mm:ss")
+                            </div>
+                            <div class="pallet-info">
+                                <h6>Pallet @ev.PalletId</h6>
+                                <div class="pallet-meta">
+                                    <i class="bi bi-box-seam"></i>
+                                    @GetBoxCount(ev) cajas detectadas
+                                    <span class="pallet-count-badge">@GetBoxCount(ev)</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- ÁREA DE DETALLE: Manifiesto del Pallet -->
+        <div class="pallet-detail">
+            @if (SelectedPallet != null)
+            {
+                <div class="pallet-manifest">
+                    <div class="pallet-manifest-header">
+                        <div>
+                            <div class="pallet-manifest-title">
+                                <h2>
+                                    <i class="bi bi-box-seam" style="color:#3b82f6;"></i>
+                                    @SelectedPallet.Nombre
+                                </h2>
+                            </div>
+
+                            <div class="d-flex gap-2" style="margin: 0.75rem 0 0.25rem 0; flex-wrap:wrap;">
+                                <button class="btn btn-sm btn-outline-primary wms-action-btn" @onclick="ViewClipSelected">
+                                    Ver clip
+                                </button>
+                            </div>
+
+                            <div class="pallet-manifest-subtitle">
+                                <span>
+                                    <i class="bi bi-calendar3"></i> 
+                                    @SelectedPallet.FechaEvento.ToString("dd/MM/yyyy")
+                                </span>
+                                <span>
+                                    <i class="bi bi-clock"></i> 
+                                    @SelectedPallet.FechaEvento.ToString("HH:mm:ss")
+                                </span>
+                                <span>
+                                    <i class="bi bi-camera"></i> 
+                                    @SelectedPallet.IpCamara
+                                </span>
+                            </div>
+                            <div class="pallet-badge">
+                                <i class="bi bi-check-circle-fill"></i> Verificado
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pallet-manifest-body">
+                        <div class="pallet-section-title">
+                            <i class="bi bi-upc-scan"></i> 
+                            Cajas Identificadas (@GetBoxCount(SelectedPallet))
+                        </div>
+
+                        <div class="pallet-boxes-grid">
+                            @foreach (var box in GetBoxCodes(SelectedPallet))
+                            {
+                                <div class="pallet-box-card">
+                                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                        <i class="bi bi-box-seam pallet-box-icon"></i>
+                                        <i class="bi bi-check-circle-fill" style="color:#10b981; font-size:1rem;"></i>
+                                    </div>
+                                    <span class="pallet-box-qr">@box</span>
+                                    <div class="pallet-box-desc">Caja asociada</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="pallet-manifest-footer">
+                        <span>ID Evento: #@SelectedPallet.Id</span>
+                        <span>Sistema WMS Vision 2.0</span>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="pallet-empty-state">
+                    <i class="bi bi-hand-index"></i>
+                    <p>Seleccione un pallet de la lista<br/>para ver su contenido</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<PalletEventModel>? Events { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<object> OnViewClip { get; set; }
+
+    private List<PalletEventModel> DisplayEvents { get; set; } = new();
+    private PalletEventModel? SelectedPallet { get; set; }
+    private bool _subscribed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("🔌 [PalletEventsList] Inicializando realtime...");
+        await Realtime.StartAsync();
+        if (!_subscribed)
+        {
+            Realtime.PalletEventAdded += HandlePalletEventAdded;
+            _subscribed = true;
+            Logger.LogInformation("✅ [PalletEventsList] Suscrito a PalletEventAdded");
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        DisplayEvents = (Events ?? new()).OrderByDescending(e => e.FechaEvento).ToList();
+        SelectedPallet ??= DisplayEvents.FirstOrDefault();
+    }
+
+    private async void HandlePalletEventAdded(PalletEventModel ev)
+    {
+        try
+        {
+            if (Events == null) Events = new();
+            Events.RemoveAll(e => e.Id == ev.Id);
+            Events.Insert(0, ev);
+            DisplayEvents = Events.OrderByDescending(e => e.FechaEvento).ToList();
+            SelectedPallet ??= DisplayEvents.FirstOrDefault();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "⚠️ [PalletEventsList] Error aplicando PalletEventAdded");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_subscribed)
+        {
+            Realtime.PalletEventAdded -= HandlePalletEventAdded;
+            _subscribed = false;
+        }
+        await Task.CompletedTask;
+    }
+
+    private Task HandleClose()
+    {
+        return OnClose.InvokeAsync();
+    }
+
+    private Task SelectPallet(PalletEventModel ev)
+    {
+        SelectedPallet = ev;
+        return Task.CompletedTask;
+    }
+
+    private async Task ViewClipSelected()
+    {
+        if (SelectedPallet == null) return;
+        if (OnViewClip.HasDelegate)
+        {
+            await OnViewClip.InvokeAsync(SelectedPallet);
+        }
+    }
+
+
+    private int GetBoxCount(PalletEventModel p)
+    {
+        if (string.IsNullOrWhiteSpace(p.Cajas)) return 0;
+        return p.Cajas.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length;
+    }
+
+    private List<string> GetBoxCodes(PalletEventModel pallet)
+    {
+        if (string.IsNullOrWhiteSpace(pallet.Cajas)) return new();
+        return pallet.Cajas.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+    }
+}

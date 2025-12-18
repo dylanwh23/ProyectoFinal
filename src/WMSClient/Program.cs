@@ -20,6 +20,8 @@ builder.Services.AddScoped(sp => new HttpClient
     BaseAddress = new Uri(apiBase)
 });
 
+builder.Services.AddScoped<WMSClient.Services.RealtimeEventsService>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

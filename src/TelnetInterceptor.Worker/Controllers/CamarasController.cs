@@ -36,7 +36,7 @@ public class CamaraController : ControllerBase
         var resultado = camarasEnBd.Select(cam => 
         {
             if (statsEnVivo.TryGetValue(cam.IpCamara, out var vivo)) return vivo; 
-            return new EstadisticasCamara(cam.IpCamara, cam.Puerto, cam.RutaCarpeta, cam.Nombre, cam.Sucursal)
+            return new EstadisticasCamara(cam.IpCamara, cam.Puerto, cam.RutaCarpeta, cam.Nombre, cam.Sucursal, cam.TipoEvento)
             {
                 EstaConectada = false,
                 UltimoMensaje = "Desconectada / Sin Tráfico"
@@ -49,16 +49,25 @@ public class CamaraController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AgregarCamara([FromBody] CamaraRequest request)
     {
-        var exito = await _manager.AgregarCamara(request.IpCamara, request.Puerto, request.RutaCarpeta, request.Nombre, request.Sucursal);
-        
-        if (exito)
+        var result = await _manager.AgregarCamara(request.IpCamara, request.Puerto, request.RutaCarpeta, request.Nombre, request.TipoEvento, request.Sucursal);
+
+        return result switch
         {
-            return Ok(new { mensaje = "Cámara agregada" });
-        }
-        else
-        {
-            return BadRequest(new { error = "La cámara ya existe" });
-        }
+            CameraManagerService.AddCameraResult.Added => Ok(new { mensaje = "Cámara agregada" }),
+            CameraManagerService.AddCameraResult.IpAlreadyExists => Conflict(new
+            {
+                error = "ip_taken",
+                mensaje = $"La IP '{request.IpCamara}' ya está registrada. Elegí otra IP (o eliminá la existente).",
+                ip = request.IpCamara
+            }),
+            CameraManagerService.AddCameraResult.InvalidType => BadRequest(new
+            {
+                error = "invalid_type",
+                mensaje = $"TipoEvento inválido '{request.TipoEvento}'. Valores válidos: grid, pallet, camion.",
+                tipoEvento = request.TipoEvento
+            }),
+            _ => BadRequest(new { error = "unknown_error", mensaje = "No se pudo registrar la cámara." })
+        };
     }
 
     [HttpDelete("{ip}")]
@@ -95,4 +104,4 @@ public class CamaraController : ControllerBase
 }
 
 // DTO para la petición de agregar cámara
-public record CamaraRequest(string IpCamara, int Puerto, string RutaCarpeta, string Nombre, string Sucursal = "");
+public record CamaraRequest(string IpCamara, int Puerto, string RutaCarpeta, string Nombre, string TipoEvento, string Sucursal = "");

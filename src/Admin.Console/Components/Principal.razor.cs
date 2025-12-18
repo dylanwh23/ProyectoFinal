@@ -10,6 +10,8 @@ namespace Admin.Console.Components
     {
         private AltaEventoModel? eventoSeleccionado;
         private string? SelectedCameraIp { get; set; } // Nueva propiedad para la IP de la cámara seleccionada
+        private int SelectedCameraPuerto { get; set; }
+        private string? SelectedCameraTipo { get; set; }
 
         protected override void OnInitialized()
         {
@@ -19,6 +21,8 @@ namespace Admin.Console.Components
         {
             eventoSeleccionado = eventoDeLaLista;
             SelectedCameraIp = eventoDeLaLista.IpCamara; // Almacenar la IP de la cámara seleccionada
+            SelectedCameraPuerto = eventoDeLaLista.Puerto;
+            SelectedCameraTipo = eventoDeLaLista.TipoEvento;
         }
     }
 }

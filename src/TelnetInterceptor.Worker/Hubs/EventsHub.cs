@@ -1,12 +1,17 @@
 ﻿using Microsoft.AspNetCore.SignalR;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 
 namespace TelnetInterceptor.Worker.Hubs
 {
-    public class EventsHub : Hub { }
+    public class EventsHub : Hub
+    {
+        public Task SubscribeCamera(string cameraIp)
+        {
+            return Groups.AddToGroupAsync(Context.ConnectionId, EventsHubGroups.Camera(cameraIp));
+        }
+
+        public Task UnsubscribeCamera(string cameraIp)
+        {
+            return Groups.RemoveFromGroupAsync(Context.ConnectionId, EventsHubGroups.Camera(cameraIp));
+        }
+    }
 }

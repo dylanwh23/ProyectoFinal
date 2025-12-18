@@ -1,13 +1,16 @@
 ﻿@using Admin.Console.Models.Components
 @using Shared.Contracts.Models
 @using System.Text.Json
+@using System.Linq
+@implements IAsyncDisposable
 @inject HttpClient Http
 @inject ILogger<SavedEvents> Logger
+@inject Admin.Console.Services.RealtimeEventsService Realtime
 
 <div class="h-100 d-flex flex-column">
-    <div class="d-flex justify-content-between align-items-center mb-2 px-2 pt-2">
+    <div class="d-flex justify-content-between align-items-center mb-2 px-2 pt-2 flex-shrink-0">
         <h6 class="m-0 text-primary"><i class="bi bi-collection-play me-1"></i>Eventos Guardados</h6>
-        <button class="btn btn-sm btn-outline-secondary" onclick="@CargarEventos" title="Refrescar">
+        <button class="btn btn-sm btn-outline-secondary" @onclick="CargarEventos" title="Refrescar">
             <i class="bi bi-arrow-clockwise"></i>
         </button>
     </div>
@@ -21,7 +24,7 @@
     }
     else
     {
-        <div class="list-group h-100 overflow-auto px-2">
+        <div class="list-group flex-grow-1 overflow-auto px-2" style="min-height: 0;">
             @if (EventosGuardados.Count == 0)
             {
                 <div class="alert alert-info small text-center">No hay eventos grabados.</div>
@@ -33,7 +36,16 @@
                     <button class="list-group-item list-group-item-action d-flex justify-content-between align-items-center mb-1 shadow-sm border rounded"
                             onclick="@(() => SeleccionarItem(evt))">
                         <div class="text-truncate">
-                            <div class="fw-bold text-primary">@evt.Nombre</div>
+                            <div class="fw-bold text-primary">@evt.Nombre <span class="badge bg-secondary ms-2">ID: @evt.Id</span></div>
+                            @{
+                                var info = ExtraerInfo(evt);
+                            }
+                            <div class="small text-muted">
+                                <i class="bi bi-arrow-left-right me-1"></i>@info.TipoMovimiento
+                            </div>
+                            <div class="small text-muted">
+                                <i class="bi bi-box-seam me-1"></i>@info.Cajas
+                            </div>
                             <div class="small text-muted">
                                 <i class="bi bi-film me-1"></i>Clip: @evt.FromFrame - @evt.ToFrame
                             </div>
@@ -53,8 +65,16 @@
     [Parameter]
     public string CameraIp { get; set; }
 
+    [Parameter]
+    public int CameraPuerto { get; set; }
+
+    [Parameter]
+    public string? CameraTipo { get; set; }
+
     public List<AltaEventoModel> EventosGuardados { get; set; } = new();
     public bool IsLoading { get; set; } = false;
+
+    private bool _subscribed;
 
     private string? _previousCameraIp; // Para detectar cambios en el parámetro
 
@@ -65,48 +85,218 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await EnsureRealtimeAsync();
+        // Cargar eventos iniciales de la BD
         await CargarEventos();
     }
 
     protected override async Task OnParametersSetAsync()
     {
-        // Solo cargar eventos si la IP de la cámara ha cambiado
-        if (CameraIp != _previousCameraIp && !string.IsNullOrEmpty(CameraIp))
+        var ipChanged = !string.Equals(CameraIp, _previousCameraIp, StringComparison.OrdinalIgnoreCase);
+
+        if (ipChanged)
         {
             _previousCameraIp = CameraIp;
+
+            // Suscripción realtime por cámara (evita cola global)
+            await Realtime.SetActiveCameraAsync(string.IsNullOrWhiteSpace(CameraIp) ? null : CameraIp);
+
+            // Cargar eventos solo cuando hay cámara seleccionada
             await CargarEventos();
         }
         await base.OnParametersSetAsync(); // Llama a la implementación base para otros parámetros
     }
 
+    private async Task EnsureRealtimeAsync()
+    {
+        Logger.LogInformation("🔌 [SavedEvents] Inicializando conexión realtime...");
+        await Realtime.StartAsync();
+        if (_subscribed)
+        {
+            Logger.LogInformation("✅ [SavedEvents] Ya estaba suscrito a eventos realtime");
+            return;
+        }
+        Realtime.SavedEventAdded += HandleSavedEventAdded;
+        Realtime.PalletEventAdded += HandlePalletEventAdded;
+        Realtime.CamionEventAdded += HandleCamionEventAdded;
+        _subscribed = true;
+        Logger.LogInformation("✅ [SavedEvents] Suscrito a SavedEventAdded/PalletEventAdded/CamionEventAdded");
+    }
+
     public async Task CargarEventos()
     {
+        Logger.LogInformation("🔄 [SavedEvents] Botón refrescar clickeado. CameraIp={CameraIp}", CameraIp ?? "(vacío)");
         IsLoading = true;
         StateHasChanged();
 
         try
         {
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var eventos = await Http.GetFromJsonAsync<List<AltaEventoModel>>($"{API_BASE}/api/eventos/buscar/{CameraIp}", options);
 
-            if (eventos != null)
+            if (string.IsNullOrWhiteSpace(CameraIp))
             {
-                EventosGuardados = eventos.OrderByDescending(e => e.ToFrame).ToList();
+                Logger.LogInformation("ℹ️ [SavedEvents] Sin cámara seleccionada: no se cargan eventos");
+                EventosGuardados = new();
+                return;
             }
+
+            var tipo = (CameraTipo ?? "grid").Trim().ToLowerInvariant();
+            if (tipo == "grid")
+            {
+                Logger.LogInformation("📥 [SavedEvents] Cargando eventos GRID para cámara: {CameraIp}:{Puerto}", CameraIp, CameraPuerto);
+                var eventos = await Http.GetFromJsonAsync<List<AltaEventoModel>>($"{API_BASE}/api/eventos/grid/{CameraIp}/{CameraPuerto}", options);
+                EventosGuardados = (eventos ?? new())
+                    .OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue)
+                    .ThenByDescending(e => e.ToFrame ?? 0)
+                    .ToList();
+            }
+            else if (tipo == "pallet")
+            {
+                Logger.LogInformation("📥 [SavedEvents] Cargando eventos PALLET para cámara: {CameraIp}:{Puerto}", CameraIp, CameraPuerto);
+                var eventos = await Http.GetFromJsonAsync<List<PalletEventModel>>($"{API_BASE}/api/eventos/pallet/{CameraIp}/{CameraPuerto}", options);
+                EventosGuardados = (eventos ?? new())
+                    .Select(MapPalletToAlta)
+                    .OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue)
+                    .ToList();
+            }
+            else if (tipo == "camion")
+            {
+                Logger.LogInformation("📥 [SavedEvents] Cargando eventos CAMION para cámara: {CameraIp}:{Puerto}", CameraIp, CameraPuerto);
+                var eventos = await Http.GetFromJsonAsync<List<CamionEventModel>>($"{API_BASE}/api/eventos/camion/{CameraIp}/{CameraPuerto}", options);
+                EventosGuardados = (eventos ?? new())
+                    .Select(MapCamionToAlta)
+                    .OrderByDescending(e => e.FechaEvento ?? DateTime.MinValue)
+                    .ToList();
+            }
+            else
+            {
+                Logger.LogWarning("⚠️ [SavedEvents] Tipo de cámara desconocido: {Tipo}. No se cargan eventos.", tipo);
+                EventosGuardados = new();
+            }
+
+            Logger.LogInformation("✅ [SavedEvents] Total en lista: {Count}", EventosGuardados.Count);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error cargando eventos guardados");
+            Logger.LogError(ex, "❌ [SavedEvents] Error cargando eventos guardados");
         }
         finally
         {
             IsLoading = false;
             StateHasChanged();
+            Logger.LogInformation("🔄 [SavedEvents] Carga terminada. Total en lista: {Count}", EventosGuardados.Count);
         }
     }
 
     private Task SeleccionarItem(AltaEventoModel item)
     {
         return OnEventoSeleccionado.InvokeAsync(item);
+    }
+
+    private async void HandleSavedEventAdded(AltaEventoModel ev)
+    {
+        Logger.LogInformation("🔔 [SavedEvents] HandleSavedEventAdded ejecutado. Evento ID={Id}, Nombre={Nombre}, IpCamara={IpCamara}", 
+            ev.Id, ev.Nombre, ev.IpCamara);
+        
+        if (!string.IsNullOrWhiteSpace(CameraIp) && !string.Equals(ev.IpCamara, CameraIp, StringComparison.OrdinalIgnoreCase))
+        {
+            Logger.LogInformation("⏭️ [SavedEvents] Evento filtrado: no coincide con CameraIp actual ({CameraIp})", CameraIp);
+            return;
+        }
+
+        Logger.LogInformation("➕ [SavedEvents] Agregando evento a lista. Total antes: {Count}", EventosGuardados.Count);
+        EventosGuardados.RemoveAll(e => e.Id == ev.Id);
+        EventosGuardados.Insert(0, ev);
+        await InvokeAsync(StateHasChanged);
+        Logger.LogInformation("✅ [SavedEvents] Lista actualizada. Total ahora: {Count}", EventosGuardados.Count);
+    }
+
+    private async void HandlePalletEventAdded(PalletEventModel ev)
+    {
+        if (string.IsNullOrWhiteSpace(CameraIp) || !string.Equals(ev.IpCamara, CameraIp, StringComparison.OrdinalIgnoreCase)) return;
+        if (!string.Equals((CameraTipo ?? "").Trim(), "pallet", StringComparison.OrdinalIgnoreCase)) return;
+
+        EventosGuardados.Insert(0, MapPalletToAlta(ev));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void HandleCamionEventAdded(CamionEventModel ev)
+    {
+        if (string.IsNullOrWhiteSpace(CameraIp) || !string.Equals(ev.IpCamara, CameraIp, StringComparison.OrdinalIgnoreCase)) return;
+        if (!string.Equals((CameraTipo ?? "").Trim(), "camion", StringComparison.OrdinalIgnoreCase)) return;
+
+        EventosGuardados.Insert(0, MapCamionToAlta(ev));
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private static AltaEventoModel MapPalletToAlta(PalletEventModel p)
+        => new()
+        {
+            Id = p.Id,
+            IpCamara = p.IpCamara,
+            Puerto = p.Puerto,
+            RutaCarpeta = p.RutaCarpeta,
+            Nombre = string.IsNullOrWhiteSpace(p.Nombre) ? $"PALLET #{p.PalletId}" : p.Nombre,
+            TipoEvento = "pallet",
+            EsEventoGuardado = true,
+            FechaEvento = p.FechaEvento,
+            Descripcion = p.Cajas,
+            FramePath = p.FramePath,
+            FromFrame = p.FromFrame,
+            ToFrame = p.ToFrame
+        };
+
+    private static AltaEventoModel MapCamionToAlta(CamionEventModel c)
+        => new()
+        {
+            Id = c.Id,
+            IpCamara = c.IpCamara,
+            Puerto = c.Puerto,
+            RutaCarpeta = c.RutaCarpeta ?? string.Empty,
+            Nombre = $"CAMION {c.TipoEvento} - {c.Seccion} {c.CamionId}",
+            TipoEvento = "camion",
+            EsEventoGuardado = true,
+            FechaEvento = c.FechaEvento,
+            Descripcion = c.Raw,
+            FramePath = c.FramePath
+        };
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_subscribed)
+        {
+            Realtime.SavedEventAdded -= HandleSavedEventAdded;
+            Realtime.PalletEventAdded -= HandlePalletEventAdded;
+            Realtime.CamionEventAdded -= HandleCamionEventAdded;
+            _subscribed = false;
+        }
+        await Task.CompletedTask;
+    }
+
+    private (string TipoMovimiento, string Cajas) ExtraerInfo(AltaEventoModel evt)
+    {
+        var tipo = "N/D";
+        var cajas = "N/D";
+
+        if (!string.IsNullOrWhiteSpace(evt.Descripcion))
+        {
+            var partes = evt.Descripcion.Split('|', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+            if (partes.Length > 1)
+            {
+                tipo = partes[1].ToUpperInvariant();
+            }
+
+            var cajasParte = partes.FirstOrDefault(p => p.StartsWith("cajas=", StringComparison.OrdinalIgnoreCase));
+            if (!string.IsNullOrEmpty(cajasParte))
+            {
+                var split = cajasParte.Split('=', 2, StringSplitOptions.TrimEntries);
+                if (split.Length == 2 && !string.IsNullOrWhiteSpace(split[1]))
+                {
+                    cajas = split[1];
+                }
+            }
+        }
+
+        return (tipo, cajas);
     }
 }

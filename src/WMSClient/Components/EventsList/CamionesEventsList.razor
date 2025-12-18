@@ -1,0 +1,396 @@
+@using Shared.Contracts.Models
+@using System.Linq
+@implements IAsyncDisposable
+@inject WMSClient.Services.RealtimeEventsService Realtime
+@inject WMSClient.Services.IWmsCameraService CameraService
+@inject ILogger<CamionesEventsList> Logger
+
+<div class="trucks-events-container">
+    <!-- Header Section -->
+    <div class="trucks-header">
+        <h5>
+            <i class="bi bi-truck-front-fill" style="color:#f59e0b;"></i>
+            Arribo de Camiones
+        </h5>
+        <button class="trucks-close-btn" @onclick="HandleClose" title="Cerrar vista">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+
+    <!-- Truck Arrivals Display Section -->
+    <div class="trucks-content">
+        @if ((Events == null || Events.Count == 0))
+        {
+            <div class="empty-events">
+                <i class="bi bi-inbox"></i>
+                <p>No hay arribos de camiones registrados</p>
+            </div>
+        }
+        else
+        {
+            var compactMulti = Parkings.Count > 1;
+            @foreach (var parking in Parkings)
+            {
+                <div class="truck-arrivals-container" style="margin-bottom: 2rem;">
+                    <!-- Dock Status -->
+                    <div class="dock-status">
+                        <div class="dock-header">
+                            <div class="dock-header-left">
+                                <div class="dock-header-title">
+                                    <i class="bi bi-building"></i>
+                                    <span>Estado de Reservas</span>
+                                </div>
+                                <div class="dock-header-subtitle">
+                                    @{
+                                        var camName = parking.CameraIp;
+                                        if (CameraNames != null && CameraNames.TryGetValue(parking.CameraIp, out var n) && !string.IsNullOrWhiteSpace(n))
+                                        {
+                                            camName = n;
+                                        }
+                                    }
+                                    <i class="bi bi-camera"></i> @camName (@parking.CameraIp)
+                                </div>
+                            </div>
+                            <img class="parking-thumb"
+                                   src="@GetParkingThumbUrl(parking)"
+                                 alt="Último frame"
+                                 loading="lazy" />
+                        </div>
+                        <div class="dock-grid">
+                            @foreach (var dock in parking.Docks)
+                            {
+                                var ev = dock.LatestEvent;
+                                <div class="dock-slot @(dock.Ocupado ? "occupied-dock" : "empty-dock")">
+                                    <div class="dock-slot-top">
+                                        <div class="dock-number">@dock.Label</div>
+                                        <div class="dock-pill @(dock.Ocupado ? "dock-pill-occupied" : "dock-pill-empty")">
+                                            <i class="bi @(dock.Ocupado ? "bi-truck-front-fill" : "bi-check-circle-fill")"></i>
+                                            <span>@(dock.Ocupado ? "Ocupado" : "Libre")</span>
+                                        </div>
+                                    </div>
+
+                                    @if (dock.Ocupado)
+                                    {
+                                        <div class="dock-main">
+                                            <div class="dock-truck-info">
+                                                <i class="bi bi-upc-scan"></i>
+                                                <span class="truck-label">@(ev?.CamionId ?? dock.ArrivalEvent?.CamionId)</span>
+                                            </div>
+                                            <div class="dock-meta">
+                                                <i class="bi bi-clock"></i>
+                                                <span>@((ev?.FechaEvento ?? dock.ArrivalEvent?.FechaEvento ?? DateTime.MinValue).ToString("HH:mm"))</span>
+                                                <span class="dock-meta-sep">·</span>
+                                                <span>@(ev?.TipoEvento ?? dock.ArrivalEvent?.TipoEvento)</span>
+                                            </div>
+                                        </div>
+
+                                        @if (dock.ArrivalEvent != null)
+                                        {
+                                            <div class="dock-actions">
+                                                <button class="btn btn-sm btn-outline-primary wms-action-btn"
+                                                        @onclick:stopPropagation="true"
+                                                        @onclick="() => ViewClip(dock.ArrivalEvent)">
+                                                    Ver clip
+                                                </button>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="dock-main">
+                                            <div class="dock-empty-info">
+                                                <i class="bi bi-dash-circle"></i>
+                                                <span>Sin camión</span>
+                                            </div>
+
+                                            @if (dock.DepartureEvent != null)
+                                            {
+                                                <div class="dock-meta">
+                                                    <i class="bi bi-clock-history"></i>
+                                                    <span>@dock.DepartureEvent.FechaEvento.ToString("HH:mm")</span>
+                                                    <span class="dock-meta-sep">·</span>
+                                                    <span>Liberado</span>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        @if (dock.DepartureEvent != null)
+                                        {
+                                            <div class="dock-actions">
+                                                <button class="btn btn-sm btn-outline-primary wms-action-btn"
+                                                        @onclick:stopPropagation="true"
+                                                        @onclick="() => ViewClip(dock.DepartureEvent)">
+                                                    Ver clip
+                                                </button>
+                                            </div>
+                                        }
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!compactMulti)
+                    {
+                        <!-- Timeline of Arrivals -->
+                        <div class="arrivals-timeline">
+                            <div class="timeline-header">
+                                <i class="bi bi-clock-history"></i>
+                                <span>Historial de Arribos</span>
+                            </div>
+
+                            @foreach (var ev in parking.Events.OrderByDescending(e => e.FechaEvento))
+                            {
+                                <div class="arrival-item">
+                                    <div class="arrival-time-badge">
+                                        <span class="time">@ev.FechaEvento.ToString("HH:mm")</span>
+                                        <span class="date">@ev.FechaEvento.ToString("dd/MM")</span>
+                                    </div>
+                                    <div class="arrival-info">
+                                        <div class="truck-header">
+                                            <span class="truck-name">@ev.CamionId</span>
+                                            <span class="arrival-status">
+                                                <i class="bi bi-check-circle-fill"></i>
+                                                @(ev.Ocupado ? "Arribó" : "Liberado")
+                                            </span>
+                                        </div>
+                                        <p class="truck-details">
+                                            <i class="bi bi-camera"></i>
+                                            @ev.IpCamara
+                                        </p>
+                                        <div class="truck-stats">
+                                            <span class="stat-badge">
+                                                <i class="bi bi-geo"></i> @ev.Seccion
+                                            </span>
+                                            <span class="stat-badge">
+                                                <i class="bi bi-activity"></i> @ev.TipoEvento
+                                            </span>
+                                        </div>
+
+                                        <div class="d-flex gap-2" style="margin-top: 0.5rem; flex-wrap:wrap;">
+                                            <button class="btn btn-sm btn-outline-primary wms-action-btn"
+                                                    @onclick:stopPropagation="true"
+                                                    @onclick="() => ViewClip(ev)">
+                                                Ver clip
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Statistics -->
+                        <div class="trucks-stats">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="bi bi-truck-front-fill"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">Arribos Hoy</span>
+                                    <span class="stat-value">@parking.Events.Count(e => e.Ocupado && e.FechaEvento.Date == DateTime.Now.Date)</span>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="bi bi-hourglass-split"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">En Proceso</span>
+                                    <span class="stat-value">@parking.Docks.Count(d => d.Ocupado)</span>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">Completados</span>
+                                    <span class="stat-value">@parking.Events.Count(e => !e.Ocupado)</span>
+                                </div>
+                            </div>
+
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="bi bi-graph-up-arrow"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <span class="stat-label">Prom./Hora</span>
+                                    <span class="stat-value">@Math.Round(((parking.Events.Count) / 8.0), 1)</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<CamionEventModel>? Events { get; set; }
+    
+    [Parameter]
+    public Dictionary<string, string>? CameraNames { get; set; }
+
+    [Parameter]
+    public EventCallback OnClose { get; set; }
+
+    [Parameter]
+    public EventCallback<object> OnViewClip { get; set; }
+
+    private List<ParkingView> Parkings { get; set; } = new();
+    private bool _subscribed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("🔌 [CamionesEventsList] Inicializando realtime...");
+        await Realtime.StartAsync();
+        if (!_subscribed)
+        {
+            Realtime.CamionEventAdded += HandleCamionEventAdded;
+            _subscribed = true;
+            Logger.LogInformation("✅ [CamionesEventsList] Suscrito a CamionEventAdded");
+        }
+    }
+
+    protected override void OnParametersSet()
+    {
+        Parkings = BuildParkings();
+    }
+
+    private async void HandleCamionEventAdded(CamionEventModel ev)
+    {
+        try
+        {
+            if (Events == null) Events = new();
+            Events.RemoveAll(e => e.Id == ev.Id);
+            Events.Insert(0, ev);
+            Parkings = BuildParkings();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "⚠️ [CamionesEventsList] Error aplicando CamionEventAdded");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_subscribed)
+        {
+            Realtime.CamionEventAdded -= HandleCamionEventAdded;
+            _subscribed = false;
+        }
+        await Task.CompletedTask;
+    }
+
+    private List<ParkingView> BuildParkings()
+    {
+        var eventos = Events ?? new();
+        return eventos
+            .GroupBy(e => string.IsNullOrWhiteSpace(e.IpCamara) ? "unknown" : e.IpCamara)
+            .Select(g => new ParkingView
+            {
+                CameraIp = g.Key,
+                Events = g.OrderByDescending(x => x.FechaEvento).ToList(),
+                Docks = BuildDocks(g.ToList())
+            })
+            .OrderBy(p => p.CameraIp)
+            .ToList();
+    }
+
+    private List<DockView> BuildDocks(List<CamionEventModel> eventos)
+    {
+        var list = new List<DockView>();
+
+        static string Normalize(string? s) => (s ?? string.Empty).Trim();
+
+        var bySeccion = eventos
+            .Where(e => !string.IsNullOrWhiteSpace(e.Seccion))
+            .GroupBy(e => Normalize(e.Seccion), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.FechaEvento).ToList(), StringComparer.OrdinalIgnoreCase);
+
+        // Mostrar siempre las reservas esperadas (y luego cualquier otra sección extra que venga del backend).
+        var expected = new[] { "RESERVA1", "RESERVA2", "RESERVA3" };
+        var orderedSections = expected
+            .Concat(bySeccion.Keys.Where(k => !expected.Contains(k, StringComparer.OrdinalIgnoreCase)).OrderBy(k => k))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        foreach (var seccion in orderedSections)
+        {
+            bySeccion.TryGetValue(seccion, out var secEvents);
+            secEvents ??= new List<CamionEventModel>();
+
+            var latest = secEvents.FirstOrDefault();
+            var arrival = secEvents.FirstOrDefault(e => e.Ocupado);
+            var departure = secEvents.FirstOrDefault(e => !e.Ocupado);
+
+            // Si la reserva está libre (latest.Ocupado == false), aseguremos que haya un evento asociado
+            // para mostrar "se fue el último camión" (hora/clip) aunque no haya coincidido con el filtro.
+            if (latest != null && latest.Ocupado == false && departure == null)
+            {
+                departure = latest;
+            }
+
+            list.Add(new DockView
+            {
+                Label = seccion,
+                Ocupado = latest?.Ocupado ?? false,
+                LatestEvent = latest,
+                ArrivalEvent = arrival,
+                DepartureEvent = departure
+            });
+        }
+
+        return list;
+    }
+
+    private async Task HandleClose()
+    {
+        await OnClose.InvokeAsync();
+    }
+
+
+    private async Task ViewClip(CamionEventModel ev)
+    {
+        if (OnViewClip.HasDelegate)
+        {
+            await OnViewClip.InvokeAsync(ev);
+        }
+    }
+
+    private string GetParkingThumbUrl(ParkingView parking)
+    {
+        // Cache-buster estable: cambia solo cuando hay un evento nuevo de esa cámara.
+        var token = parking.Events.FirstOrDefault()?.FechaEvento.Ticks ?? 0;
+        var apiBase = (CameraService.GetApiBase() ?? string.Empty).TrimEnd('/');
+        if (string.IsNullOrWhiteSpace(apiBase))
+        {
+            // Fallback a la helper (puede incluir cache-buster por render si el BaseAddress no está configurado).
+            return CameraService.BuildThumbnailUrl(parking.CameraIp, width: 240, height: 135, quality: 65);
+        }
+
+        return $"{apiBase}/api/thumbnail/{parking.CameraIp}?width=240&height=135&quality=65&t={token}";
+    }
+
+
+    private class DockView
+    {
+        public string Label { get; set; } = string.Empty;
+        public bool Ocupado { get; set; }
+        public CamionEventModel? LatestEvent { get; set; }
+        public CamionEventModel? ArrivalEvent { get; set; }
+        public CamionEventModel? DepartureEvent { get; set; }
+    }
+
+    private class ParkingView
+    {
+        public string CameraIp { get; set; } = string.Empty;
+        public List<CamionEventModel> Events { get; set; } = new();
+        public List<DockView> Docks { get; set; } = new();
+    }
+}

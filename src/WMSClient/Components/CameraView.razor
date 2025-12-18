@@ -124,46 +124,6 @@
                     }
                 </div>
             </div>
-
-            <!-- Events Sidebar (Right) -->
-            <aside class="viewer-events-sidebar">
-                <div class="sidebar-header">
-                    <h5><i class="bi bi-list-check"></i> Eventos (@Events.Count)</h5>
-                    <button class="btn-refresh" @onclick="RefreshEvents" title="Refrescar eventos">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </button>
-                </div>
-                <div class="events-scroll-container">
-                    @if (Events.Count == 0)
-                    {
-                        <div class="events-empty">
-                            <i class="bi bi-inbox"></i>
-                            <p>Sin eventos</p>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="events-list">
-                            @foreach (var ev in Events)
-                            {
-                                <div class="event-card" @onclick="@((MouseEventArgs e) => OnSelectEvent(ev))">
-                                    <div class="event-header">
-                                        <div class="event-name" title="@ev.Nombre">@ev.Nombre</div>
-                                        <span class="event-status">▶</span>
-                                    </div>
-                                    <div class="event-meta">
-                                        <span class="event-date"><i class="bi bi-calendar"></i> @ev.FechaEvento?.ToString("g")</span>
-                                    </div>
-                                    @if (ev.FromFrame.HasValue && ev.ToFrame.HasValue)
-                                    {
-                                        <div class="event-frames"><i class="bi bi-film"></i> @ev.FromFrame - @ev.ToFrame</div>
-                                    }
-                                </div>
-                            }
-                        </div>
-                    }
-                </div>
-            </aside>
         </div>
     }
 </div>
