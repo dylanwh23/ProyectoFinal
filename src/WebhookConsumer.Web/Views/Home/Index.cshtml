@@ -1,0 +1,63 @@
+﻿@model IEnumerable<Shared.Contracts.Models.EnrichedEvent>
+
+@{
+    ViewData["Title"] = "Eventos Recibidos";
+}
+
+<div class="container">
+    <h1 class="display-4 text-center">Eventos de Cámaras Recibidos via Webhook</h1>
+
+    @if (Model.Any())
+    {
+        <div class="row">
+            <div class="col-md-12">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Event ID</th>
+                            <th>Cámara IP</th>
+                            <th>Momento Original</th>
+                            <th>Categoría</th>
+                            <th>Zona</th>
+                            <th>Tipo Evento</th>
+                            <th>Confianza</th>
+                            <th>Procesado En</th>
+                            <th>Mensaje Crudo</th>
+                            <th>Video Link</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var evento in Model)
+                        {
+                            <tr>
+                                <td>@evento.Id</td>
+                                <td>@evento.EventId</td>
+                                <td>@evento.IpCamara</td>
+                                <td>@evento.MomentoOriginal.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>@evento.CameraCategory</td>
+                                <td>@evento.WarehouseZone</td>
+                                <td>@evento.EventType</td>
+                                <td>@evento.Confidence</td>
+                                <td>@evento.ProcesadoEn.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                <td>@(evento.MensajeCrudoEvento.Length > 100 ? evento.MensajeCrudoEvento.Substring(0, 100) + "..." : evento.MensajeCrudoEvento)</td>
+                                <td><a href="@evento.VideoLink" target="_blank">@evento.VideoLink</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center">
+            <h4>No hay eventos recibidos aún.</h4>
+            <p>Los webhooks aparecerán aquí cuando se envíen desde EventProcessor.Worker.</p>
+        </div>
+    }
+
+    <div class="text-center mt-4">
+        <button class="btn btn-primary" onclick="location.reload()">Actualizar</button>
+    </div>
+</div>

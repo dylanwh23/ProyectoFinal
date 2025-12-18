@@ -9,11 +9,13 @@ public class EventProcessorService(
     IServiceProvider serviceProvider,
     VideoLinkService videoLinkService,
     JsonExportService jsonExportService,
+    WebhookService webhookService,
     ILogger<EventProcessorService> logger)
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly VideoLinkService _videoLinkService = videoLinkService;
     private readonly JsonExportService _jsonExportService = jsonExportService;
+    private readonly WebhookService _webhookService = webhookService;
     private readonly ILogger<EventProcessorService> _logger = logger;
 
     /// <summary>
@@ -87,6 +89,11 @@ public class EventProcessorService(
             // 4. Exportación externa (JSON para WMS)
             // ------------------------------------------------------------
             await _jsonExportService.ExportarEventoAJsonAsync(enrichedEvent);
+
+            // ------------------------------------------------------------
+            // 5. Envío de webhooks
+            // ------------------------------------------------------------
+            await _webhookService.SendWebhookAsync(enrichedEvent);
 
             return true;
         }

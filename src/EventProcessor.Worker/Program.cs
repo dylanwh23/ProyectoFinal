@@ -85,9 +85,10 @@ try
     builder.Services.AddSingleton<CleanupService>();
     builder.Services.AddSingleton<VideoLinkService>();
     builder.Services.AddSingleton<RabbitMQHealthCheck>();
+    builder.Services.AddSingleton<WebhookService>();
 
     // Servicios hosted (BackgroundService)
-    builder.Services.AddHostedService<SimpleHttpServerService>();
+    // builder.Services.AddHostedService<SimpleHttpServerService>();
     builder.Services.AddHostedService<DynamicRabbitMQConsumerService>();
     builder.Services.AddHostedService<Worker>();
 
@@ -98,6 +99,7 @@ try
     // 6. CONFIGURACIÓN DE LA APLICACIÓN
     // ------------------------------------------------------------
     builder.Services.Configure<EventProcessorOptions>(builder.Configuration);
+    builder.Services.Configure<WebhookOptions>(builder.Configuration.GetSection("Webhooks"));
 
     // ------------------------------------------------------------
     // 7. CONSTRUCCIÓN Y EJECUCIÓN
