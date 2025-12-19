@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using WebhookConsumer.Web.Models;
+using WebhookConsumer.Web.Services;
 using Shared.Contracts.Models;
 
 namespace WebhookConsumer.Web.Controllers;
@@ -8,16 +9,17 @@ namespace WebhookConsumer.Web.Controllers;
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
-    private static readonly List<EnrichedEvent> _events = new();
+    private readonly IWebhookEventService _webhookEventService;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(ILogger<HomeController> logger, IWebhookEventService webhookEventService)
     {
         _logger = logger;
+        _webhookEventService = webhookEventService;
     }
 
     public IActionResult Index()
     {
-        return View(_events);
+        return View(_webhookEventService.GetAllEvents());
     }
 
     [HttpPost("webhook")]
@@ -32,12 +34,7 @@ public class HomeController : Controller
         _logger.LogInformation("Received webhook for event {EventId} from camera {IpCamara}", enrichedEvent.EventId, enrichedEvent.IpCamara);
         _logger.LogInformation("Raw data: {MensajeCrudoEvento}", enrichedEvent.MensajeCrudoEvento);
 
-        // Agregar a la lista (mantener solo los últimos 100)
-        _events.Insert(0, enrichedEvent);
-        if (_events.Count > 100)
-        {
-            _events.RemoveAt(_events.Count - 1);
-        }
+        _webhookEventService.AddEvent(enrichedEvent);
 
         return Ok(new { status = "received", eventId = enrichedEvent.EventId });
     }

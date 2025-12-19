@@ -1,0 +1,86 @@
+@page "/"
+@rendermode InteractiveServer
+@using Shared.Contracts.Models
+@inject WebhookConsumer.Web.Services.IWmsCameraService CameraService
+@inject WebhookConsumer.Web.Services.IWebhookEventService WebhookEventService
+@inject ILogger<Home> Logger
+@implements IDisposable
+
+<PageTitle>Webhook Consumer - Vista Completa</PageTitle>
+
+<div class="container-fluid p-2">
+    <div class="row g-2">
+        <!-- Vista de Planta -->
+        <div class="col-lg-8">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-grid-3x3-gap"></i> Vista de Planta - Inventario
+                    </h5>
+                </div>
+                <div class="card-body p-2">
+                    <WebhookConsumer.Web.Components.EventsList.InventarioEventsList 
+                        Events="@GridEvents" 
+                        OnClose="@(() => {})" />
+                </div>
+            </div>
+        </div>
+        
+        <!-- Webhooks JSON -->
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-file-earmark-code"></i> Webhooks Recibidos (JSON)
+                    </h5>
+                </div>
+                <div class="card-body p-2" style="max-height: 90vh; overflow-y: auto;">
+                    <WebhookConsumer.Web.Components.EventsList.WebhookEventsList />
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<AltaEventoModel> GridEvents { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await LoadGridEvents();
+            WebhookEventService.OnEventAdded += HandleWebhookReceived;
+            Logger.LogInformation("✅ Vista de planta inicializada con {Count} eventos", GridEvents.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Error inicializando vista de planta");
+        }
+    }
+
+    private async Task LoadGridEvents()
+    {
+        try
+        {
+            GridEvents = await CameraService.GetGridEventsAsync();
+            Logger.LogInformation("📋 Cargados {Count} eventos de grid", GridEvents.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "❌ Error cargando eventos de grid");
+        }
+    }
+
+    private async void HandleWebhookReceived(EnrichedEvent enrichedEvent)
+    {
+        Logger.LogInformation("🔔 Webhook recibido, actualizando vista de planta. Evento: {EventId}", enrichedEvent.EventId);
+        await LoadGridEvents();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        WebhookEventService.OnEventAdded -= HandleWebhookReceived;
+    }
+}

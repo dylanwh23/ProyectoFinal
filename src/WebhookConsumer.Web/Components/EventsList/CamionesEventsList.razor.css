@@ -1,0 +1,414 @@
+/* CSS isolation for CamionesEventsList.razor */
+
+.trucks-events-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.trucks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.trucks-header h5 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 800;
+}
+
+.trucks-close-btn {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+  color: #4b5563;
+  padding: 0.35rem 0.55rem;
+  border-radius: 0.6rem;
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.trucks-close-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+}
+
+.trucks-content {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 1rem;
+}
+
+.empty-events {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: #6b7280;
+}
+
+.truck-arrivals-container {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.01);
+}
+
+.dock-status {
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.dock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  font-weight: 800;
+  margin-bottom: 0.75rem;
+}
+
+.dock-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.dock-header-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dock-header-subtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.parking-thumb {
+  width: 240px;
+  max-width: 38vw;
+  height: auto;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+@media (max-width: 720px) {
+  .dock-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .parking-thumb {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+.dock-grid {
+  --dock-slot-width: 190px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, var(--dock-slot-width));
+  gap: 0.75rem;
+  justify-content: start;
+}
+
+@media (max-width: 900px) {
+  .dock-grid {
+    --dock-slot-width: 170px;
+  }
+}
+
+@media (max-width: 520px) {
+  .dock-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dock-slot {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.7rem;
+  width: var(--dock-slot-width);
+  aspect-ratio: 3 / 4;
+  background-color: #fff;
+  background-image:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.02), rgba(0, 0, 0, 0)),
+    repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.02) 0 6px, rgba(0, 0, 0, 0) 6px 14px);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+@media (max-width: 520px) {
+  .dock-slot {
+    width: 100%;
+  }
+}
+
+.dock-slot::before {
+  content: "";
+  position: absolute;
+  inset: 0.55rem;
+  border-radius: 0.6rem;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+.dock-slot::after {
+  content: "";
+  position: absolute;
+  left: 20%;
+  right: 20%;
+  top: 0.65rem;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+.dock-slot:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px -14px rgba(0, 0, 0, 0.22);
+}
+
+.occupied-dock {
+  border-color: rgba(245, 158, 11, 0.35);
+  background-color: rgba(245, 158, 11, 0.08);
+}
+
+.empty-dock {
+  border-color: rgba(16, 185, 129, 0.25);
+  background-color: rgba(16, 185, 129, 0.06);
+}
+
+.dock-slot-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.dock-number {
+  font-weight: 900;
+  padding: 0.12rem 0.5rem;
+  border-radius: 0.55rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.dock-pill-occupied {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.dock-pill-empty {
+  background: rgba(16, 185, 129, 0.08);
+  color: #047857;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.dock-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dock-truck-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #111827;
+}
+
+.truck-label {
+  font-weight: 900;
+}
+
+.dock-empty-info {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #6b7280;
+}
+
+.dock-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #6b7280;
+  font-size: 0.82rem;
+}
+
+.dock-meta-sep {
+  color: rgba(107, 114, 128, 0.75);
+}
+
+.dock-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.arrivals-timeline {
+  margin-top: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.timeline-header {
+  padding: 0.65rem 0.75rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  font-weight: 800;
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.arrival-item {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.arrival-time-badge {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.arrival-time-badge .time {
+  display: block;
+  font-weight: 900;
+}
+
+.arrival-time-badge .date {
+  display: block;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.truck-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.truck-name {
+  font-weight: 900;
+}
+
+.arrival-status {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.truck-details {
+  margin: 0.35rem 0;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.truck-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.trucks-stats {
+  margin-top: 0.75rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.stat-card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.stat-icon {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+.stat-label {
+  display: block;
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.stat-value {
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+/* Shared action button styling */
+:deep(.wms-action-btn.btn) {
+  border-radius: 0.65rem;
+  font-weight: 800;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+:deep(.wms-action-btn.btn:hover) {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px -14px rgba(37, 99, 235, 0.45);
+}

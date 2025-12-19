@@ -1,0 +1,123 @@
+.webhook-events-container {
+    padding: 20px;
+}
+
+.webhook-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.webhook-header h4 {
+    margin: 0;
+    color: #495057;
+}
+
+.webhook-header i {
+    margin-right: 8px;
+}
+
+.webhook-stats {
+    display: flex;
+    align-items: center;
+}
+
+.webhook-events-list {
+    display: grid;
+    gap: 15px;
+}
+
+.webhook-event-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: box-shadow 0.3s ease;
+}
+
+.webhook-event-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.event-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.event-title {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.event-time {
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.event-body {
+    padding: 15px;
+}
+
+.event-row {
+    display: flex;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.event-row:last-child {
+    border-bottom: none;
+}
+
+.event-label {
+    width: 120px;
+    font-weight: 600;
+    color: #6c757d;
+    flex-shrink: 0;
+}
+
+.event-value {
+    flex: 1;
+    color: #495057;
+    word-break: break-word;
+}
+
+.event-json-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 2px solid #e9ecef;
+}
+
+.json-raw-content {
+    margin-top: 10px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.json-raw-content pre {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.json-raw-content code {
+    color: #d63384;
+    font-family: 'Courier New', monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.badge {
+    font-size: 12px;
+    padding: 4px 8px;
+}

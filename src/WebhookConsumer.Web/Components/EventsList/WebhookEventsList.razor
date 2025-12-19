@@ -1,0 +1,180 @@
+@using Shared.Contracts.Models
+@using WebhookConsumer.Web.Services
+@inject IWebhookEventService WebhookEventService
+@inject ILogger<WebhookEventsList> Logger
+@rendermode InteractiveServer
+
+<div class="webhook-events-container">
+    <div class="webhook-header">
+        <h4>
+            <i class="bi bi-envelope-check"></i>
+            Eventos Recibidos por Webhook
+        </h4>
+        <div class="webhook-stats">
+            <span class="badge bg-primary">Total: @Events.Count</span>
+            @if (Events.Any())
+            {
+                <button class="btn btn-sm btn-outline-secondary ms-2" @onclick="RefreshEvents">
+                    <i class="bi bi-arrow-clockwise"></i> Actualizar
+                </button>
+            }
+        </div>
+    </div>
+
+    @if (!Events.Any())
+    {
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-1"></i>
+            <h5 class="mt-3">No hay eventos de webhook recibidos aún</h5>
+            <p class="mb-0">Los eventos aparecerán aquí cuando EventProcessor.Worker envíe webhooks</p>
+        </div>
+    }
+    else
+    {
+        <div class="webhook-events-list">
+            @foreach (var evento in Events)
+            {
+                <div class="webhook-event-card">
+                    <div class="event-header">
+                        <div class="event-title">
+                            <strong>Event ID:</strong> @evento.EventId
+                        </div>
+                        <div class="event-time">
+                            <i class="bi bi-clock"></i> @evento.MomentoOriginal.ToString("yyyy-MM-dd HH:mm:ss")
+                        </div>
+                    </div>
+                    
+                    <div class="event-body">
+                        <div class="event-row">
+                            <div class="event-label">Cámara:</div>
+                            <div class="event-value">
+                                <span class="badge bg-secondary">@evento.IpCamara</span>
+                            </div>
+                        </div>
+                        
+                        <div class="event-row">
+                            <div class="event-label">Categoría:</div>
+                            <div class="event-value">@evento.CameraCategory</div>
+                        </div>
+                        
+                        <div class="event-row">
+                            <div class="event-label">Zona:</div>
+                            <div class="event-value">@evento.WarehouseZone</div>
+                        </div>
+                        
+                        <div class="event-row">
+                            <div class="event-label">Tipo:</div>
+                            <div class="event-value">
+                                <span class="badge bg-info">@evento.EventType</span>
+                            </div>
+                        </div>
+                        
+                        @if (evento.Confidence > 0)
+                        {
+                            <div class="event-row">
+                                <div class="event-label">Confianza:</div>
+                                <div class="event-value">
+                                    <div class="progress" style="width: 100px; height: 20px;">
+                                        <div class="progress-bar bg-success" role="progressbar" 
+                                             style="width: @((evento.Confidence * 100).ToString("F0"))%">
+                                            @((evento.Confidence * 100).ToString("F0"))%
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (!string.IsNullOrWhiteSpace(evento.QrCodeDetected))
+                        {
+                            <div class="event-row">
+                                <div class="event-label">QR Code:</div>
+                                <div class="event-value">
+                                    <code>@evento.QrCodeDetected</code>
+                                </div>
+                            </div>
+                        }
+                        
+                        <div class="event-row">
+                            <div class="event-label">Procesado:</div>
+                            <div class="event-value">@evento.ProcesadoEn.ToString("yyyy-MM-dd HH:mm:ss")</div>
+                        </div>
+                        
+                        @if (!string.IsNullOrWhiteSpace(evento.VideoLink))
+                        {
+                            <div class="event-row">
+                                <div class="event-label">Video:</div>
+                                <div class="event-value">
+                                    <a href="@evento.VideoLink" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-play-circle"></i> Ver Video
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        
+                        <div class="event-json-section">
+                            <button class="btn btn-sm btn-outline-dark" @onclick="() => ToggleJsonView(evento.EventId)">
+                                <i class="bi bi-code-square"></i> 
+                                @(ExpandedJsonIds.Contains(evento.EventId) ? "Ocultar" : "Ver") JSON Crudo
+                            </button>
+                            
+                            @if (ExpandedJsonIds.Contains(evento.EventId))
+                            {
+                                <div class="json-raw-content">
+                                    <pre><code>@evento.MensajeCrudoEvento</code></pre>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<EnrichedEvent> Events { get; set; } = new();
+    private HashSet<string> ExpandedJsonIds { get; set; } = new();
+
+    protected override void OnInitialized()
+    {
+        LoadEvents();
+        WebhookEventService.OnEventAdded += HandleEventAdded;
+        Logger.LogInformation("✅ [WebhookEventsList] Componente inicializado. Eventos: {Count}", Events.Count);
+    }
+
+    private void LoadEvents()
+    {
+        Events = WebhookEventService.GetAllEvents();
+        Logger.LogInformation("📋 [WebhookEventsList] Eventos cargados: {Count}", Events.Count);
+    }
+
+    private async void HandleEventAdded(EnrichedEvent enrichedEvent)
+    {
+        Logger.LogInformation("🔔 [WebhookEventsList] Nuevo evento recibido, actualizando UI");
+        LoadEvents();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void RefreshEvents()
+    {
+        LoadEvents();
+        Logger.LogInformation("🔄 [WebhookEventsList] Eventos actualizados manualmente");
+    }
+
+    private void ToggleJsonView(string eventId)
+    {
+        if (ExpandedJsonIds.Contains(eventId))
+        {
+            ExpandedJsonIds.Remove(eventId);
+        }
+        else
+        {
+            ExpandedJsonIds.Add(eventId);
+        }
+    }
+
+    public void Dispose()
+    {
+        WebhookEventService.OnEventAdded -= HandleEventAdded;
+    }
+}
