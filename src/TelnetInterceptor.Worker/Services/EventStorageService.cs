@@ -109,6 +109,33 @@ namespace TelnetInterceptor.Worker.Services
             while (_camionEvents.TryDequeue(out _)) { }
         }
 
+        public async Task DeleteEventsByCameraAsync(string cameraIp)
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            
+            // Normalizar la IP
+            var ipNormalizada = cameraIp?.Trim() ?? "";
+            
+            Console.WriteLine($"🗑️ Buscando eventos para eliminar de cámara: '{ipNormalizada}'");
+            
+            // Usar ExecuteDeleteAsync para evitar problemas de concurrencia
+            // Esto ejecuta un DELETE directo en SQL sin cargar las entidades en memoria
+            try
+            {
+                var deleted = await dbContext.EventosGuardados
+                    .Where(e => e.IpCamara.ToLower() == ipNormalizada.ToLower())
+                    .ExecuteDeleteAsync();
+                
+                Console.WriteLine($"✅ {deleted} eventos eliminados exitosamente de cámara '{ipNormalizada}'");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Error al eliminar eventos: {ex.Message}");
+                throw;
+            }
+        }
+
         private static void TrimQueue<T>(ConcurrentQueue<T> queue)
         {
             while (queue.Count > MaxTransientEvents && queue.TryDequeue(out _)) { }

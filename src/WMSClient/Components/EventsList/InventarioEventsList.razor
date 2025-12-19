@@ -43,7 +43,7 @@
 
                 @foreach (var ev in displayEvents)
                 {
-                    <div class="event-card type-@ev.Type.ToLower()" @onclick="() => OnEventCardClick(ev.Source)">
+                    <div class="event-card type-@ev.Type.ToLower()">
                         <div class="header">
                             <span class="title">@ev.TypeLabel</span>
                             <span class="time">@ev.Time.ToShortTimeString()</span>
@@ -235,6 +235,9 @@
     [Parameter]
     public EventCallback<object> OnViewClip { get; set; }
 
+    [Parameter]
+    public AltaEventoModel? ActiveEvent { get; set; }
+
     private List<ShelfData> Shelves { get; set; } = new();
     private ShelfSpace? SelectedSpace { get; set; }
     private ShelfData? SelectedRackForLogs { get; set; }
@@ -301,7 +304,12 @@
 
         if (Events != null && Events.Count > 0)
         {
-            var grouped = Events
+            // Si hay un evento activo específico (de ver clip), mostrar solo ese
+            var eventsToUse = ActiveEvent != null && ActiveEvent.EsEventoGuardado 
+                ? new[] { ActiveEvent }.ToList() 
+                : Events;
+
+            var grouped = eventsToUse
                 .GroupBy(e => e.IpCamara)
                 .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
             foreach (var camGroup in grouped)

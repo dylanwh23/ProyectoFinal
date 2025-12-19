@@ -23,6 +23,7 @@ namespace Admin.Console.Components
             SelectedCameraIp = eventoDeLaLista.IpCamara; // Almacenar la IP de la cámara seleccionada
             SelectedCameraPuerto = eventoDeLaLista.Puerto;
             SelectedCameraTipo = NormalizeCameraTipo(eventoDeLaLista.TipoEvento);
+            StateHasChanged();
         }
 
         private void VolverAVivo(AltaEventoModel camara)
@@ -31,6 +32,7 @@ namespace Admin.Console.Components
             SelectedCameraIp = camara.IpCamara;
             SelectedCameraPuerto = camara.Puerto;
             SelectedCameraTipo = NormalizeCameraTipo(camara.TipoEvento);
+            StateHasChanged();
         }
 
         private static string NormalizeCameraTipo(string? tipoEvento)

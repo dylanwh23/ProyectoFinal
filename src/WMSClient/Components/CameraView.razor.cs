@@ -88,10 +88,12 @@ public partial class CameraView : IAsyncDisposable
         var (fromFrame, toFrame) = GetFrameRange(SelectedCamera);
         bool esEvento = fromFrame.HasValue && toFrame.HasValue;
 
+        // Comparación más estricta: solo recargar si realmente cambió algo importante
         bool eventoDistinto = _previousCamera == null
             || !string.Equals(SelectedCamera.IpCamara, _previousCamera.IpCamara, StringComparison.OrdinalIgnoreCase)
             || SelectedCamera.Id != _previousCamera.Id
-            || GetFrameRange(SelectedCamera) != GetFrameRange(_previousCamera);
+            || fromFrame != GetFrameRange(_previousCamera).from
+            || toFrame != GetFrameRange(_previousCamera).to;
 
         if (eventoDistinto || esEvento != _isEventoGuardado)
         {
@@ -434,6 +436,15 @@ public partial class CameraView : IAsyncDisposable
     {
         if (SelectedCamera != null)
         {
+            // Si estamos viendo un evento guardado, recargarlo
+            if (_isEventoGuardado)
+            {
+                var myLoad = Interlocked.Increment(ref _loadVersion);
+                await PlayEventoGuardado(myLoad);
+                return;
+            }
+
+            // Si estamos en vivo, actualizar el stream
             IsLoading = true;
             UpdateStreamUrl();
             StatusMessage = "Reintentando conexión...";

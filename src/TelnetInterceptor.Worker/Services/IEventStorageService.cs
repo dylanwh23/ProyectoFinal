@@ -15,5 +15,6 @@ namespace TelnetInterceptor.Worker.Services
         Task<List<CamionEventModel>> GetCamionEventsAsync();
         Task<List<CamionEventModel>> GetCamionEventsByCameraIpAsync(string cameraIp);
         Task ClearAllEventsAsync();
+        Task DeleteEventsByCameraAsync(string cameraIp);
     }
 }

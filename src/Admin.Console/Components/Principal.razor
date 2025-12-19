@@ -2,6 +2,9 @@
 @using Microsoft.AspNetCore.Components.Web
 
 <div class="d-flex flex-column" style="height: 100%; min-height: 0; overflow: hidden;">
+    <div class="bg-primary text-white text-center py-2">
+        <h3 class="mb-0">🎥 VISTA ADMINISTRADOR CÁMARAS</h3>
+    </div>
     <div class="row bg-light m-0" style="height: 50dvh; min-height: 0; overflow: hidden;">
         <div class="col-5 p-2 border-end d-flex flex-column" style="height: 100%; min-height: 0; overflow: auto;">
             <NewEvent />
@@ -16,7 +19,7 @@
             <SavedEvents OnEventoSeleccionado="AlSeleccionarEvento" CameraIp="@SelectedCameraIp" CameraPuerto="@SelectedCameraPuerto" CameraTipo="@SelectedCameraTipo" />
         </div>
         <div class="col p-2 h-100" style="overflow: hidden;">
-            <Video Evento="eventoSeleccionado" OnRequestGoLive="VolverAVivo" />
+            <Video Evento="@eventoSeleccionado" OnRequestGoLive="VolverAVivo" />
         </div>
     </div>
 </div>

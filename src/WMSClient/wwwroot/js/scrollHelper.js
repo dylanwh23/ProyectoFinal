@@ -81,22 +81,45 @@
       });
     },
 
-    // Convention: the viewer root has id="viewer-layout" (see CameraView.razor)
+    // Convention: the viewer root has id="video-viewer-section" (see Dashboard.razor)
     scrollToViewer: function () {
-      waitForElementById('viewer-layout').then((el) => {
+      waitForElementById('video-viewer-section').then((el) => {
         if (!el) return;
         // WMS usa un contenedor con overflow (.wms-container). Scrollearlo explícitamente.
         const wms = getWmsContainer();
-        const did = smoothScrollContainerToElement(wms, el);
-        if (!did) smoothScrollToElement(el);
+        if (wms) {
+          const containerRect = wms.getBoundingClientRect();
+          const elRect = el.getBoundingClientRect();
+          const delta = elRect.top - containerRect.top;
+          // Más offset para que el video quede más arriba (80px en lugar de 12px)
+          const top = Math.max(0, wms.scrollTop + delta - 80);
+          try {
+            wms.scrollTo({ top, behavior: 'smooth' });
+          } catch {
+            wms.scrollTop = top;
+          }
+        } else {
+          smoothScrollToElement(el);
+        }
 
         // Segundo intento: al cerrar la lista de eventos cambia el layout/altura.
         setTimeout(() => {
-          const el2 = document.getElementById('viewer-layout');
+          const el2 = document.getElementById('video-viewer-section');
           if (!el2) return;
           const wms2 = getWmsContainer();
-          const did2 = smoothScrollContainerToElement(wms2, el2);
-          if (!did2) smoothScrollToElement(el2);
+          if (wms2) {
+            const containerRect = wms2.getBoundingClientRect();
+            const elRect = el2.getBoundingClientRect();
+            const delta = elRect.top - containerRect.top;
+            const top = Math.max(0, wms2.scrollTop + delta - 80);
+            try {
+              wms2.scrollTo({ top, behavior: 'smooth' });
+            } catch {
+              wms2.scrollTop = top;
+            }
+          } else {
+            smoothScrollToElement(el2);
+          }
         }, 120);
       });
     }

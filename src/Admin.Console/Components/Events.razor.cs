@@ -4,6 +4,7 @@ using Admin.Console.Models.Components;
 using Shared.Contracts.Models;
 using System.Text.Json;
 using Admin.Console.Services;
+using Microsoft.JSInterop;
 
 namespace Admin.Console.Components
 {
@@ -12,6 +13,7 @@ namespace Admin.Console.Components
         [Inject] public HttpClient Http { get; set; } = default!;
         [Inject] public ILogger<Events> Logger { get; set; } = default!;
         [Inject] public RealtimeEventsService Realtime { get; set; } = default!;
+        [Inject] public IJSRuntime JS { get; set; } = default!;
         [Parameter] public EventCallback<AltaEventoModel> OnEventoSeleccionado { get; set; }
 
         public List<AltaEventoModel> Camaras { get; set; } = new();
@@ -25,6 +27,43 @@ namespace Admin.Console.Components
             await CargarCamaras();
         }
 
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender)
+            {
+                await JS.InvokeVoidAsync("blazorHelper.initEvents", DotNetObjectReference.Create(this), "Events");
+            }
+        }
+
+        [JSInvokable]
+        public async Task HandleAction(string component, string action, string cameraIp = null)
+        {
+            Logger.LogInformation("🎯 Acción recibida: {Action} para cámara {Ip}", action, cameraIp ?? "N/A");
+            
+            if (action == "Refresh")
+            {
+                await CargarCamaras();
+            }
+            else if (action == "Delete" && !string.IsNullOrEmpty(cameraIp))
+            {
+                await EliminarCamara(cameraIp);
+            }
+            else if (action == "Select" && !string.IsNullOrEmpty(cameraIp))
+            {
+                Logger.LogInformation("🔍 Buscando cámara con IP: {Ip}. Total cámaras: {Count}", cameraIp, Camaras.Count);
+                var camara = Camaras.FirstOrDefault(c => c.IpCamara == cameraIp);
+                if (camara != null)
+                {
+                    Logger.LogInformation("✅ Cámara encontrada: {Nombre}", camara.Nombre);
+                    await SeleccionarItem(camara);
+                }
+                else
+                {
+                    Logger.LogWarning("⚠️ No se encontró la cámara con IP: {Ip}", cameraIp);
+                }
+            }
+        }
+
         private async Task EnsureRealtimeAsync()
         {
             await Realtime.StartAsync();
@@ -36,6 +75,7 @@ namespace Admin.Console.Components
 
         public async Task CargarCamaras()
         {
+            Logger.LogInformation("🔄 Refrescando lista de cámaras...");
             IsLoading = true;
             StateHasChanged();
             try
@@ -79,9 +119,13 @@ namespace Admin.Console.Components
             }
         }
 
-        private Task SeleccionarItem(AltaEventoModel item)
+        private async Task SeleccionarItem(AltaEventoModel item)
         {
-            return OnEventoSeleccionado.InvokeAsync(item);
+            Logger.LogInformation("📹 Seleccionando cámara: {Nombre} ({Ip})", item.Nombre, item.IpCamara);
+            Logger.LogInformation("📤 Invocando OnEventoSeleccionado...");
+            await OnEventoSeleccionado.InvokeAsync(item);
+            Logger.LogInformation("✅ OnEventoSeleccionado invocado exitosamente");
+            StateHasChanged();
         }
 
         private async void HandleCameraUpserted(AltaEventoModel cam)

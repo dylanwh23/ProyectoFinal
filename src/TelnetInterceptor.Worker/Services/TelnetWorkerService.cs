@@ -122,11 +122,14 @@ public class TelnetWorkerService : BackgroundService
                 // 1. Preguntamos al Manager qué cámaras existen en BD
                 var camaras = await _cameraManager.ObtenerCamarasBd();
 
-                // Guard-rail: si por algún motivo transitorio la BD devuelve 0 cámaras,
-                // NO desconectamos todo (eso genera un bucle de reconexión infinito).
+                // Si no hay cámaras, desconectamos todas
                 if (camaras.Count == 0)
                 {
-                    _logger.LogWarning("⚠️ La BD devolvió 0 cámaras. Manteniendo conexiones actuales y reintentando.");
+                    _logger.LogInformation("📭 No hay cámaras registradas. Desconectando todas las conexiones activas.");
+                    foreach (var ip in _clients.Keys.ToList())
+                    {
+                        DesconectarCamara(ip);
+                    }
                     await Task.Delay(5000, stoppingToken);
                     continue;
                 }
@@ -348,7 +351,7 @@ public class TelnetWorkerService : BackgroundService
             var newLayout = new HashSet<string>(estantes.Keys, StringComparer.OrdinalIgnoreCase);
             var hadLayoutBefore = _gridEstantesDefinidosPorCamara.TryGetValue(cameraKey, out var previousLayout);
             var layoutChanged = false;
-            if (hadLayoutBefore)
+            if (hadLayoutBefore && previousLayout != null)
             {
                 if (!previousLayout.SetEquals(newLayout))
                 {

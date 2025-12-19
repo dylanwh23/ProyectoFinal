@@ -72,6 +72,23 @@ namespace Admin.Console.Components
             _watchdogTimer.AutoReset = true;
         }
 
+        protected override async Task OnAfterRenderAsync(bool firstRender)
+        {
+            if (firstRender)
+            {
+                await JS.InvokeVoidAsync("blazorHelper.initEvents", DotNetObjectReference.Create(this), "Video");
+            }
+        }
+
+        [JSInvokable]
+        public async Task HandleAction(string component, string action, string param = null)
+        {
+            if (action == "GoLive")
+            {
+                await RequestGoLive();
+            }
+        }
+
         protected override async Task OnParametersSetAsync()
         {
             // Si el Evento cambia a null (deselección), reseteamos el estado
@@ -92,6 +109,7 @@ namespace Admin.Console.Components
             }
 
             bool esGuardado = Evento.FromFrame != null && Evento.ToFrame != null;
+            
             bool eventoDistinto = _previousEvento == null
                 || Evento.Id != _previousEvento.Id
                 || Evento.FromFrame != _previousEvento.FromFrame
@@ -322,7 +340,6 @@ namespace Admin.Console.Components
             }
             catch (Exception ex)
             {
-                System.Console.WriteLine($"Error evento: {ex.Message}");
                 LabelCurrent = "Error evento";
                 StatusMessage = $"Error al cargar el evento '{Evento.Nombre}': {ex.Message}";
             }
@@ -343,17 +360,23 @@ namespace Admin.Console.Components
 
             _loopTimer.Elapsed += async (sender, e) =>
             {
-                if (FramesBuffer.Count == 0) return;
+                var count = FramesBuffer.Count;
+                if (count == 0) return;
+                
                 ShowFrame(currentIndex);
                 await InvokeAsync(() =>
                 {
                     SliderValue = currentIndex;
                     StateHasChanged();
                 });
-                currentIndex = (currentIndex + 1) % FramesBuffer.Count;
+                currentIndex = (currentIndex + 1) % count;
             };
 
             _loopTimer.AutoReset = true;
+            
+            // Mostrar el primer frame inmediatamente
+            ShowFrame(0);
+            
             _loopTimer.Start();
         }
 
@@ -447,12 +470,16 @@ namespace Admin.Console.Components
 
         private void ShowFrame(int index)
         {
-            if (index < 0 || index >= FramesBuffer.Count) return;
+            if (index < 0 || index >= FramesBuffer.Count) 
+            {
+                return;
+            }
 
             var filePath = FramesBuffer[index];
             var encodedPath = Uri.EscapeDataString(filePath);
 
-            ImageSource = $"{API_BASE}/api/frame/{_currentIp}?file={encodedPath}";
+            // Agregar timestamp para evitar caché del navegador
+            ImageSource = $"{API_BASE}/api/frame/{_currentIp}?file={encodedPath}&t={DateTime.Now.Ticks}";
 
             if (!_isEventoGuardado)
                 LabelCurrent = $"Frame -{FramesBuffer.Count - index}";

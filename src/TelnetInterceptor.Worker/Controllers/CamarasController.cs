@@ -10,13 +10,16 @@ public class CamaraController : ControllerBase
 {
     private readonly CameraManagerService _manager;
     private readonly TelnetWorkerService _telnetWorker;
+    private readonly IEventStorageService _eventStorageService;
 
     public CamaraController(
         CameraManagerService manager, 
-        TelnetWorkerService telnetWorker)
+        TelnetWorkerService telnetWorker,
+        IEventStorageService eventStorageService)
     {
         _manager = manager;
         _telnetWorker = telnetWorker;
+        _eventStorageService = eventStorageService;
     }
 
     [HttpGet]
@@ -78,6 +81,17 @@ public class CamaraController : ControllerBase
         if (exito) 
         {
             _telnetWorker.DesconectarCamara(ip);
+            
+            // Eliminar todos los eventos guardados de esta cámara
+            try
+            {
+                await _eventStorageService.DeleteEventsByCameraAsync(ip);
+            }
+            catch (Exception ex)
+            {
+                // Log pero no fallar la eliminación de la cámara
+                Console.WriteLine($"Error al eliminar eventos de cámara {ip}: {ex.Message}");
+            }
         }
 
         if (exito)

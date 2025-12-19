@@ -51,7 +51,7 @@
                             <i class="bi bi-film me-1"></i>Clip: @evt.FromFrame - @evt.ToFrame
                         </div>
                     </div>
-                    <button class="btn btn-sm btn-primary ms-2" @onclick="@(() => SeleccionarItem(evt))" @onclick:stopPropagation="true">
+                    <button type="button" class="btn btn-sm btn-primary ms-2" data-blazor-component="SavedEvents" data-blazor-action="ViewClip" data-event-id="@evt.Id">
                         <i class="bi bi-play-circle"></i> Ver clip
                     </button>
                 </div>
@@ -101,6 +101,29 @@
         if (!string.IsNullOrWhiteSpace(CameraIp))
         {
             await CargarEventos();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("blazorHelper.initEvents", DotNetObjectReference.Create(this), "SavedEvents");
+        }
+    }
+
+    [JSInvokable]
+    public async Task HandleAction(string component, string action, string eventIdStr = null)
+    {
+        Logger.LogInformation("🎯 SavedEvents - Acción recibida: {Action} para evento {Id}", action, eventIdStr ?? "N/A");
+        
+        if (action == "ViewClip" && long.TryParse(eventIdStr, out var eventId))
+        {
+            var evento = EventosGuardados.FirstOrDefault(e => e.Id == eventId);
+            if (evento != null)
+            {
+                await SeleccionarItem(evento);
+            }
         }
     }
 

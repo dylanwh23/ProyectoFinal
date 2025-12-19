@@ -10,10 +10,18 @@
     }
     else
     {
-        <img src="@ImageSource" 
-             class="video-display" 
-             onerror="@HandleImageError" 
-             alt="Video Feed" />
+        @if (IsLive)
+        {
+            <img src="@ImageSource" 
+                 class="video-display" 
+                 alt="Stream en Vivo" />
+        }
+        else
+        {
+            <img src="@ImageSource" 
+                 class="video-display" 
+                 alt="Clip Guardado" />
+        }
 
         @if (ShowNoSignal)
         {
@@ -44,8 +52,8 @@
             </button>
 
             @* BOTÓN SIEMPRE VISIBLE: Volver a ver en vivo *@
-            <button class="btn btn-sm @(IsLive ? "btn-outline-success" : "btn-success") btn-go-live ms-2" 
-                    @onclick="RequestGoLive" 
+            <button type="button" class="btn btn-sm @(IsLive ? "btn-outline-success" : "btn-success") btn-go-live ms-2" 
+                    data-blazor-component="Video" data-blazor-action="GoLive"
                     title="Volver a ver en vivo"
                     disabled="@IsLive">
                 <i class="bi bi-camera-video-fill"></i> 
@@ -65,11 +73,6 @@
                     <span>@LabelCurrent</span>
                 </div>
             </div>
-            
-            @* Botón de depuración / forzar carga *@
-            <button class="btn btn-sm btn-info ms-2" @onclick="ForcePlaySelectedEvent" title="Forzar carga del evento/stream">
-                <i class="bi bi-arrow-clockwise"></i> Cargar
-            </button>
 
             <button class="btn btn-sm btn-secondary ms-2" @onclick="ToggleFullscreen" title="Pantalla completa">
                 <i class="bi bi-fullscreen"></i>

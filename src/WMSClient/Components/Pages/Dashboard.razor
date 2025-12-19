@@ -190,7 +190,7 @@
               
 
                 <!-- Video Viewer Section -->
-                <section class="viewer-section">
+                <section class="viewer-section" id="video-viewer-section">
                     <div class="viewer-header">
                         <h4>
                             <i class="bi bi-play-circle"></i>
@@ -241,6 +241,7 @@
                                 var eventsList = GetGridEventsForBranch();
                                 <InventarioEventsList 
                                     Events="eventsList" 
+                                    ActiveEvent="ActiveCamera"
                                     OnClose="HideEventsList" 
                                     OnViewClip="ViewClipForEvent" />
                             }
@@ -267,6 +268,7 @@
                                 var eventsList = GetGridEventsForActiveCamera();
                                 <InventarioEventsList 
                                     Events="eventsList" 
+                                    ActiveEvent="ActiveCamera"
                                     OnClose="HideEventsList" 
                                     OnViewClip="ViewClipForEvent" />
                             }
@@ -636,11 +638,42 @@
             _ => ActiveCamera
         };
 
+        // Asegurar que la sección correcta esté expandida en la vista de planta
+        if (ActiveCamera != null && !string.IsNullOrEmpty(ActiveCamera.TipoEvento))
+        {
+            // Colapsar todas las secciones primero
+            ShowInventorySection = false;
+            ShowPalletSection = false;
+            ShowTruckSection = false;
+
+            // Expandir solo la sección del evento
+            var tipo = ActiveCamera.TipoEvento.ToLowerInvariant();
+            if (tipo.StartsWith("grid"))
+            {
+                ShowInventorySection = true;
+            }
+            else if (tipo.StartsWith("pallet"))
+            {
+                ShowPalletSection = true;
+            }
+            else if (tipo.StartsWith("camion"))
+            {
+                ShowTruckSection = true;
+            }
+        }
+
         ShowEventsList = false;
         CurrentEventType = null;
-        await Task.Delay(100);
+        
+        // Esperar a que Blazor renderice los cambios en la vista de planta antes de hacer scroll
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(400);
+        
         try
         {
+            await JS.InvokeVoidAsync("scrollHelper.scrollToViewer");
+            // Segundo intento después de que todo se haya acomodado
+            await Task.Delay(200);
             await JS.InvokeVoidAsync("scrollHelper.scrollToViewer");
         }
         catch (Exception ex)
@@ -660,6 +693,30 @@
             ActiveCamera.FrameInicio = null;
             ActiveCamera.FrameFin = null;
             ActiveCamera.EsEventoGuardado = false;
+
+            // Asegurar que la sección correcta esté expandida en la vista de planta
+            if (!string.IsNullOrEmpty(ActiveCamera.TipoEvento))
+            {
+                // Colapsar todas las secciones primero
+                ShowInventorySection = false;
+                ShowPalletSection = false;
+                ShowTruckSection = false;
+
+                // Expandir solo la sección de la cámara
+                var tipo = ActiveCamera.TipoEvento.ToLowerInvariant();
+                if (tipo.StartsWith("grid"))
+                {
+                    ShowInventorySection = true;
+                }
+                else if (tipo.StartsWith("pallet"))
+                {
+                    ShowPalletSection = true;
+                }
+                else if (tipo.StartsWith("camion"))
+                {
+                    ShowTruckSection = true;
+                }
+            }
         }
         ShowEventsList = false;
         CurrentEventType = null;
